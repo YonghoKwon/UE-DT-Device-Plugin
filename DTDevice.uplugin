@@ -1,0 +1,20 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"FriendlyName": "DT Device",
+	"Description": "DTCore-based virtual LiDAR/camera devices: acquisition, transport and common device panels.",
+	"Category": "Digital Twin",
+	"CanContainContent": true,
+	"Installed": false,
+	"Modules": [
+		{ "Name": "DeviceNative", "Type": "Runtime", "LoadingPhase": "PostConfigInit", "PlatformAllowList": [ "Win64" ] },
+		{ "Name": "DeviceRuntime", "Type": "Runtime", "LoadingPhase": "Default", "PlatformAllowList": [ "Win64" ] },
+		{ "Name": "DeviceUI", "Type": "Runtime", "LoadingPhase": "None", "PlatformAllowList": [ "Win64" ] }
+	],
+	"Plugins": [
+		{ "Name": "DTCore", "Enabled": true },
+		{ "Name": "Niagara", "Enabled": true },
+		{ "Name": "ProceduralMeshComponent", "Enabled": true }
+	]
+}
