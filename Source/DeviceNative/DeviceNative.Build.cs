@@ -6,7 +6,12 @@ public class DeviceNative : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		// Loaded at PostConfigInit for shader directory mapping; must not create DTCore UObjects that early.
-		PublicDependencyModuleNames.AddRange(new string[] { "Core" });
-		PrivateDependencyModuleNames.AddRange(new string[] { "Engine", "RenderCore", "RHI", "Projects" });
+		PublicDependencyModuleNames.Add("Core");
+		PrivateDependencyModuleNames.AddRange(new string[] { "Engine", "RenderCore", "RHI", "Renderer", "Projects" });
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PrivateDependencyModuleNames.Add("D3D12RHI");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
+		}
 	}
 }

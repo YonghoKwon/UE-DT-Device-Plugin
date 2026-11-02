@@ -1,4 +1,12 @@
+#include "SensorOwnedRayTracing.h"
 #include "Modules/ModuleManager.h"
 
-// DEVICE-PLUGIN-01 scaffold: sources move here in stage 2/3 (see host docs/DEVICE_PLUGIN_01_DESIGN.md).
-IMPLEMENT_MODULE(FDefaultModuleImpl,DeviceNative)
+// PostConfigInit: shader directory mapping must be installed before global shader types register.
+class FDeviceNativeModule final : public IModuleInterface
+{
+public:
+	virtual void StartupModule() override { SensorOwnedRayTracing::RegisterShaders(); }
+	virtual void ShutdownModule() override { SensorOwnedRayTracing::Shutdown(); }
+};
+
+IMPLEMENT_MODULE(FDeviceNativeModule, DeviceNative);
