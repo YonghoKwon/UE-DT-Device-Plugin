@@ -30,4 +30,4 @@ git submodule add https://github.com/YonghoKwon/UE-DT-Device-Plugin.git Plugins/
 
 ## 라이선스
 
-이 저장소에는 라이선스 파일이 없습니다. UE-DT-Project와 같은 정책이며, 저작권자가 모든 권리를 보유합니다.
+저작권 고지는 [LICENSE](LICENSE)를 따릅니다. 저작권자의 사전 서면 허가 없이 사용·복제·수정·배포할 수 없습니다.
