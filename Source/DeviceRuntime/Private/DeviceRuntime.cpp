@@ -1,4 +1,9 @@
 #include "Modules/ModuleManager.h"
-
-// DEVICE-PLUGIN-01 scaffold: sources move here in stage 2/3 (see host docs/DEVICE_PLUGIN_01_DESIGN.md).
-IMPLEMENT_MODULE(FDefaultModuleImpl,DeviceRuntime)
+#include "Device/Transport/VirtualSensorStreamReceiverRegistration.h"
+class FDeviceRuntimeModule final : public IModuleInterface
+{
+public:
+    void StartupModule() override {RegisterVirtualSensorStreamReceiverCodec();}
+    void ShutdownModule() override {UnregisterVirtualSensorStreamReceiverCodec();}
+};
+IMPLEMENT_MODULE(FDeviceRuntimeModule,DeviceRuntime)

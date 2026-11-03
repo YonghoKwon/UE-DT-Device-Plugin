@@ -1,0 +1,51 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
+#include "Device/Sensor/VirtualSensorRuntimeTypes.h"
+#include "VirtualSensorOutputComponent.generated.h"
+
+class UVirtualSensorRecorderComponent;
+class UVirtualSensorTransportComponent;
+class UVirtualSensorStreamPublisherComponent;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnVirtualSensorFrameRouted, const FString&, SensorId, int64, FrameId);
+
+UCLASS(ClassGroup = (DigitalTwin), meta = (BlueprintSpawnableComponent))
+class DEVICERUNTIME_API UVirtualSensorOutputComponent : public UActorComponent
+{
+	GENERATED_BODY()
+
+public:
+	UVirtualSensorOutputComponent();
+
+	void SetSharedServices(UVirtualSensorTransportComponent* InTransport, UVirtualSensorRecorderComponent* InRecorder, UVirtualSensorStreamPublisherComponent* InStreamPublisher = nullptr);
+	bool RouteFrame(const FVirtualSensorFrameEnvelope& Frame);
+	/** Routes an immutable acquisition frame to bounded streams before optional legacy JSON is ready. */
+	bool RouteAcquiredFrame(const FVirtualSensorFrameEnvelope& Frame);
+
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorOutput")
+	FString GetLastJsonPayload() const { return LastJsonPayload; }
+
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorOutput")
+	int64 GetLastRoutedFrameId() const { return LastRoutedFrameId; }
+
+	UPROPERTY(BlueprintAssignable, Category = "DigitalTwin|SensorOutput")
+	FOnVirtualSensorFrameRouted OnFrameRouted;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorOutput")
+	TObjectPtr<UVirtualSensorTransportComponent> TransportComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorOutput")
+	TObjectPtr<UVirtualSensorRecorderComponent> RecorderComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorOutput")
+	TObjectPtr<UVirtualSensorStreamPublisherComponent> StreamPublisherComponent;
+
+private:
+	FString BuildSensorType(EVirtualSensorKind Kind) const;
+
+	FString LastJsonPayload;
+	FString LastRoutedSensorId;
+	int64 LastRoutedFrameId = INDEX_NONE;
+};
