@@ -6,6 +6,6 @@ public class DTDeviceTestHost : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		// The host only proves that DTCore + DTDevice build and run without UE-DT-Project.
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "DTCore", "DeviceRuntime" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "DTCore", "DeviceRuntime", "DeviceUI" });
 	}
 }

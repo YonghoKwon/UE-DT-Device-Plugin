@@ -11,9 +11,7 @@ param(
         "MA0T10.CameraGroundTruth.IntrinsicsAndMaskBoxes", # camera intrinsics / boxes
         "HATCH26.StartupOracleRhi",                 # native vs RHI exact hit records
         "HATCH26.NativeSafetyPolicy",               # recovery/ban policy
-        "MA0T10.DevicePlugin"                       # shader folder resolves to the plugin
-        # Not here: MA0T10.LidarRegression.SemanticPsoTimeoutRecoveryRhi needs the host's semantic
-        # material asset and Slab label registration; it runs in UE-DT-Project until the assets move.
+        "MA0T10.DevicePlugin"                       # shader, moved assets and demo monitor (hit + Slab hit)
         # MA0T10.SensorReplay.* read UE-DT-Project Samples/*.csv fixtures; add them once fixtures move into the plugin.
     ),
 
@@ -28,17 +26,21 @@ $log = Join-Path $out "editor.log"
 $rhi = if ($NullRhi) { "-NullRHI" } else { "-d3d12" }
 $filter = ($Tests -join "+")
 & "$EngineRoot\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" (Join-Path $hostRoot "DTDeviceTestHost.uproject") $rhi -Unattended -NoSplash -NoSound -ResX=1920 -ResY=1080 `
-    "-ExecCmds=Automation RunTests $filter; Quit" "-TestExit=Automation Test Queue Empty" "-ReportExportPath=$out" "-abslog=$log" | Out-Null
+    "-ExecCmds=Automation RunTests $filter; Quit" "-TestExit=Automation Test Queue Empty" "-ReportExportPath=$out" "-abslog=$log" "-UserDir=$(Join-Path $out 'User')" | Out-Null
 
 $index = Join-Path $out "index.json"
 if (-not (Test-Path -LiteralPath $index)) { throw "No automation report at $index (see $log)" }
 $data = Get-Content -LiteralPath $index -Raw -Encoding UTF8 | ConvertFrom-Json
-$rows = @($data.tests | ForEach-Object { [PSCustomObject]@{ Test = $_.fullTestPath; State = $_.state } })
+$rows = @($data.tests | ForEach-Object {
+    $skips=@($_.entries | Where-Object { $_.event.message -match '\[OPT-IN SKIP\]' })
+    $state=if($_.state -eq 'Success' -and $skips.Count -gt 0){'Skipped'}else{$_.state}
+    [PSCustomObject]@{Test=$_.fullTestPath;State=$state;Reasons=@($skips|ForEach-Object {$_.event.message})}
+})
 # Keep the measured values the tests print (Hz, frames, records) next to pass/fail.
 $values = @(Select-String -LiteralPath $log -Pattern "actual[0-9.]+Hz|requested[0-9]+Hz|exact native/RHI|native=1 reason" | ForEach-Object { ($_.Line -replace '^\[.*?\]\[.*?\]', '').Trim() } | Select-Object -Unique)
-$failed = @($rows | Where-Object { $_.State -ne "Success" })
+$failed = @($rows | Where-Object { $_.State -notin @("Success","Skipped") })
 $summary = [PSCustomObject]@{
-    Utc = $stamp; Rhi = $rhi; Requested = $Tests; Ran = $rows.Count; Failed = $failed.Count
+    Utc = $stamp; Rhi = $rhi; Requested = $Tests; Ran = $rows.Count; Failed = $failed.Count; Skipped = @($rows|Where-Object State -eq "Skipped").Count
     Results = $rows; MeasuredValues = $values; Report = $out
 }
 $summary | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $out "summary.json") -Encoding UTF8

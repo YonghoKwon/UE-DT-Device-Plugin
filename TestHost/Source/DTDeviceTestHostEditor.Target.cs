@@ -7,6 +7,6 @@ public class DTDeviceTestHostEditorTarget : TargetRules
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V4;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_3;
-		ExtraModuleNames.Add("DTDeviceTestHost");
+		ExtraModuleNames.AddRange(new[] { "DTDeviceTestHost", "DTDeviceTestHostEditor" });
 	}
 }
