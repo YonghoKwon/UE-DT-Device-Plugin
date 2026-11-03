@@ -120,3 +120,7 @@ Native LiDAR 안전 상태는 소비 프로젝트의 `Saved/NativeLidarSafety`�
 배포 시 플러그인 `Content`, `Config`, `Shaders`와 세 모듈을 포함합니다. 프로젝트 서버 설정·개인 키·토큰을 가이드, 에셋, archive, Git에 넣지 않습니다. 저장소 `LICENSE`는 Copyright (c) 2026 YonghoKwon, 모든 권리 보유입니다.
 
 빈 C++ 소비 프로젝트 준비 예제: `TestHost/Scripts/prepare_guide_rehearsal.ps1 -DTCoreSource <고정-DTCore-폴더>`는 기존 파일을 덮지 않고 `TestHost/Saved/GuideRehearsal/GuideHost.uproject`를 만듭니다. 생성 후 해당 `GuideHostEditor`를 빌드하고 `-run=CreateDTDeviceDemo`로 데모를 생성한 뒤 엽니다. OPT-IN SocketFaults는 로컬 fault server를 주지 않으면 Skipped로 별도 보고합니다.
+
+### 빈 프로젝트의 DTCore 업무 설정
+
+이 최소 예제는 센서·모니터용입니다. 업무용 API/TransactionCode DataTable과 STOMP 서버를 구성하지 않은 새 프로젝트에서는 DTCore의 테이블 미설정·기본 연결 재시도 메시지가 남을 수 있습니다. 실제 업무 연동은 DTCore 문서에 따라 별도로 구성하며 공용 서버 설정을 자동으로 덮어쓰지 않습니다. 화면 확인용 자동 캡처는 `DisableAllScreenMessages`로 일시적인 화면 진단 문자열만 숨겼고, 원래 로그는 보존합니다. 이는 제품 기본값이나 센서 출력 정책의 변경이 아닙니다.

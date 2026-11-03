@@ -9,6 +9,10 @@
 #include "Device/Camera/VirtualCameraSensorActor.h"
 #include "DeviceUI/DeviceSensorMonitorHostActor.h"
 #include "DeviceUI/DeviceSensorMonitorPanel.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/SWindow.h"
+#include "ImageUtils.h"
+#include "Misc/FileHelper.h"
 
 class FCheckDTDeviceDemo final : public IAutomationLatentCommand
 {
@@ -30,6 +34,17 @@ public:
         Test->TestTrue(TEXT("Slab hit > 0"),SlabHits>0);
         auto* Panel=Host->GetPanel();
         if (!Test->TestNotNull(TEXT("panel created"),Panel)) return true;
+        FString ScreenshotPath;
+        if (FParse::Value(FCommandLine::Get(),TEXT("DTDeviceDemoScreenshot="),ScreenshotPath))
+        {
+            const auto Window=FSlateApplication::Get().FindWidgetWindow(Panel->TakeWidget());
+            TArray<FColor> Pixels; FIntVector Size; TArray64<uint8> Png;
+            if (Test->TestTrue(TEXT("offscreen demo screenshot"),Window.IsValid() && FSlateApplication::Get().TakeScreenshot(Window.ToSharedRef(),Pixels,Size)))
+            {
+                FImageUtils::PNGCompressImageArray(Size.X,Size.Y,Pixels,Png);
+                Test->TestTrue(TEXT("demo screenshot saved"),FFileHelper::SaveArrayToFile(Png,*ScreenshotPath));
+            }
+        }
         Panel->SelectSensor(Lidar); Panel->RefreshStatus();
         Test->TestEqual(TEXT("selected sensor"),Panel->GetSelectedSensor(),static_cast<AVirtualSensorActorBase*>(Lidar));
         Test->TestTrue(TEXT("status refreshed"),Panel->GetStatusText().Contains(Lidar->GetSensorId()));
