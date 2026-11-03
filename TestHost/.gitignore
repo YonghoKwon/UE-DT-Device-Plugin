@@ -6,3 +6,4 @@ Plugins/DTCore/
 Plugins/DTDevice
 *.sln
 .vs/
+TestHost.local.ini

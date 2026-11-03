@@ -1,0 +1,11 @@
+; Copy to TestHost.local.ini (git-ignored) to choose where TestHost takes DTCore from on this PC.
+
+[DTCore]
+; Git URL of the DTCore repository (internal repository OK), or a local DTCore folder
+; that contains DTCore.uplugin (linked as-is, not checked out by the script).
+; Source=https://gitlab.example.internal/dt/UE-DT-Core-Plugin.git
+; Source=D:\Repos\UE-DT-Core-Plugin
+
+; Branch, tag or commit for git sources. Leave empty for the validated commit
+; in Docs/Compatibility.md. Internal repositories may need their own branch here.
+; Ref=main

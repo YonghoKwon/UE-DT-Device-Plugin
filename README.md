@@ -36,8 +36,18 @@ git submodule add https://github.com/YonghoKwon/UE-DT-Device-Plugin.git Plugins/
 
 `TestHost/`는 DTCore와 DTDevice만으로 장치 기능을 빌드하고 측정해 보는 최소 프로젝트입니다. UE-DT-Project 없이도 플러그인이 동작하는지 확인할 때 씁니다.
 
+가장 간단한 방법은 `TestHost\Open_TestHost.bat`을 더블클릭하는 것입니다. 필요한 준비(DTCore 받기, DTDevice 연결, 빌드)를 한 뒤 Editor를 엽니다. 이미 준비된 PC에서는 확인만 하고 바로 엽니다.
+
+**DTCore를 가져올 곳 지정** (위에 있는 것이 우선)
+1. 명령줄: `Open_TestHost.bat <주소 또는 폴더> [브랜치/태그/커밋]`
+2. `TestHost/TestHost.local.ini`: `TestHost.local.ini.example`을 복사해 `[DTCore] Source=`, `Ref=`를 적습니다. 이 파일은 git에 올라가지 않으므로 내부망 주소를 적어도 됩니다.
+3. 환경 변수: `DTCORE_SOURCE`, `DTCORE_REF`
+4. 기본값: 공개 UE-DT-Core-Plugin의 검증된 커밋
+
+`Source`에는 git 주소(내부망 GitLab, Bitbucket, 파일 공유 저장소 등)나 이미 받아 둔 DTCore 폴더(`DTCore.uplugin`이 있는 폴더)를 적습니다. 폴더를 지정하면 받아 오지 않고 그대로 연결합니다. 검증된 커밋과 다른 DTCore를 쓰면 경고가 나오므로, 그때는 `run_measurements.ps1`로 다시 확인합니다.
+
 ```powershell
-powershell -ExecutionPolicy Bypass -File TestHost\Scripts\setup_testhost.ps1     # DTCore 고정 커밋 받기, Plugins\DTDevice 연결, Editor 빌드
+powershell -ExecutionPolicy Bypass -File TestHost\Scripts\setup_testhost.ps1     # 준비만 (-DTCoreSource, -DTCoreRef, -SkipBuild 사용 가능)
 powershell -ExecutionPolicy Bypass -File TestHost\Scripts\run_measurements.ps1   # 최소 측정 자동화(D3D12), Saved\Measurements\<UTC>\summary.json
 ```
 
