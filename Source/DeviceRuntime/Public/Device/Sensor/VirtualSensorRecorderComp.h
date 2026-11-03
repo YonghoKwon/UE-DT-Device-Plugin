@@ -4,7 +4,7 @@
 #include "Device/Contracts/VirtualSensorDefaults.h"
 #include "Components/ActorComponent.h"
 #include "Device/Sensor/VirtualImuTypes.h"
-#include "VirtualSensorRecorderComponent.generated.h"
+#include "VirtualSensorRecorderComp.generated.h"
 
 USTRUCT(BlueprintType)
 struct DEVICERUNTIME_API FVirtualSensorRecordedFrame
@@ -30,12 +30,12 @@ struct DEVICERUNTIME_API FVirtualSensorRecordedFrame
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVirtualSensorReplayFrame, const FVirtualSensorRecordedFrame&, Frame);
 
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualSensorRecorderComponent : public UActorComponent
+class DEVICERUNTIME_API UVirtualSensorRecorderComp : public UActorComponent
 {
     GENERATED_BODY()
 
 public:
-    UVirtualSensorRecorderComponent();
+    UVirtualSensorRecorderComp();
     void RecordImuSamples(const FString& Id,const TArray<FVirtualImuSample>& Samples);
     TArray<FVirtualImuSample> GetImuSamples(const FString& Id) const;
     void ClearImuSamples(const FString& Id) { ImuSamples.Remove(Id); ImuOverflow.Remove(Id); }

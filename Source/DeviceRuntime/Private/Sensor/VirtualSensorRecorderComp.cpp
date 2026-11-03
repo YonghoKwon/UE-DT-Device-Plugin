@@ -1,4 +1,4 @@
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include "Device/Contracts/DeviceIdentityPolicy.h"
 
 #include "Json.h"
@@ -6,7 +6,7 @@
 #include "Misc/Paths.h"
 #include "EngineUtils.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
-#include "Device/Sensor/VirtualSensorOutputComponent.h"
+#include "Device/Sensor/VirtualSensorOutputComp.h"
 
 namespace
 {
@@ -26,32 +26,32 @@ FString ReadPayloadIdentity(const FString& Json)
 }
 }
 
-UVirtualSensorRecorderComponent::UVirtualSensorRecorderComponent()
+UVirtualSensorRecorderComp::UVirtualSensorRecorderComp()
 {
     PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UVirtualSensorRecorderComponent::StartRecording()
+void UVirtualSensorRecorderComp::StartRecording()
 {
     if(GetWorld())for(TActorIterator<AVirtualSensorActorBase> It(GetWorld());It;++It)
-        if(It->OutputComponent&&It->OutputComponent->RecorderComponent==this)
+        if(It->OutputComp&&It->OutputComp->RecorderComp==this)
         {FString Error;if(!It->PrepareForDataCollection(Error))return;}
     bRecording = true;
 }
 
-void UVirtualSensorRecorderComponent::StopRecording()
+void UVirtualSensorRecorderComp::StopRecording()
 {
     bRecording = false;
 }
 
-void UVirtualSensorRecorderComponent::ClearRecording()
+void UVirtualSensorRecorderComp::ClearRecording()
 {
     ImuSamples.Reset();ImuOverflow.Reset();
     RecordedFrames.Reset();
     ReplayFrameIndex = 0;
 }
 
-void UVirtualSensorRecorderComponent::RecordJsonFrame(const FString& SensorId, const FString& SensorType, int64 FrameId, const FString& PayloadJson)
+void UVirtualSensorRecorderComp::RecordJsonFrame(const FString& SensorId, const FString& SensorType, int64 FrameId, const FString& PayloadJson)
 {
     if (!IsRecordingSensor(SensorId))
     {
@@ -67,7 +67,7 @@ void UVirtualSensorRecorderComponent::RecordJsonFrame(const FString& SensorId, c
     RecordedFrames.Add(Frame);
 }
 
-bool UVirtualSensorRecorderComponent::SaveSession(const FString& FileNamePrefix) const
+bool UVirtualSensorRecorderComp::SaveSession(const FString& FileNamePrefix) const
 {
     TArray<TSharedPtr<FJsonValue>> FramesJson;
     FramesJson.Reserve(RecordedFrames.Num());
@@ -97,7 +97,7 @@ bool UVirtualSensorRecorderComponent::SaveSession(const FString& FileNamePrefix)
     return FFileHelper::SaveStringToFile(Output, *LastSavedSessionPath);
 }
 
-bool UVirtualSensorRecorderComponent::LoadSessionFromFile(const FString& AbsoluteFilePath)
+bool UVirtualSensorRecorderComp::LoadSessionFromFile(const FString& AbsoluteFilePath)
 {
     FString JsonText;
     if (!FFileHelper::LoadFileToString(JsonText, *AbsoluteFilePath))
@@ -140,7 +140,7 @@ bool UVirtualSensorRecorderComponent::LoadSessionFromFile(const FString& Absolut
     return true;
 }
 
-bool UVirtualSensorRecorderComponent::GetRecordedFrame(int32 FrameIndex, FVirtualSensorRecordedFrame& OutFrame) const
+bool UVirtualSensorRecorderComp::GetRecordedFrame(int32 FrameIndex, FVirtualSensorRecordedFrame& OutFrame) const
 {
     if (!RecordedFrames.IsValidIndex(FrameIndex))
     {
@@ -151,7 +151,7 @@ bool UVirtualSensorRecorderComponent::GetRecordedFrame(int32 FrameIndex, FVirtua
     return true;
 }
 
-void UVirtualSensorRecorderComponent::StartReplay(float FramesPerSecond)
+void UVirtualSensorRecorderComp::StartReplay(float FramesPerSecond)
 {
     if (!GetWorld() || RecordedFrames.Num() <= 0)
     {
@@ -161,10 +161,10 @@ void UVirtualSensorRecorderComponent::StartReplay(float FramesPerSecond)
     ReplayFrameIndex = 0;
     const float Interval = 1.0f / FMath::Max(1.0f, FramesPerSecond);
     GetWorld()->GetTimerManager().ClearTimer(ReplayTimerHandle);
-    GetWorld()->GetTimerManager().SetTimer(ReplayTimerHandle, this, &UVirtualSensorRecorderComponent::ReplayNextFrame, Interval, true, 0.0f);
+    GetWorld()->GetTimerManager().SetTimer(ReplayTimerHandle, this, &UVirtualSensorRecorderComp::ReplayNextFrame, Interval, true, 0.0f);
 }
 
-void UVirtualSensorRecorderComponent::StopReplay()
+void UVirtualSensorRecorderComp::StopReplay()
 {
     if (GetWorld())
     {
@@ -172,7 +172,7 @@ void UVirtualSensorRecorderComponent::StopReplay()
     }
 }
 
-void UVirtualSensorRecorderComponent::ReplayNextFrame()
+void UVirtualSensorRecorderComp::ReplayNextFrame()
 {
     if (!RecordedFrames.IsValidIndex(ReplayFrameIndex))
     {
@@ -184,7 +184,7 @@ void UVirtualSensorRecorderComponent::ReplayNextFrame()
     ++ReplayFrameIndex;
 }
 
-FString UVirtualSensorRecorderComponent::BuildSessionPath(const FString& FileNamePrefix) const
+FString UVirtualSensorRecorderComp::BuildSessionPath(const FString& FileNamePrefix) const
 {
     const FString Directory = FPaths::Combine(FPaths::ProjectSavedDir(), SaveSubDirectory);
     IFileManager::Get().MakeDirectory(*Directory, true);
@@ -194,11 +194,11 @@ FString UVirtualSensorRecorderComponent::BuildSessionPath(const FString& FileNam
     return FPaths::Combine(Directory, FString::Printf(TEXT("%s_%s.json"), *Prefix, *Timestamp));
 }
 
-void UVirtualSensorRecorderComponent::RecordImuSamples(const FString& Id,const TArray<FVirtualImuSample>& Samples)
+void UVirtualSensorRecorderComp::RecordImuSamples(const FString& Id,const TArray<FVirtualImuSample>& Samples)
 {
     if(!ImuSamples.Contains(Id)&&ImuSamples.Num()>=16)return;
     auto& Buffer=ImuSamples.FindOrAdd(Id);const int32 Keep=FMath::Min(Samples.Num(),24000-Buffer.Num());
     Buffer.Append(Samples.GetData(),Keep);ImuOverflow.FindOrAdd(Id)+=Samples.Num()-Keep;
 }
-TArray<FVirtualImuSample> UVirtualSensorRecorderComponent::GetImuSamples(const FString& Id) const
+TArray<FVirtualImuSample> UVirtualSensorRecorderComp::GetImuSamples(const FString& Id) const
 {const auto* P=ImuSamples.Find(Id);return P?*P:TArray<FVirtualImuSample>();}

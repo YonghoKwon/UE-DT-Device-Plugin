@@ -6,7 +6,7 @@
 #include "ShaderCompiler.h"
 #include "RHIGlobals.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
 
 // Force only this private semantic scene to remain pending. Main depth capture,
@@ -27,7 +27,7 @@ public:
             Target->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);
             Target->GetStaticMeshComponent()->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube")));
             Target->SetActorLocation(FVector(1000,0,0));Target->SetActorScale3D(FVector(.5,8,4));
-            Lidar=World->SpawnActor<AVirtualLidarSensorActor>();Lidar->ScanComponent->StopScan();
+            Lidar=World->SpawnActor<AVirtualLidarSensorActor>();Lidar->ScanComp->StopScan();
             Backend=Lidar->GpuDepthProjectionComponent.Get();Backend->SetSemanticPsoPendingForTests(true);
             Request.bRequestSemantics=true;Request.HorizontalSamples=64;Request.VerticalChannels=16;
             Request.HorizontalFovDegrees=30;Request.MinVerticalAngleDegrees=-8;Request.MaxVerticalAngleDegrees=8;Request.MaxDistanceCm=5000;

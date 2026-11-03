@@ -1,8 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
-#include "Device/Sensor/VirtualLidarVisualizationComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
+#include "Device/Sensor/VirtualLidarVisualizationComp.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVirtualLidarColorModeTest, "MA0T10.SensorV2.LidarVisualization.ColorModes", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVirtualLidarProjectionMathTest, "MA0T10.SensorV2.LidarVisualization.ProjectionMath", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -14,7 +14,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVirtualLidarAcquisitionNotificationTest, "MA0T
 
 bool FVirtualLidarColorModeTest::RunTest(const FString& Parameters)
 {
-    UVirtualLidarScanComponent* Scan = NewObject<UVirtualLidarScanComponent>();
+    UVirtualLidarScanComp* Scan = NewObject<UVirtualLidarScanComp>();
     Scan->VerticalChannels = 4;
     FVirtualLidarPoint Point;
     Point.bHit = true;
@@ -22,29 +22,29 @@ bool FVirtualLidarColorModeTest::RunTest(const FString& Parameters)
     Point.ReturnIndex = 2;
     Point.SemanticLabel = TEXT("Unknown");
 
-    const FColor TurboNear = UVirtualLidarVisualizationComponent::ResolveDisplayColor(Scan, ELidarColorMode::DistanceTurbo, Point, 0.0f, 0.5f);
-    const FColor TurboFar = UVirtualLidarVisualizationComponent::ResolveDisplayColor(Scan, ELidarColorMode::DistanceTurbo, Point, 1.0f, 0.5f);
+    const FColor TurboNear = UVirtualLidarVisualizationComp::ResolveDisplayColor(Scan, ELidarColorMode::DistanceTurbo, Point, 0.0f, 0.5f);
+    const FColor TurboFar = UVirtualLidarVisualizationComp::ResolveDisplayColor(Scan, ELidarColorMode::DistanceTurbo, Point, 1.0f, 0.5f);
     TestNotEqual(TEXT("Turbo distance endpoints differ"), TurboNear, TurboFar);
-    TestNotEqual(TEXT("Viridis differs from Turbo"), UVirtualLidarVisualizationComponent::ResolveDisplayColor(Scan, ELidarColorMode::DistanceViridis, Point, 0.5f, 0.5f), UVirtualLidarVisualizationComponent::ResolveDisplayColor(Scan, ELidarColorMode::DistanceTurbo, Point, 0.5f, 0.5f));
-    TestEqual(TEXT("hit mask is white for a hit"), UVirtualLidarVisualizationComponent::ResolveDisplayColor(Scan, ELidarColorMode::HitMask, Point, 0.5f, 0.5f), FColor::White);
+    TestNotEqual(TEXT("Viridis differs from Turbo"), UVirtualLidarVisualizationComp::ResolveDisplayColor(Scan, ELidarColorMode::DistanceViridis, Point, 0.5f, 0.5f), UVirtualLidarVisualizationComp::ResolveDisplayColor(Scan, ELidarColorMode::DistanceTurbo, Point, 0.5f, 0.5f));
+    TestEqual(TEXT("hit mask is white for a hit"), UVirtualLidarVisualizationComp::ResolveDisplayColor(Scan, ELidarColorMode::HitMask, Point, 0.5f, 0.5f), FColor::White);
     Point.bHit = false;
-    TestEqual(TEXT("hit mask is black for a miss"), UVirtualLidarVisualizationComponent::ResolveDisplayColor(Scan, ELidarColorMode::HitMask, Point, 1.0f, 0.5f), FColor::Black);
+    TestEqual(TEXT("hit mask is black for a miss"), UVirtualLidarVisualizationComp::ResolveDisplayColor(Scan, ELidarColorMode::HitMask, Point, 1.0f, 0.5f), FColor::Black);
     return true;
 }
 
 bool FVirtualLidarProjectionMathTest::RunTest(const FString& Parameters)
 {
-    const FIntPoint CenterForward = UVirtualLidarVisualizationComponent::ProjectTopDown(FVector(500.0, 0.0, 0.0), 1000.0f, 101);
+    const FIntPoint CenterForward = UVirtualLidarVisualizationComp::ProjectTopDown(FVector(500.0, 0.0, 0.0), 1000.0f, 101);
     TestEqual(TEXT("top-down forward point is centered horizontally"), CenterForward.X, 50);
     TestEqual(TEXT("top-down half range is halfway up"), CenterForward.Y, 50);
-    const FIntPoint Elevated = UVirtualLidarVisualizationComponent::ProjectElevation(FVector(500.0, 0.0, 100.0), 1000.0f, -100.0f, 100.0f, 101, 101);
+    const FIntPoint Elevated = UVirtualLidarVisualizationComp::ProjectElevation(FVector(500.0, 0.0, 100.0), 1000.0f, -100.0f, 100.0f, 101, 101);
     TestEqual(TEXT("elevation half range maps to center X"), Elevated.X, 50);
     TestEqual(TEXT("maximum height maps to top row"), Elevated.Y, 0);
 	bool bInsideSlice = false;
-	const FIntPoint Slice = UVirtualLidarVisualizationComponent::ProjectForwardSlice(FVector(500.0, 20.0, 100.0), 0.0f, 1000.0f, -100.0f, 100.0f, 101, 101, bInsideSlice, 100.0f);
+	const FIntPoint Slice = UVirtualLidarVisualizationComp::ProjectForwardSlice(FVector(500.0, 20.0, 100.0), 0.0f, 1000.0f, -100.0f, 100.0f, 101, 101, bInsideSlice, 100.0f);
 	TestTrue(TEXT("point inside slice thickness is accepted"), bInsideSlice);
 	TestEqual(TEXT("forward slice maps local X to horizontal axis"), Slice.X, 50);
-	UVirtualLidarVisualizationComponent::ProjectForwardSlice(FVector(500.0, 80.0, 0.0), 0.0f, 1000.0f, -100.0f, 100.0f, 101, 101, bInsideSlice, 100.0f);
+	UVirtualLidarVisualizationComp::ProjectForwardSlice(FVector(500.0, 80.0, 0.0), 0.0f, 1000.0f, -100.0f, 100.0f, 101, 101, bInsideSlice, 100.0f);
 	TestFalse(TEXT("point outside slice thickness is rejected"), bInsideSlice);
 
 	TArray<FVirtualLidarPoint> WorldPoints;
@@ -58,10 +58,10 @@ bool FVirtualLidarProjectionMathTest::RunTest(const FString& Parameters)
 	FVector2D WorldCenter;
 	FVector2D WorldHalfExtent;
 	TestTrue(TEXT("world top-down auto-fit finds hit bounds"),
-		UVirtualLidarVisualizationComponent::CalculateWorldTopDownView(WorldPoints, FVector::ZeroVector, 10000.0f, WorldCenter, WorldHalfExtent));
+		UVirtualLidarVisualizationComp::CalculateWorldTopDownView(WorldPoints, FVector::ZeroVector, 10000.0f, WorldCenter, WorldHalfExtent));
 	TestEqual(TEXT("world top-down horizontal center uses World Y"), WorldCenter.X, 4000.0);
 	TestEqual(TEXT("world top-down vertical center uses World X"), WorldCenter.Y, 2000.0);
-	const FIntPoint WorldCenterPixel = UVirtualLidarVisualizationComponent::ProjectWorldTopDown(
+	const FIntPoint WorldCenterPixel = UVirtualLidarVisualizationComp::ProjectWorldTopDown(
 		FVector(2000.0, 4000.0, -999.0), WorldCenter, WorldHalfExtent, 0.0f, 101, 101);
 	TestEqual(TEXT("world Z does not affect floor-plan X"), WorldCenterPixel.X, 50);
 	TestEqual(TEXT("world Z does not affect floor-plan Y"), WorldCenterPixel.Y, 50);
@@ -72,15 +72,15 @@ bool FVirtualLidarProjectionMathTest::RunTest(const FString& Parameters)
 
 bool FVirtualLidarLegacyViewMappingTest::RunTest(const FString& Parameters)
 {
-    TestEqual(TEXT("legacy depth mode maps to Turbo"), UVirtualLidarVisualizationComponent::MapLegacyViewMode(EVirtualLidarViewMode::DepthGradient), ELidarColorMode::DistanceTurbo);
-    TestEqual(TEXT("legacy semantic mode maps to semantic color"), UVirtualLidarVisualizationComponent::MapLegacyViewMode(EVirtualLidarViewMode::ActorClassColor), ELidarColorMode::SemanticLabel);
-    TestEqual(TEXT("legacy grayscale round-trips without the old range bug"), UVirtualLidarVisualizationComponent::MapColorModeToLegacy(ELidarColorMode::DistanceGray), EVirtualLidarViewMode::IntensityGray);
+    TestEqual(TEXT("legacy depth mode maps to Turbo"), UVirtualLidarVisualizationComp::MapLegacyViewMode(EVirtualLidarViewMode::DepthGradient), ELidarColorMode::DistanceTurbo);
+    TestEqual(TEXT("legacy semantic mode maps to semantic color"), UVirtualLidarVisualizationComp::MapLegacyViewMode(EVirtualLidarViewMode::ActorClassColor), ELidarColorMode::SemanticLabel);
+    TestEqual(TEXT("legacy grayscale round-trips without the old range bug"), UVirtualLidarVisualizationComp::MapColorModeToLegacy(ELidarColorMode::DistanceGray), EVirtualLidarViewMode::IntensityGray);
     return true;
 }
 
 bool FVirtualLidarProjectionNavigationTest::RunTest(const FString& Parameters)
 {
-    UVirtualLidarVisualizationComponent* Visualization = NewObject<UVirtualLidarVisualizationComponent>();
+    UVirtualLidarVisualizationComp* Visualization = NewObject<UVirtualLidarVisualizationComp>();
     Visualization->PanProjectionView(ELidarMonitorProjectionMode::TopDown, FVector2D(40.0f, 20.0f), FVector2D(400.0f, 200.0f));
     Visualization->RotateProjectionView(ELidarMonitorProjectionMode::TopDown, 15.0f);
     Visualization->ZoomProjectionView(ELidarMonitorProjectionMode::TopDown, 2.0f);
@@ -134,7 +134,7 @@ bool FVirtualLidarFramePoseCoherenceTest::RunTest(const FString& Parameters)
 
 bool FVirtualLidarPreviewPolicyReversibleTest::RunTest(const FString& Parameters)
 {
-	UVirtualLidarScanComponent* Scan = NewObject<UVirtualLidarScanComponent>();
+	UVirtualLidarScanComp* Scan = NewObject<UVirtualLidarScanComp>();
 	FVirtualLidarPreviewPolicy Policy = Scan->GetPreviewPolicyState();
 	Policy.bHitOnly = true;
 	Scan->SetPreviewPolicyState(Policy);
@@ -150,7 +150,7 @@ bool FVirtualLidarPreviewPolicyReversibleTest::RunTest(const FString& Parameters
 
 bool FVirtualLidarAcquisitionNotificationTest::RunTest(const FString& Parameters)
 {
-    UVirtualLidarScanComponent* Scan = NewObject<UVirtualLidarScanComponent>();
+    UVirtualLidarScanComp* Scan = NewObject<UVirtualLidarScanComp>();
     bool bReceived = false;
     bool bPayloadWasStillPending = false;
     int64 ReceivedFrameId = INDEX_NONE;

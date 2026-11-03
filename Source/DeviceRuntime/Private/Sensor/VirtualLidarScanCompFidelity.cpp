@@ -1,9 +1,9 @@
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Core/VirtualSensorAcquisitionBackend.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 
-void UVirtualLidarScanComponent::BeginFidelityAcquisition(bool bCpu)
+void UVirtualLidarScanComp::BeginFidelityAcquisition(bool bCpu)
 {
     AcquisitionTargetMotion.Reset();
     AcquisitionSensorMotion = FVirtualSensorMotionSample();
@@ -40,7 +40,7 @@ void UVirtualLidarScanComponent::BeginFidelityAcquisition(bool bCpu)
         }
 }
 
-bool UVirtualLidarScanComponent::ResolveRollingHit(const FHitResult& Hit, const FVector& Direction,
+bool UVirtualLidarScanComp::ResolveRollingHit(const FHitResult& Hit, const FVector& Direction,
     const FTransform& Pose, double Seconds, float& Range, float& Incidence) const
 {
     FVirtualSensorMotionSample Motion;
@@ -59,7 +59,7 @@ bool UVirtualLidarScanComponent::ResolveRollingHit(const FHitResult& Hit, const 
     return VirtualLidarFidelity::RollingRange(Position, Normal, Direction, Pose, Motion, AcquisitionSensorMotion, Seconds, Range, Incidence);
 }
 
-void UVirtualLidarScanComponent::ApplyGpuFidelityPoint(FVirtualLidarPoint& Point,
+void UVirtualLidarScanComp::ApplyGpuFidelityPoint(FVirtualLidarPoint& Point,
     const FVirtualLidarDepthAcquisitionFrame& Frame, int32 Pixel, int32 RayIndex, float Range)
 {
     const FVector Direction = ScheduledScanTransform.TransformVectorNoScale(Point.LocalDirection).GetSafeNormal();

@@ -3,23 +3,23 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Device/Sensor/VirtualSensorRuntimeTypes.h"
-#include "VirtualSensorOutputComponent.generated.h"
+#include "VirtualSensorOutputComp.generated.h"
 
-class UVirtualSensorRecorderComponent;
-class UVirtualSensorTransportComponent;
-class UVirtualSensorStreamPublisherComponent;
+class UVirtualSensorRecorderComp;
+class UVirtualSensorTransportComp;
+class UVirtualSensorStreamPublisherComp;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnVirtualSensorFrameRouted, const FString&, SensorId, int64, FrameId);
 
 UCLASS(ClassGroup = (DigitalTwin), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualSensorOutputComponent : public UActorComponent
+class DEVICERUNTIME_API UVirtualSensorOutputComp : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	UVirtualSensorOutputComponent();
+	UVirtualSensorOutputComp();
 
-	void SetSharedServices(UVirtualSensorTransportComponent* InTransport, UVirtualSensorRecorderComponent* InRecorder, UVirtualSensorStreamPublisherComponent* InStreamPublisher = nullptr);
+	void SetSharedServices(UVirtualSensorTransportComp* InTransport, UVirtualSensorRecorderComp* InRecorder, UVirtualSensorStreamPublisherComp* InStreamPublisher = nullptr);
 	bool RouteFrame(const FVirtualSensorFrameEnvelope& Frame);
 	/** Routes an immutable acquisition frame to bounded streams before optional legacy JSON is ready. */
 	bool RouteAcquiredFrame(const FVirtualSensorFrameEnvelope& Frame);
@@ -34,13 +34,13 @@ public:
 	FOnVirtualSensorFrameRouted OnFrameRouted;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorOutput")
-	TObjectPtr<UVirtualSensorTransportComponent> TransportComponent;
+	TObjectPtr<UVirtualSensorTransportComp> TransportComp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorOutput")
-	TObjectPtr<UVirtualSensorRecorderComponent> RecorderComponent;
+	TObjectPtr<UVirtualSensorRecorderComp> RecorderComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorOutput")
-	TObjectPtr<UVirtualSensorStreamPublisherComponent> StreamPublisherComponent;
+	TObjectPtr<UVirtualSensorStreamPublisherComp> StreamPublisherComp;
 
 private:
 	FString BuildSensorType(EVirtualSensorKind Kind) const;

@@ -5,10 +5,10 @@
 #include "Editor.h"
 #include "EngineUtils.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
 #include "DeviceUI/DeviceSensorMonitorHostActor.h"
-#include "DeviceUI/DeviceSensorMonitorPanel.h"
+#include "DeviceUI/DxDeviceSensorMonitorPanel.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/SWindow.h"
 #include "ImageUtils.h"
@@ -28,7 +28,7 @@ public:
         for (TActorIterator<AVirtualCameraSensorActor> It(World);It;++It) Camera=*It;
         for (TActorIterator<ADeviceSensorMonitorHostActor> It(World);It;++It) Host=*It;
         if (!Test->TestNotNull(TEXT("LiDAR"),Lidar) || !Test->TestNotNull(TEXT("camera"),Camera) || !Test->TestNotNull(TEXT("monitor host"),Host)) return true;
-        auto* Scan=Lidar->ScanComponent.Get();
+        auto* Scan=Lidar->ScanComp.Get();
         Test->TestTrue(TEXT("LiDAR hit > 0"),Scan->GetLastHitPointCount()>0);
         int32 SlabHits=0; for (const auto& Point:Scan->GetLastPoints()) if (Point.bHit && Point.SemanticLabel==TEXT("Slab")) ++SlabHits;
         Test->TestTrue(TEXT("Slab hit > 0"),SlabHits>0);

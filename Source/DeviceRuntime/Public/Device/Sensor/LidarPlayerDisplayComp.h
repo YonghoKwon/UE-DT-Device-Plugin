@@ -1,15 +1,15 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/LineBatchComponent.h"
-#include "LidarPlayerDisplayComponent.generated.h"
+#include "LidarPlayerDisplayComp.generated.h"
 
 /** Ordinary player-view primitives, including restricted viewport rectangles. */
 UCLASS(NotBlueprintable,Transient)
-class DEVICERUNTIME_API ULidarPlayerDisplayComponent : public ULineBatchComponent
+class DEVICERUNTIME_API ULidarPlayerDisplayComp : public ULineBatchComponent
 {
     GENERATED_BODY()
 public:
-    ULidarPlayerDisplayComponent();
+    ULidarPlayerDisplayComp();
     UMaterialInterface* ResolveFixedPointMaterial() const;
     /** Fixed player point buffers; zero-size slots have zero area and never become returns. */
     bool bFixedPointSubmission=false;

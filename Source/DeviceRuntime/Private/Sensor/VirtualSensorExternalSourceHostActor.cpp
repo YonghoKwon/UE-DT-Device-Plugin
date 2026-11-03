@@ -1,6 +1,6 @@
 #include "Device/Sensor/VirtualSensorExternalSourceHostActor.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
 
 #include "Async/Async.h"
@@ -12,12 +12,12 @@
 #include "IStompMessage.h"
 #include "StompModule.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
-#include "Device/Sensor/CameraJsonLiveSourceComponent.h"
-#include "Device/Sensor/LidarCsvReplaySourceComponent.h"
-#include "Device/Sensor/LidarHttpJsonLiveSourceComponent.h"
-#include "Device/Sensor/LidarJsonLinesReplaySourceComponent.h"
-#include "Device/Sensor/LidarJsonLiveSourceComponent.h"
-#include "Device/Sensor/LidarUdpJsonLiveSourceComponent.h"
+#include "Device/Sensor/CameraJsonLiveSourceComp.h"
+#include "Device/Sensor/LidarCsvReplaySourceComp.h"
+#include "Device/Sensor/LidarHttpJsonLiveSourceComp.h"
+#include "Device/Sensor/LidarJsonLinesReplaySourceComp.h"
+#include "Device/Sensor/LidarJsonLiveSourceComp.h"
+#include "Device/Sensor/LidarUdpJsonLiveSourceComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "WebSocket/TransactionCodeMessage.h"
 
@@ -26,13 +26,13 @@ AVirtualSensorExternalSourceHostActor::AVirtualSensorExternalSourceHostActor()
 	PrimaryActorTick.bCanEverTick = false;
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
-	LidarCsvReplay = CreateDefaultSubobject<ULidarCsvReplaySourceComponent>(TEXT("LidarCsvReplay"));
-	LidarJsonLinesReplay = CreateDefaultSubobject<ULidarJsonLinesReplaySourceComponent>(TEXT("LidarJsonLinesReplay"));
-	LidarBufferedJson = CreateDefaultSubobject<ULidarJsonLiveSourceComponent>(TEXT("LidarBufferedJson"));
-	LidarHttpJson = CreateDefaultSubobject<ULidarHttpJsonLiveSourceComponent>(TEXT("LidarHttpJson"));
-	LidarUdpJson = CreateDefaultSubobject<ULidarUdpJsonLiveSourceComponent>(TEXT("LidarUdpJson"));
-	CameraBufferedJson = CreateDefaultSubobject<UCameraJsonLiveSourceComponent>(TEXT("CameraBufferedJson"));
-	for (URealSensorSourceComponent* Source : { static_cast<URealSensorSourceComponent*>(LidarCsvReplay), static_cast<URealSensorSourceComponent*>(LidarJsonLinesReplay), static_cast<URealSensorSourceComponent*>(LidarBufferedJson), static_cast<URealSensorSourceComponent*>(LidarHttpJson), static_cast<URealSensorSourceComponent*>(LidarUdpJson), static_cast<URealSensorSourceComponent*>(CameraBufferedJson) })
+	LidarCsvReplay = CreateDefaultSubobject<ULidarCsvReplaySourceComp>(TEXT("LidarCsvReplay"));
+	LidarJsonLinesReplay = CreateDefaultSubobject<ULidarJsonLinesReplaySourceComp>(TEXT("LidarJsonLinesReplay"));
+	LidarBufferedJson = CreateDefaultSubobject<ULidarJsonLiveSourceComp>(TEXT("LidarBufferedJson"));
+	LidarHttpJson = CreateDefaultSubobject<ULidarHttpJsonLiveSourceComp>(TEXT("LidarHttpJson"));
+	LidarUdpJson = CreateDefaultSubobject<ULidarUdpJsonLiveSourceComp>(TEXT("LidarUdpJson"));
+	CameraBufferedJson = CreateDefaultSubobject<UCameraJsonLiveSourceComp>(TEXT("CameraBufferedJson"));
+	for (URealSensorSourceComp* Source : { static_cast<URealSensorSourceComp*>(LidarCsvReplay), static_cast<URealSensorSourceComp*>(LidarJsonLinesReplay), static_cast<URealSensorSourceComp*>(LidarBufferedJson), static_cast<URealSensorSourceComp*>(LidarHttpJson), static_cast<URealSensorSourceComp*>(LidarUdpJson), static_cast<URealSensorSourceComp*>(CameraBufferedJson) })
 	{
 		Source->SetupAttachment(Root);
 		Source->bAutoStartSource = false;
@@ -60,13 +60,13 @@ void AVirtualSensorExternalSourceHostActor::BeginPlay()
 	AVirtualCameraSensorActor* Camera = nullptr;
 	for (TActorIterator<AVirtualLidarSensorActor> It(GetWorld()); It; ++It) { Lidar = *It; break; }
 	for (TActorIterator<AVirtualCameraSensorActor> It(GetWorld()); It; ++It) { Camera = *It; break; }
-	for (URealSensorSourceComponent* Source : { static_cast<URealSensorSourceComponent*>(LidarCsvReplay), static_cast<URealSensorSourceComponent*>(LidarJsonLinesReplay), static_cast<URealSensorSourceComponent*>(LidarBufferedJson), static_cast<URealSensorSourceComponent*>(LidarHttpJson), static_cast<URealSensorSourceComponent*>(LidarUdpJson) })
+	for (URealSensorSourceComp* Source : { static_cast<URealSensorSourceComp*>(LidarCsvReplay), static_cast<URealSensorSourceComp*>(LidarJsonLinesReplay), static_cast<URealSensorSourceComp*>(LidarBufferedJson), static_cast<URealSensorSourceComp*>(LidarHttpJson), static_cast<URealSensorSourceComp*>(LidarUdpJson) })
 	{
 		Source->TargetSensorActor = Lidar;
-		Source->TargetLidar = Lidar ? Lidar->ScanComponent : nullptr;
+		Source->TargetLidar = Lidar ? Lidar->ScanComp : nullptr;
 	}
 	CameraBufferedJson->TargetSensorActor = Camera;
-	CameraBufferedJson->TargetCamera = Camera ? Camera->CaptureComponent : nullptr;
+	CameraBufferedJson->TargetCamera = Camera ? Camera->CaptureComp : nullptr;
 
 	InitializeTopicReceiverRuntime();
 	if (bAutoStartTopicReceivers)

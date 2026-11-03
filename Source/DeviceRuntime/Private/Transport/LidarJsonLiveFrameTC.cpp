@@ -4,7 +4,7 @@
 #include "Json.h"
 #include "Engine/World.h"
 #include "UObject/UObjectIterator.h"
-#include "Device/Sensor/LidarJsonLiveSourceComponent.h"
+#include "Device/Sensor/LidarJsonLiveSourceComp.h"
 
 namespace
 {
@@ -124,19 +124,19 @@ FString BuildJsonLinesFromPayloadObject(const TSharedPtr<FJsonObject>& PayloadOb
     return JsonLines;
 }
 
-ULidarJsonLiveSourceComponent* FindJsonLiveSource(UWorld* World, const FString& SourceId)
+ULidarJsonLiveSourceComp* FindJsonLiveSource(UWorld* World, const FString& SourceId)
 {
     if (!World)
     {
         return nullptr;
     }
 
-    ULidarJsonLiveSourceComponent* SingleFallbackSource = nullptr;
+    ULidarJsonLiveSourceComp* SingleFallbackSource = nullptr;
     int32 FallbackSourceCount = 0;
 
-    for (TObjectIterator<ULidarJsonLiveSourceComponent> It; It; ++It)
+    for (TObjectIterator<ULidarJsonLiveSourceComp> It; It; ++It)
     {
-        ULidarJsonLiveSourceComponent* Source = *It;
+        ULidarJsonLiveSourceComp* Source = *It;
         if (!IsValid(Source) || Source->GetWorld() != World)
         {
             continue;
@@ -231,7 +231,7 @@ void ULidarJsonLiveFrameTC::ProcessStructData(const TSharedPtr<FTransactionCodeD
         return;
     }
 
-    ULidarJsonLiveSourceComponent* LiveSource = FindJsonLiveSource(GetWorld(), ParsedData->SourceId);
+    ULidarJsonLiveSourceComp* LiveSource = FindJsonLiveSource(GetWorld(), ParsedData->SourceId);
     if (!LiveSource)
     {
         UE_LOG(LogTemp, Warning, TEXT("[LidarJsonLiveFrameTC] ULidarJsonLiveSourceComponent not found. sourceId=%s"), *ParsedData->SourceId);

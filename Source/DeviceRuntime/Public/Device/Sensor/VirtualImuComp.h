@@ -2,18 +2,18 @@
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
 #include "Device/Sensor/VirtualImuTypes.h"
-#include "VirtualImuComponent.generated.h"
-class UVirtualSensorRecorderComponent;
-class UVirtualSensorStreamPublisherComponent;
+#include "VirtualImuComp.generated.h"
+class UVirtualSensorRecorderComp;
+class UVirtualSensorStreamPublisherComp;
 
 /** Explicitly attached only. No capture, scan, global subscription or default sensor creation. */
 UCLASS(ClassGroup=(DigitalTwin),meta=(BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualImuComponent : public USceneComponent
+class DEVICERUNTIME_API UVirtualImuComp : public USceneComponent
 {
     GENERATED_BODY()
 public:
-    UVirtualImuComponent();
-    static UVirtualImuComponent* Attach(AActor* Actor);
+    UVirtualImuComp();
+    static UVirtualImuComp* Attach(AActor* Actor);
     /** Native lifecycle path; keeps the source alive until its CSV is finalized. */
     bool RequestDetach(FString& Message);
     bool IsDetaching() const { return Detaching; }
@@ -34,8 +34,8 @@ public:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type Reason) override;
     virtual void TickComponent(float Delta,ELevelTick Type,FActorComponentTickFunction* Function) override;
-    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="DigitalTwin|IMU") TObjectPtr<UVirtualSensorRecorderComponent> Recorder;
-    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="DigitalTwin|IMU") TObjectPtr<UVirtualSensorStreamPublisherComponent> Publisher;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="DigitalTwin|IMU") TObjectPtr<UVirtualSensorRecorderComp> Recorder;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="DigitalTwin|IMU") TObjectPtr<UVirtualSensorStreamPublisherComp> Publisher;
     int32 Generation=0;
     int64 SampleCount=0;
     int64 BatchCount=0;

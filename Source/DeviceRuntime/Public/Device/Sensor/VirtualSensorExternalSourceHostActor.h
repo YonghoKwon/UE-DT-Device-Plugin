@@ -8,17 +8,17 @@
 #include "VirtualSensorExternalSourceHostActor.generated.h"
 
 class USceneComponent;
-class ULidarCsvReplaySourceComponent;
-class ULidarJsonLinesReplaySourceComponent;
-class ULidarJsonLiveSourceComponent;
-class ULidarHttpJsonLiveSourceComponent;
-class ULidarUdpJsonLiveSourceComponent;
-class UCameraJsonLiveSourceComponent;
+class ULidarCsvReplaySourceComp;
+class ULidarJsonLinesReplaySourceComp;
+class ULidarJsonLiveSourceComp;
+class ULidarHttpJsonLiveSourceComp;
+class ULidarUdpJsonLiveSourceComp;
+class UCameraJsonLiveSourceComp;
 class UTransactionCodeMessage;
 class UVirtualLidarStreamReceiverTC;
 class UVirtualCameraStreamReceiverTC;
 class UVirtualPointCloudStreamReceiverTC;
-class UVirtualSensorStreamPublisherComponent;
+class UVirtualSensorStreamPublisherComp;
 class ADeviceSensorCoordinator;
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnVirtualSensorUiReceiveCompletedNative,const FVirtualSensorTopicReceivedDataBase&);
 
@@ -64,12 +64,12 @@ public:
 	FString GetReceiverBrokerUrl() const;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<USceneComponent> Root;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarCsvReplaySourceComponent> LidarCsvReplay;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarJsonLinesReplaySourceComponent> LidarJsonLinesReplay;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarJsonLiveSourceComponent> LidarBufferedJson;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarHttpJsonLiveSourceComponent> LidarHttpJson;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarUdpJsonLiveSourceComponent> LidarUdpJson;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<UCameraJsonLiveSourceComponent> CameraBufferedJson;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarCsvReplaySourceComp> LidarCsvReplay;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarJsonLinesReplaySourceComp> LidarJsonLinesReplay;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarJsonLiveSourceComp> LidarBufferedJson;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarHttpJsonLiveSourceComp> LidarHttpJson;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarUdpJsonLiveSourceComp> LidarUdpJson;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<UCameraJsonLiveSourceComp> CameraBufferedJson;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource|TopicReceiver")
 	TObjectPtr<UVirtualLidarStreamReceiverTC> LidarTopicHandler;
@@ -115,7 +115,7 @@ private:
 	int64 ReceiverGeneration=0;
 	FString SelectionSignature;
 	FDelegateHandle SharedReceiveHandle, PublisherChangeHandle;
-	TWeakObjectPtr<UVirtualSensorStreamPublisherComponent> BoundPublisher;
+	TWeakObjectPtr<UVirtualSensorStreamPublisherComp> BoundPublisher;
 	FTimerHandle ReceiverRefreshTimer;
 	TMap<FString,double> ReceiveDrainDeadlines;
 	TMap<FString,int64> LastReceivedSequence;

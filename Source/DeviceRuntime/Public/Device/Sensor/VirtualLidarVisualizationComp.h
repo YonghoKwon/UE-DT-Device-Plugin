@@ -5,26 +5,26 @@
 #include "Device/Sensor/VirtualLidarSensorTypes.h"
 #include "Device/Sensor/VirtualLidarGeometry.h"
 #include "Device/Core/VirtualSensorResourceDiagnostics.h"
-#include "VirtualLidarVisualizationComponent.generated.h"
+#include "VirtualLidarVisualizationComp.generated.h"
 
 class UTexture2D;
 class UNiagaraComponent;
 class UNiagaraSystem;
 struct FStreamableHandle;
-class UVirtualLidarScanComponent;
+class UVirtualLidarScanComp;
 class ULineBatchComponent;
 
 UCLASS(ClassGroup = (DigitalTwin), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualLidarVisualizationComponent : public UStatusVisualizerCompBase
+class DEVICERUNTIME_API UVirtualLidarVisualizationComp : public UStatusVisualizerCompBase
 {
     GENERATED_BODY()
 
 public:
-    UVirtualLidarVisualizationComponent();
+    UVirtualLidarVisualizationComp();
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     FVirtualSensorResourceSnapshot GetResourceSnapshot() const;
 
-    void BindScanComponent(UVirtualLidarScanComponent* InScanComponent);
+    void BindScanComponent(UVirtualLidarScanComp* InScanComponent);
     void RefreshLatestFrame();
     /** Map-local presentation opt-in; never serialized or applied to measured points/payload. */
     void SetHeightJetPalette(bool Enabled,FName HeightLabel=NAME_None);
@@ -112,7 +112,7 @@ public:
 #endif
     static EVirtualLidarViewMode MapColorModeToLegacy(ELidarColorMode ColorMode);
     static FColor ResolveDisplayColor(
-        const UVirtualLidarScanComponent* ScanComponent,
+        const UVirtualLidarScanComp* ScanComp,
         ELidarColorMode ColorMode,
         const FVirtualLidarPoint& Point,
         float NormalizedDistance,
@@ -163,7 +163,7 @@ private:
     void UpdateRendererTelemetry(ELidarPointCloudRendererState State, int32 UploadedPoints, int32 VisiblePoints, const FString& Renderer, const FString& Message);
 
     UPROPERTY(Transient)
-    TObjectPtr<UVirtualLidarScanComponent> ScanComponent;
+    TObjectPtr<UVirtualLidarScanComp> ScanComp;
 
     UPROPERTY(Transient)
     TObjectPtr<UTexture2D> RangeTexture;

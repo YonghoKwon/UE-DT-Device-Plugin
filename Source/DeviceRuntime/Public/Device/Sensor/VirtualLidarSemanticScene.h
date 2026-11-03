@@ -6,14 +6,14 @@
 class UStaticMeshComponent;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
-class UVirtualLidarScanComponent;
+class UVirtualLidarScanComp;
 
 /** Private render world: no writes to source materials, stencil, visibility or collision. */
 class FVirtualLidarSemanticScene
 {
 public:
     FVirtualLidarSemanticScene();
-    bool Capture(UVirtualLidarScanComponent& Scan, const FVirtualLidarDepthAcquisitionRequest& Request, int32 Width, int32 Height);
+    bool Capture(UVirtualLidarScanComp& Scan, const FVirtualLidarDepthAcquisitionRequest& Request, int32 Width, int32 Height);
     bool Capture(UWorld* World, AActor* IgnoreOwner, const FTransform& Pose, float HorizontalFov, int32 Width, int32 Height, TFunctionRef<FName(const UPrimitiveComponent*)> Resolve, bool bRecordActorPaths=true, TFunction<bool(const UPrimitiveComponent*)> VisibilityFilter={}, bool bCaptureFidelity=false);
     UTextureRenderTarget2D* GetTarget() const;
     /** Capture accepts/fixes a snapshot; an async PSO may defer its one render pass. */
@@ -29,7 +29,7 @@ public:
     FString Status;
 private:
     FPreviewScene Scene;
-    USceneCaptureComponent2D* CaptureComponent = nullptr;
+    USceneCaptureComponent2D* CaptureComp = nullptr;
     struct FProxy { UStaticMeshComponent* Mesh = nullptr; int32 Id = 0; };
     TMap<TWeakObjectPtr<UStaticMeshComponent>, FProxy> Proxies;
     double NextDiscoveryTime = 0;

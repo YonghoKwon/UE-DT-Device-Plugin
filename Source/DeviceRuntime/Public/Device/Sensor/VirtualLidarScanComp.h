@@ -10,16 +10,16 @@
 #include "Device/Sensor/VirtualLidarPointModel.h"
 #include "Device/Sensor/VirtualLidarCadence.h"
 #include "Device/Contracts/VirtualSensorRayQuery.h"
-#include "VirtualLidarScanComponent.generated.h"
+#include "VirtualLidarScanComp.generated.h"
 
 class UInstancedStaticMeshComponent;
 class UMaterialInterface;
 class UStaticMesh;
 class UTexture2D;
-class UVirtualSensorTransportComponent;
-class UVirtualSensorRecorderComponent;
+class UVirtualSensorTransportComp;
+class UVirtualSensorRecorderComp;
 class UVirtualSensorSchedulerSubsystem;
-class UVirtualLidarSurfaceResponseComponent;
+class UVirtualLidarSurfaceResponseComp;
 class UVirtualLidarGpuDepthProjectionComponent;
 struct FVirtualLidarV2EncodeOptions;
 struct FVirtualLidarDepthAcquisitionFrame;
@@ -98,7 +98,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVirtualLidarFrameAcquired, int64,
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnVirtualLidarFrameAcquiredNative, int64);
 
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualLidarScanComponent : public USceneComponent, public IVirtualSensorScheduledTask
+class DEVICERUNTIME_API UVirtualLidarScanComp : public USceneComponent, public IVirtualSensorScheduledTask
 {
     GENERATED_BODY()
 
@@ -109,7 +109,7 @@ public:
 #if WITH_EDITOR
     virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-    UVirtualLidarScanComponent();
+    UVirtualLidarScanComp();
 private:
     FVirtualSensorRayQueryFactory RayQueryFactory;
     TSharedPtr<const IVirtualSensorRayQuery,ESPMode::ThreadSafe> ScheduledRayQuery;
@@ -275,10 +275,10 @@ public:
     void SetPreviewBackend(ELidarPointCloudPreviewBackend InBackend, bool bAllowExperimentalGpuBackend = false);
 
     UFUNCTION(BlueprintCallable, Category = "DigitalTwin|VirtualLidar|Transport")
-    void SetTransportComponent(UVirtualSensorTransportComponent* InTransportComponent);
+    void SetTransportComponent(UVirtualSensorTransportComp* InTransportComponent);
 
     UFUNCTION(BlueprintCallable, Category = "DigitalTwin|VirtualLidar|Recorder")
-    void SetRecorderComponent(UVirtualSensorRecorderComponent* InRecorderComponent);
+    void SetRecorderComponent(UVirtualSensorRecorderComp* InRecorderComponent);
 
     UFUNCTION(BlueprintCallable, Category = "DigitalTwin|VirtualLidar|PointCloudPreview")
     void SetPointCloudPreviewEnabled(bool bEnabled);
@@ -692,10 +692,10 @@ public:
     bool bIncludeSlabAnalysisInPayload = true;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualLidar|Transport")
-    TObjectPtr<UVirtualSensorTransportComponent> TransportComponent;
+    TObjectPtr<UVirtualSensorTransportComp> TransportComp;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualLidar|Recorder")
-    TObjectPtr<UVirtualSensorRecorderComponent> RecorderComponent;
+    TObjectPtr<UVirtualSensorRecorderComp> RecorderComp;
 
 public:
     /** Read-only backend diagnosis; does not initialize rendering or start a scan. */

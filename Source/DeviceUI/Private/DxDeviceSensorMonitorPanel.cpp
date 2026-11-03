@@ -1,4 +1,4 @@
-#include "DeviceUI/DeviceSensorMonitorPanel.h"
+#include "DeviceUI/DxDeviceSensorMonitorPanel.h"
 #include "DeviceUI/DeviceSensorMonitorBody.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -14,7 +14,7 @@
 #include "EngineUtils.h"
 #include "TimerManager.h"
 
-void UDeviceSensorMonitorPanel::NativeOnInitialized()
+void UDxDeviceSensorMonitorPanel::NativeOnInitialized()
 {
     Super::NativeOnInitialized();
     if (WidgetTree->RootWidget) return; // A BP may supply its own presentation through the public API.
@@ -26,7 +26,7 @@ void UDeviceSensorMonitorPanel::NativeOnInitialized()
     auto* Title=WidgetTree->ConstructWidget<UTextBlock>();
     Title->SetText(FText::FromString(TEXT("DTDevice — 센서 모니터"))); Box->AddChildToVerticalBox(Title);
     SensorList=WidgetTree->ConstructWidget<UComboBoxString>();
-    SensorList->OnSelectionChanged.AddDynamic(this,&UDeviceSensorMonitorPanel::HandleSelection);
+    SensorList->OnSelectionChanged.AddDynamic(this,&UDxDeviceSensorMonitorPanel::HandleSelection);
     Box->AddChildToVerticalBox(SensorList);
     auto AddButton=[&](const TCHAR* Caption)
     {
@@ -34,28 +34,28 @@ void UDeviceSensorMonitorPanel::NativeOnInitialized()
         auto* Label=WidgetTree->ConstructWidget<UTextBlock>(); Label->SetText(FText::FromString(Caption));
         Button->SetContent(Label); Box->AddChildToVerticalBox(Button); return Button;
     };
-    AddButton(TEXT("센서 목록 새로 고침"))->OnClicked.AddDynamic(this,&UDeviceSensorMonitorPanel::RefreshSensors);
-    AddButton(TEXT("1회 캡처"))->OnClicked.AddDynamic(this,&UDeviceSensorMonitorPanel::CaptureOnce);
-    AddButton(TEXT("미리보기 점 늘리기"))->OnClicked.AddDynamic(this,&UDeviceSensorMonitorPanel::MorePreview);
-    AddButton(TEXT("미리보기 점 줄이기"))->OnClicked.AddDynamic(this,&UDeviceSensorMonitorPanel::LessPreview);
+    AddButton(TEXT("센서 목록 새로 고침"))->OnClicked.AddDynamic(this,&UDxDeviceSensorMonitorPanel::RefreshSensors);
+    AddButton(TEXT("1회 캡처"))->OnClicked.AddDynamic(this,&UDxDeviceSensorMonitorPanel::CaptureOnce);
+    AddButton(TEXT("미리보기 점 늘리기"))->OnClicked.AddDynamic(this,&UDxDeviceSensorMonitorPanel::MorePreview);
+    AddButton(TEXT("미리보기 점 줄이기"))->OnClicked.AddDynamic(this,&UDxDeviceSensorMonitorPanel::LessPreview);
     Summary=WidgetTree->ConstructWidget<UTextBlock>(); Summary->SetAutoWrapText(true); Box->AddChildToVerticalBox(Summary);
     auto* PreviewSize=WidgetTree->ConstructWidget<USizeBox>();
     PreviewSize->SetWidthOverride(440); PreviewSize->SetHeightOverride(220);
     Preview=WidgetTree->ConstructWidget<UImage>(); PreviewSize->SetContent(Preview); Box->AddChildToVerticalBox(PreviewSize);
 }
 
-void UDeviceSensorMonitorPanel::NativeConstruct()
+void UDxDeviceSensorMonitorPanel::NativeConstruct()
 {
     Super::NativeConstruct(); RefreshSensors();
-    if (GetWorld()) GetWorld()->GetTimerManager().SetTimer(RefreshTimer,this,&UDeviceSensorMonitorPanel::RefreshStatus,.2f,true);
+    if (GetWorld()) GetWorld()->GetTimerManager().SetTimer(RefreshTimer,this,&UDxDeviceSensorMonitorPanel::RefreshStatus,.2f,true);
 }
-void UDeviceSensorMonitorPanel::NativeDestruct()
+void UDxDeviceSensorMonitorPanel::NativeDestruct()
 {
     if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(RefreshTimer);
     SelectedSensor.Reset(); Sensors.Reset(); LidarComp=nullptr; CameraComp=nullptr;
     Super::NativeDestruct();
 }
-void UDeviceSensorMonitorPanel::RefreshSensors()
+void UDxDeviceSensorMonitorPanel::RefreshSensors()
 {
     auto* Previous=SelectedSensor.Get(); Sensors.Reset(); bRefreshingList=true;
     if (SensorList) SensorList->ClearOptions();
@@ -67,24 +67,24 @@ void UDeviceSensorMonitorPanel::RefreshSensors()
     bRefreshingList=false;
     SelectSensor(Sensors.Contains(Previous)?Previous:(Sensors.Num()?Sensors[0].Get():nullptr));
 }
-void UDeviceSensorMonitorPanel::SelectSensor(AVirtualSensorActorBase* Sensor)
+void UDxDeviceSensorMonitorPanel::SelectSensor(AVirtualSensorActorBase* Sensor)
 {
     if (Sensor && Sensor->GetWorld()!=GetWorld()) return;
     SelectedSensor=Sensor;
     auto* Lidar=Cast<AVirtualLidarSensorActor>(Sensor); auto* Camera=Cast<AVirtualCameraSensorActor>(Sensor);
-    LidarComp=Lidar?Lidar->ScanComponent.Get():nullptr; CameraComp=Camera?Camera->CaptureComponent.Get():nullptr;
+    LidarComp=Lidar?Lidar->ScanComp.Get():nullptr; CameraComp=Camera?Camera->CaptureComp.Get():nullptr;
     bShowingLidar=LidarComp!=nullptr;
     const int32 Index=Sensors.IndexOfByKey(Sensor);
     if (SensorList && Index!=INDEX_NONE && SensorList->GetSelectedIndex()!=Index)
     { bRefreshingList=true; SensorList->SetSelectedIndex(Index); bRefreshingList=false; }
     RefreshStatus();
 }
-void UDeviceSensorMonitorPanel::HandleSelection(FString Item,ESelectInfo::Type)
+void UDxDeviceSensorMonitorPanel::HandleSelection(FString Item,ESelectInfo::Type)
 {
     if (bRefreshingList || !SensorList) return;
     const int32 Index=SensorList->FindOptionIndex(Item); SelectSensor(Sensors.IsValidIndex(Index)?Sensors[Index].Get():nullptr);
 }
-void UDeviceSensorMonitorPanel::RefreshStatus()
+void UDxDeviceSensorMonitorPanel::RefreshStatus()
 {
     if (!IsVisible()) return;
     auto* Sensor=SelectedSensor.Get();
@@ -107,9 +107,9 @@ void UDeviceSensorMonitorPanel::RefreshStatus()
         { FSlateBrush Brush=Preview->GetBrush(); Brush.SetResourceObject(Texture); Preview->SetBrush(Brush); }
     }
 }
-void UDeviceSensorMonitorPanel::CaptureOnce()
+void UDxDeviceSensorMonitorPanel::CaptureOnce()
 { if (auto* Sensor=SelectedSensor.Get()) { Sensor->CaptureSensorOnce(); RefreshStatus(); } }
-bool UDeviceSensorMonitorPanel::AdjustPreview(int32 Direction)
+bool UDxDeviceSensorMonitorPanel::AdjustPreview(int32 Direction)
 {
     auto* Sensor=SelectedSensor.Get(); if (!LidarComp || !Sensor || !Direction) return false;
     FVirtualSensorEditableState State; FString Error;
@@ -117,5 +117,5 @@ bool UDeviceSensorMonitorPanel::AdjustPreview(int32 Direction)
     State.MaxPreviewPoints=FMath::Clamp(State.MaxPreviewPoints+(Direction>0?1000:-1000),1000,100000);
     const bool Applied=Sensor->ApplyEditableState(State,Error); RefreshStatus(); return Applied;
 }
-void UDeviceSensorMonitorPanel::MorePreview() { AdjustPreview(1); }
-void UDeviceSensorMonitorPanel::LessPreview() { AdjustPreview(-1); }
+void UDxDeviceSensorMonitorPanel::MorePreview() { AdjustPreview(1); }
+void UDxDeviceSensorMonitorPanel::LessPreview() { AdjustPreview(-1); }

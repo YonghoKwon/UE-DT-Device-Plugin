@@ -13,14 +13,14 @@
 #include "Misc/Guid.h"
 #include "SocketSubsystem.h"
 #include "Sockets.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVirtualSensorTransportHttpPostLoopbackTest, "MA0T10.SensorTransport.HttpPostLoopbackAcceptance", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVirtualSensorTransportProfileTest, "MA0T10.SensorTransport.ArtemisProfileAndMessageLimit", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorTransportProfileTest::RunTest(const FString& Parameters)
 {
-	UVirtualSensorTransportComponent* Transport = NewObject<UVirtualSensorTransportComponent>();
+	UVirtualSensorTransportComp* Transport = NewObject<UVirtualSensorTransportComp>();
 	FVirtualSensorTransportProfile Profile;
 	Profile.BrokerUrl = TEXT("ws://127.0.0.1:61616");
 	Profile.LidarTopic = TEXT("topic.virtual.sensor.lidar.0");
@@ -298,7 +298,7 @@ private:
 
         FHttpServerModule::Get().StartAllListeners();
 
-        Transport = NewObject<UVirtualSensorTransportComponent>();
+        Transport = NewObject<UVirtualSensorTransportComp>();
         Test->TestNotNull(TEXT("transport component"), Transport.Get());
         if (!Transport.IsValid())
         {
@@ -403,7 +403,7 @@ private:
     FString ExhaustPayload;
     TSharedPtr<IHttpRouter> Router;
     FHttpRouteHandle RouteHandle;
-    TWeakObjectPtr<UVirtualSensorTransportComponent> Transport;
+    TWeakObjectPtr<UVirtualSensorTransportComp> Transport;
 };
 
 bool FVirtualSensorTransportHttpPostLoopbackTest::RunTest(const FString& Parameters)

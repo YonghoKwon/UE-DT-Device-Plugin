@@ -1,4 +1,4 @@
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 #include "Device/Core/VirtualSensorWireHeaders.h"
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
 
@@ -16,12 +16,12 @@
 #include "IStompMessage.h"
 #include "StompModule.h"
 
-UVirtualSensorTransportComponent::UVirtualSensorTransportComponent()
+UVirtualSensorTransportComp::UVirtualSensorTransportComp()
 {
     PrimaryComponentTick.bCanEverTick = false;
 }
 
-FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendJson(const FString& SensorId, const FString& SensorType, const FString& JsonText)
+FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJson(const FString& SensorId, const FString& SensorType, const FString& JsonText)
 {
     FVirtualSensorTransportResult Result;
     Result.DataLength = JsonText.Len();
@@ -57,7 +57,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendJson(const F
     return Result;
 }
 
-FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendJsonRequest(
+FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJsonRequest(
 	const FString& SensorId,
 	const FString& SensorType,
 	const FString& DataKind,
@@ -78,7 +78,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendJsonRequest(
 	return SendJson(SensorId, SensorType, JsonText);
 }
 
-FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendJsonStreamRequest(
+FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJsonStreamRequest(
 	const FString& SensorId,
 	const FString& SensorType,
 	const FString& DataKind,
@@ -100,7 +100,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendJsonStreamRe
 	return Result;
 }
 
-FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendStompBinaryStreamRequest(
+FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStompBinaryStreamRequest(
 	const TArray<uint8>& Bytes,
 	const FVirtualPointCloudBinaryMetadata& Metadata)
 {
@@ -135,7 +135,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendStompBinaryS
 	FStompHeader Headers = FVirtualSensorWireHeaders::EnginePcd(Metadata, Result.RequestId);
 
 	const double StartedSeconds = FPlatformTime::Seconds();
-	const TWeakObjectPtr<UVirtualSensorTransportComponent> WeakThis(this);
+	const TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
 	StompClient->Send(Result.Destination, Bytes, Headers, FStompRequestCompleted::CreateLambda(
 		[WeakThis, SubmittedResult = Result, StartedSeconds](bool bSuccess, const FString& Error)
 		{
@@ -158,7 +158,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendStompBinaryS
 	return Result;
 }
 
-void UVirtualSensorTransportComponent::ConfigureTransportProfile(const FVirtualSensorTransportProfile& InProfile)
+void UVirtualSensorTransportComp::ConfigureTransportProfile(const FVirtualSensorTransportProfile& InProfile)
 {
 	const bool bBrokerChanged = TransportProfile.BrokerUrl != InProfile.BrokerUrl || TransportProfile.UserName != InProfile.UserName || TransportProfile.AckTopic != InProfile.AckTopic;
 	TransportProfile = InProfile;
@@ -175,18 +175,18 @@ void UVirtualSensorTransportComponent::ConfigureTransportProfile(const FVirtualS
 	}
 }
 
-void UVirtualSensorTransportComponent::SetSessionCredentials(const FString& InPasscode, const FString& InBearerToken)
+void UVirtualSensorTransportComp::SetSessionCredentials(const FString& InPasscode, const FString& InBearerToken)
 {
 	SessionPasscode = InPasscode;
 	SessionBearerToken = InBearerToken;
 }
 
-bool UVirtualSensorTransportComponent::IsStompConnected() const
+bool UVirtualSensorTransportComp::IsStompConnected() const
 {
 	return StompClient.IsValid() && (bStompConnected.Load() || StompClient->IsConnected());
 }
 
-void UVirtualSensorTransportComponent::GetOutputServerConnection(bool& Connected,bool& Expected) const
+void UVirtualSensorTransportComp::GetOutputServerConnection(bool& Connected,bool& Expected) const
 {
 	const auto* Raw=GetWorld()?GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>():nullptr;
 	const bool CurrentRaw=Raw&&Raw->GetActiveProfile().BrokerUrl==TransportProfile.BrokerUrl&&Raw->GetActiveProfile().UserName==TransportProfile.UserName;
@@ -194,7 +194,7 @@ void UVirtualSensorTransportComponent::GetOutputServerConnection(bool& Connected
 	Expected=TransportMode==EVirtualSensorTransportMode::StompWebSocket&&(StompClient.IsValid()||(CurrentRaw&&Raw->IsHighThroughputTransportRunning()));
 }
 
-FVirtualSensorTransportResult UVirtualSensorTransportComponent::TestConnection()
+FVirtualSensorTransportResult UVirtualSensorTransportComp::TestConnection()
 {
 	UE_LOG(LogTemp, Display, TEXT("[SensorStreamTransport] connection test owner=%s mode=%d broker=%s"),
 		*GetNameSafe(GetOwner()), static_cast<int32>(TransportMode), *TransportProfile.BrokerUrl);
@@ -231,7 +231,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::TestConnection()
 	return Result;
 }
 
-FString UVirtualSensorTransportComponent::ResolveTopic(const FString& SensorType, const FString& DataKind) const
+FString UVirtualSensorTransportComp::ResolveTopic(const FString& SensorType, const FString& DataKind) const
 {
     if(SensorType==TEXT("imu")&&DataKind==TEXT("imu-stream"))return TEXT("topic.virtual.sensor.imu.0");
 	if (DataKind.Contains(TEXT("export"), ESearchCase::IgnoreCase) || DataKind.Contains(TEXT("pointcloud"), ESearchCase::IgnoreCase)) return TransportProfile.ExportTopic;
@@ -239,7 +239,7 @@ FString UVirtualSensorTransportComponent::ResolveTopic(const FString& SensorType
 	return TransportProfile.CameraTopic;
 }
 
-void UVirtualSensorTransportComponent::RequestStompReconnect()
+void UVirtualSensorTransportComp::RequestStompReconnect()
 {
 	++StompConnectionRevision;
 	bStompConnected.Store(false);
@@ -252,7 +252,7 @@ void UVirtualSensorTransportComponent::RequestStompReconnect()
 	EnsureStompClient();
 }
 
-bool UVirtualSensorTransportComponent::PrepareStompConnection(FString& Error)
+bool UVirtualSensorTransportComp::PrepareStompConnection(FString& Error)
 {
 	Error.Reset();
 	if(TransportMode!=EVirtualSensorTransportMode::StompWebSocket || TransportProfile.BrokerUrl.IsEmpty())
@@ -262,7 +262,7 @@ bool UVirtualSensorTransportComponent::PrepareStompConnection(FString& Error)
 	return true;
 }
 
-bool UVirtualSensorTransportComponent::BuildStompConnectHeaders(const FString& User, const FString& Passcode,
+bool UVirtualSensorTransportComp::BuildStompConnectHeaders(const FString& User, const FString& Passcode,
 	const FString& UpgradeToken, TMap<FName, FString>& OutHeaders, FString& OutError)
 {
 	OutHeaders.Reset(); OutError.Reset();
@@ -280,7 +280,7 @@ bool UVirtualSensorTransportComponent::BuildStompConnectHeaders(const FString& U
 	return true;
 }
 
-void UVirtualSensorTransportComponent::EnsureStompClient()
+void UVirtualSensorTransportComp::EnsureStompClient()
 {
 	FStompHeader Headers;
 	FString AuthError;
@@ -299,15 +299,15 @@ void UVirtualSensorTransportComponent::EnsureStompClient()
 	UE_LOG(LogTemp, Display, TEXT("[SensorStreamTransport] creating STOMP client owner=%s broker=%s"),
 		*GetNameSafe(GetOwner()), *TransportProfile.BrokerUrl);
 	StompClient = FStompModule::Get().CreateClient(TransportProfile.BrokerUrl, SessionBearerToken);
-	StompClient->OnConnected().AddUObject(this, &UVirtualSensorTransportComponent::HandleStompConnected);
-	StompClient->OnConnectionError().AddUObject(this, &UVirtualSensorTransportComponent::HandleStompFailure);
-	StompClient->OnError().AddUObject(this, &UVirtualSensorTransportComponent::HandleStompFailure);
-	StompClient->OnClosed().AddUObject(this, &UVirtualSensorTransportComponent::HandleStompFailure);
+	StompClient->OnConnected().AddUObject(this, &UVirtualSensorTransportComp::HandleStompConnected);
+	StompClient->OnConnectionError().AddUObject(this, &UVirtualSensorTransportComp::HandleStompFailure);
+	StompClient->OnError().AddUObject(this, &UVirtualSensorTransportComp::HandleStompFailure);
+	StompClient->OnClosed().AddUObject(this, &UVirtualSensorTransportComp::HandleStompFailure);
 	bStompConnecting.Store(true);
 	StompClient->Connect(Headers);
 }
 
-void UVirtualSensorTransportComponent::HandleStompConnected(const FString& ProtocolVersion, const FString& SessionId, const FString& ServerString)
+void UVirtualSensorTransportComp::HandleStompConnected(const FString& ProtocolVersion, const FString& SessionId, const FString& ServerString)
 {
 	LastResult=FVirtualSensorTransportResult();
 	++StompConnectionRevision;
@@ -324,7 +324,7 @@ void UVirtualSensorTransportComponent::HandleStompConnected(const FString& Proto
 	SubscribeToAckTopic();
 }
 
-void UVirtualSensorTransportComponent::HandleStompFailure(const FString& Error)
+void UVirtualSensorTransportComp::HandleStompFailure(const FString& Error)
 {
 	LastResult=FVirtualSensorTransportResult();
 	++StompConnectionRevision;
@@ -339,10 +339,10 @@ void UVirtualSensorTransportComponent::HandleStompFailure(const FString& Error)
 	OnDataSent.Broadcast(LastResult);
 }
 
-void UVirtualSensorTransportComponent::SubscribeToAckTopic()
+void UVirtualSensorTransportComp::SubscribeToAckTopic()
 {
 	if (!StompClient.IsValid() || !StompClient->IsConnected() || TransportProfile.AckTopic.IsEmpty() || !AckSubscriptionId.IsEmpty()) return;
-	TWeakObjectPtr<UVirtualSensorTransportComponent> WeakThis(this);
+	TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
 	AckSubscriptionId = StompClient->Subscribe(
 		TransportProfile.AckTopic,
 		FStompSubscriptionEvent::CreateLambda([WeakThis](const IStompMessage& Message)
@@ -363,7 +363,7 @@ void UVirtualSensorTransportComponent::SubscribeToAckTopic()
 		}));
 }
 
-void UVirtualSensorTransportComponent::HandleAckMessage(const IStompMessage& Message)
+void UVirtualSensorTransportComp::HandleAckMessage(const IStompMessage& Message)
 {
 	FString RequestId;
 	const FStompHeader& Headers = Message.GetHeader();
@@ -386,7 +386,7 @@ void UVirtualSensorTransportComponent::HandleAckMessage(const IStompMessage& Mes
 	OnDataSent.Broadcast(Result);
 }
 
-FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendStomp(
+FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStomp(
 	const FString& SensorId,
 	const FString& SensorType,
 	const FString& DataKind,
@@ -430,7 +430,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendStomp(
 	for (const auto& Pair : AdditionalHeaders) if (Pair.Key.StartsWith(TEXT("x-"))) Headers.Add(FName(*Pair.Key),Pair.Value);
 	const FString RequestId = Result.RequestId;
 	const FString Destination = Result.Destination;
-	TWeakObjectPtr<UVirtualSensorTransportComponent> WeakThis(this);
+	TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
 	if (!bRequestReceipt)
 	{
 		StompClient->Send(Result.Destination, JsonText, Headers);
@@ -467,7 +467,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendStomp(
 	return Result;
 }
 
-void UVirtualSensorTransportComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UVirtualSensorTransportComp::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	bStompConnected.Store(false);
 	bStompConnecting.Store(false);
@@ -482,7 +482,7 @@ void UVirtualSensorTransportComponent::EndPlay(const EEndPlayReason::Type EndPla
 	Super::EndPlay(EndPlayReason);
 }
 
-FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes)
+FVirtualSensorTransportResult UVirtualSensorTransportComp::SendBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes)
 {
     FVirtualSensorTransportResult Result;
     Result.DataLength = Bytes.Num();
@@ -520,7 +520,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendBinary(const
     return Result;
 }
 
-FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendHttpBinary(
+FVirtualSensorTransportResult UVirtualSensorTransportComp::SendHttpBinary(
     const FString& SensorId,
     const FString& SensorType,
     const FString& Extension,
@@ -565,13 +565,13 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendHttpBinary(
     Request->SetTimeout(static_cast<float>(FMath::Max(1, HttpTimeoutSeconds)));
     Request->SetContent(Bytes);
     const double StartedSeconds = FPlatformTime::Seconds();
-    const TWeakObjectPtr<UVirtualSensorTransportComponent> WeakThis(this);
+    const TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
     const FString RequestId = Result.RequestId;
     ++InFlightHttpRequestCount;
     Request->OnProcessRequestComplete().BindLambda([WeakThis, RequestId, StartedSeconds](FHttpRequestPtr, FHttpResponsePtr Response, bool bSucceeded)
     {
         if (!WeakThis.IsValid()) return;
-        UVirtualSensorTransportComponent* Self = WeakThis.Get();
+        UVirtualSensorTransportComp* Self = WeakThis.Get();
         Self->InFlightHttpRequestCount = FMath::Max(0, Self->InFlightHttpRequestCount - 1);
         FVirtualSensorTransportResult Completed = Self->LastResult;
         Completed.Protocol = TEXT("HTTP");
@@ -592,7 +592,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendHttpBinary(
     return Result;
 }
 
-FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendHttp(const FString& SensorId, const FString& SensorType, const FString& JsonText)
+FVirtualSensorTransportResult UVirtualSensorTransportComp::SendHttp(const FString& SensorId, const FString& SensorType, const FString& JsonText)
 {
     FVirtualSensorTransportResult Result;
     Result.DataLength = JsonText.Len();
@@ -636,7 +636,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SendHttp(const F
     return Result;
 }
 
-bool UVirtualSensorTransportComponent::SubmitHttpAttempt(
+bool UVirtualSensorTransportComp::SubmitHttpAttempt(
     const FString& SensorId,
     const FString& SensorType,
     const FString& JsonText,
@@ -653,7 +653,7 @@ bool UVirtualSensorTransportComponent::SubmitHttpAttempt(
     Request->SetTimeout(static_cast<float>(FMath::Max(1, HttpTimeoutSeconds)));
     Request->SetContentAsString(JsonText);
 
-    const TWeakObjectPtr<UVirtualSensorTransportComponent> WeakThis(this);
+    const TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
     Request->OnProcessRequestComplete().BindLambda([WeakThis, SensorId, SensorType, JsonText, AttemptIndex, SubmittedDataLength](FHttpRequestPtr /*RequestPtr*/, FHttpResponsePtr Response, bool bSucceeded)
     {
         if (!WeakThis.IsValid())
@@ -661,7 +661,7 @@ bool UVirtualSensorTransportComponent::SubmitHttpAttempt(
             return;
         }
 
-        UVirtualSensorTransportComponent* TransportComp = WeakThis.Get();
+        UVirtualSensorTransportComp* TransportComp = WeakThis.Get();
         const int32 ResponseCode = Response.IsValid() ? Response->GetResponseCode() : 0;
         const bool bResponseReceived = Response.IsValid();
         const bool bConnectionFailure = !bSucceeded || !bResponseReceived;
@@ -724,7 +724,7 @@ bool UVirtualSensorTransportComponent::SubmitHttpAttempt(
     return Request->ProcessRequest();
 }
 
-FVirtualSensorTransportResult UVirtualSensorTransportComponent::SaveJson(const FString& SensorId, const FString& SensorType, const FString& JsonText) const
+FVirtualSensorTransportResult UVirtualSensorTransportComp::SaveJson(const FString& SensorId, const FString& SensorType, const FString& JsonText) const
 {
     FVirtualSensorTransportResult Result;
     Result.DataLength = JsonText.Len();
@@ -736,7 +736,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SaveJson(const F
     return Result;
 }
 
-FVirtualSensorTransportResult UVirtualSensorTransportComponent::SaveBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes) const
+FVirtualSensorTransportResult UVirtualSensorTransportComp::SaveBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes) const
 {
     FVirtualSensorTransportResult Result;
     Result.DataLength = Bytes.Num();
@@ -748,7 +748,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComponent::SaveBinary(const
     return Result;
 }
 
-FString UVirtualSensorTransportComponent::BuildSavePath(const FString& SensorId, const FString& SensorType, const FString& Extension) const
+FString UVirtualSensorTransportComp::BuildSavePath(const FString& SensorId, const FString& SensorType, const FString& Extension) const
 {
     const FString SafeSensorId = SensorId.IsEmpty() ? TEXT("UNKNOWN_SENSOR") : SensorId;
     const FString Directory = FPaths::Combine(FPaths::ProjectSavedDir(), SaveSubDirectory, SafeSensorId);

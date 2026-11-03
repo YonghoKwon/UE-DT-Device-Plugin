@@ -1,8 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 #include "Device/Transport/VirtualPointCloudStreamReceiverTC.h"
 #include "HAL/PlatformMisc.h"
 #include "Misc/SecureHash.h"
@@ -14,9 +14,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FVirtualSensorStreamLatestFrameTest::RunTest(const FString& Parameters)
 {
-	UVirtualSensorTransportComponent* Transport = NewObject<UVirtualSensorTransportComponent>();
+	UVirtualSensorTransportComp* Transport = NewObject<UVirtualSensorTransportComp>();
 	Transport->TransportMode = EVirtualSensorTransportMode::LogOnly;
-	UVirtualSensorStreamPublisherComponent* Publisher = NewObject<UVirtualSensorStreamPublisherComponent>();
+	UVirtualSensorStreamPublisherComp* Publisher = NewObject<UVirtualSensorStreamPublisherComp>();
 	Publisher->SetTransportComponent(Transport);
 
 	FVirtualSensorStreamConfig Config;
@@ -55,7 +55,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FVirtualSensorStreamFormatRevisionTest::RunTest(const FString& Parameters)
 {
-	UVirtualSensorStreamPublisherComponent* Publisher = NewObject<UVirtualSensorStreamPublisherComponent>();
+	UVirtualSensorStreamPublisherComp* Publisher = NewObject<UVirtualSensorStreamPublisherComp>();
 	FVirtualSensorStreamConfig Config;
 	Config.StreamKind = EVirtualSensorStreamKind::PointCloud;
 	Config.SensorId = TEXT("LIDAR-REVISION");
@@ -88,7 +88,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FVirtualSensorConnectedNoLossQueueTest::RunTest(const FString& Parameters)
 {
-	UVirtualSensorStreamPublisherComponent* Publisher = NewObject<UVirtualSensorStreamPublisherComponent>();
+	UVirtualSensorStreamPublisherComp* Publisher = NewObject<UVirtualSensorStreamPublisherComp>();
 	FVirtualSensorStreamConfig Config;
 	Config.StreamKind = EVirtualSensorStreamKind::PointCloud;
 	Config.SensorId = TEXT("LIDAR-NO-LOSS");
@@ -142,7 +142,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FVirtualSensorStreamTopicRoutingTest::RunTest(const FString& Parameters)
 {
-	UVirtualSensorTransportComponent* Transport = NewObject<UVirtualSensorTransportComponent>();
+	UVirtualSensorTransportComp* Transport = NewObject<UVirtualSensorTransportComp>();
 	FVirtualSensorTransportProfile Profile;
 	Profile.CameraTopic = TEXT("camera-topic");
 	Profile.LidarTopic = TEXT("lidar-topic");
@@ -157,9 +157,9 @@ bool FVirtualSensorStreamTopicRoutingTest::RunTest(const FString& Parameters)
 
 bool FVirtualSensorStreamGlobalControlTest::RunTest(const FString& Parameters)
 {
-	UVirtualSensorTransportComponent* Transport = NewObject<UVirtualSensorTransportComponent>();
+	UVirtualSensorTransportComp* Transport = NewObject<UVirtualSensorTransportComp>();
 	Transport->TransportMode = EVirtualSensorTransportMode::LogOnly;
-	UVirtualSensorStreamPublisherComponent* Publisher = NewObject<UVirtualSensorStreamPublisherComponent>();
+	UVirtualSensorStreamPublisherComp* Publisher = NewObject<UVirtualSensorStreamPublisherComp>();
 	Publisher->SetTransportComponent(Transport);
 	FVirtualSensorStreamConfig Global;
 	Global.StreamKind = EVirtualSensorStreamKind::LidarPayload;
@@ -239,7 +239,7 @@ bool FVirtualSensorPointCloudSerializationTest::RunTest(const FString& Parameter
 		TArray<uint8> Bytes;
 		int32 PointCount = 0;
 		TestTrue(FString::Printf(TEXT("%s serialization succeeds"), *Case.Value),
-			UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
+			UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
 		TestEqual(FString::Printf(TEXT("%s extension"), *Case.Value), Extension, Case.Value);
 		TestEqual(FString::Printf(TEXT("%s includes hit only"), *Case.Value), PointCount, 1);
 		TestTrue(FString::Printf(TEXT("%s has bytes"), *Case.Value), !Bytes.IsEmpty());
@@ -252,7 +252,7 @@ bool FVirtualSensorPointCloudSerializationTest::RunTest(const FString& Parameter
 		TArray<uint8> Bytes;
 		int32 PointCount = 0;
 		TestTrue(TEXT("compact binary serialization succeeds"),
-			UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
+			UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
 		TestEqual(TEXT("compact binary extension"), Extension, FString(TEXT("vlb2")));
 		TestEqual(TEXT("compact binary includes the valid point"), PointCount, 1);
 		TestTrue(TEXT("compact binary includes a header and point record"), Bytes.Num() > 32);
@@ -264,7 +264,7 @@ bool FVirtualSensorPointCloudSerializationTest::RunTest(const FString& Parameter
 	TArray<uint8> LazBytes;
 	int32 LazPointCount = 0;
 	TestFalse(TEXT("LAZ without a real compressor is rejected"),
-		UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(Frame, LazConfig, LazExtension, LazBytes, LazPointCount, LazError));
+		UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, LazConfig, LazExtension, LazBytes, LazPointCount, LazError));
 	TestTrue(TEXT("LAZ rejection explains the missing compressor"), LazError.Contains(TEXT("LAZ")));
 	return true;
 }
@@ -325,7 +325,7 @@ bool FVirtualSensorBinaryPcdContractTest::RunTest(const FString& Parameters)
 	TArray<uint8> Bytes;
 	int32 PointCount = 0;
 	TestTrue(TEXT("filtered binary PCD serializes"),
-		UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
+		UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
 	TestEqual(TEXT("binary PCD extension"), Extension, FString(TEXT("pcd")));
 	TestEqual(TEXT("Tag, semantic and ROI groups are ANDed"), PointCount, 1);
 
@@ -352,7 +352,7 @@ bool FVirtualSensorBinaryPcdContractTest::RunTest(const FString& Parameters)
 	Bytes.Reset();
 	PointCount = -1;
 	TestTrue(TEXT("zero-point binary PCD remains a valid frame"),
-		UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
+		UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
 	TestEqual(TEXT("exclude rules take precedence"), PointCount, 0);
 	TestTrue(TEXT("zero-point PCD still carries its header"), Bytes.Num() > 100);
 
@@ -378,7 +378,7 @@ bool FVirtualSensorBinaryPcdContractTest::RunTest(const FString& Parameters)
 		Bytes.Reset();
 		PointCount = 0;
 		TestTrue(FString::Printf(TEXT("%d-point binary PCD serializes"), ScalePointCount),
-			UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(
+			UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(
 				ScaleFrame, ScaleConfig, Extension, Bytes, PointCount, Error));
 		TestEqual(FString::Printf(TEXT("%d-point PCD preserves every point"), ScalePointCount), PointCount, ScalePointCount);
 		TestTrue(FString::Printf(TEXT("%d-point PCD body stays below 16 MiB"), ScalePointCount), Bytes.Num() < 16 * 1024 * 1024);
@@ -419,7 +419,7 @@ bool FVirtualSensorBinaryPcdReceiverTest::RunTest(const FString& Parameters)
 	FString Extension, Error;
 	TArray<uint8> Bytes;
 	int32 PointCount = 0;
-	TestTrue(TEXT("receiver fixture serializes"), UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(
+	TestTrue(TEXT("receiver fixture serializes"), UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(
 		Frame, Config, Extension, Bytes, PointCount, Error));
 
 	uint8 Hash[FSHA1::DigestSize];
@@ -456,8 +456,8 @@ bool FVirtualSensorBinaryPcdReceiverTest::RunTest(const FString& Parameters)
 
 struct FVirtualSensorArtemisSmokeState
 {
-	TObjectPtr<UVirtualSensorTransportComponent> Transport;
-	TObjectPtr<UVirtualSensorStreamPublisherComponent> Publisher;
+	TObjectPtr<UVirtualSensorTransportComp> Transport;
+	TObjectPtr<UVirtualSensorStreamPublisherComp> Publisher;
 	double StartedSeconds = 0.0;
 	bool bFramesSubmitted = false;
 };
@@ -541,8 +541,8 @@ bool FVirtualSensorArtemisIntegrationSmokeTest::RunTest(const FString& Parameter
 		return true;
 	}
 	TSharedPtr<FVirtualSensorArtemisSmokeState> State = MakeShared<FVirtualSensorArtemisSmokeState>();
-	State->Transport = NewObject<UVirtualSensorTransportComponent>();
-	State->Publisher = NewObject<UVirtualSensorStreamPublisherComponent>();
+	State->Transport = NewObject<UVirtualSensorTransportComp>();
+	State->Publisher = NewObject<UVirtualSensorStreamPublisherComp>();
 	State->Transport->AddToRoot();
 	State->Publisher->AddToRoot();
 	FVirtualSensorTransportProfile Profile;

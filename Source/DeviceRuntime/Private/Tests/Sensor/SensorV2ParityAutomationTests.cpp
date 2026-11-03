@@ -3,7 +3,7 @@
 #include "Json.h"
 #include "Misc/AutomationTest.h"
 #include "Device/Camera/VirtualCameraPayloadCodec.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
     FSensorV2CameraPayloadParityTest,
@@ -56,7 +56,7 @@ bool FSensorV2CameraPayloadParityTest::RunTest(const FString& Parameters)
 
 bool FSensorV2LidarPayloadParityTest::RunTest(const FString& Parameters)
 {
-    UVirtualLidarScanComponent* Lidar = NewObject<UVirtualLidarScanComponent>();
+    UVirtualLidarScanComp* Lidar = NewObject<UVirtualLidarScanComp>();
     Lidar->SensorId = TEXT("LIDAR-V2-PARITY");
     Lidar->HorizontalSamples = 2;
     Lidar->VerticalChannels = 1;

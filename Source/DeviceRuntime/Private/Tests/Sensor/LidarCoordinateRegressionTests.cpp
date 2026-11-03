@@ -1,7 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
-#include "Device/Sensor/VirtualLidarVisualizationComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
+#include "Device/Sensor/VirtualLidarVisualizationComp.h"
 #include "Device/Sensor/VirtualLidarHeight.h"
 #include "Device/Core/VirtualPointCloudCoordinates.h"
 #include "Json.h"
@@ -36,7 +36,7 @@ bool FLidarPrePr16CoordinateContract::RunTest(const FString&)
         TArray<uint8> Bytes;
         FString Extension, Error;
         int32 Count = 0;
-        if (!TestTrue(TEXT("production serializer"), UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, Count, Error))) return false;
+        if (!TestTrue(TEXT("production serializer"), UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, Count, Error))) return false;
         const ANSICHAR* Marker = "DATA binary\n";
         int32 Start = INDEX_NONE;
         for (int32 I = 0; I + 12 <= Bytes.Num(); ++I)
@@ -59,7 +59,7 @@ bool FLidarPrePr16CoordinateContract::RunTest(const FString&)
         TestTrue(TEXT("25cm object remains 25cm above plate at every pose"), FMath::IsNearlyEqual(Restored[1].Z - Restored[0].Z, 25.0, 0.01));
         Config.PcdDataMode = EVirtualPcdDataMode::Ascii;
         Bytes.Reset();
-        if (!TestTrue(TEXT("legacy ASCII serializer"), UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, Count, Error))) return false;
+        if (!TestTrue(TEXT("legacy ASCII serializer"), UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, Count, Error))) return false;
         FUTF8ToTCHAR AsciiText(reinterpret_cast<const ANSICHAR*>(Bytes.GetData()), Bytes.Num());
         const FString Text(AsciiText.Length(), AsciiText.Get());
         const FString DataMarker(TEXT("DATA ascii\n"));
@@ -93,7 +93,7 @@ bool FLidarPcdPoseMetadata::RunTest(const FString&)
     FVirtualSensorStreamConfig Config; Config.PointCloudFormat = EVirtualPointCloudStreamFormat::PCD;
     Config.PcdDataMode = EVirtualPcdDataMode::Binary;
     TArray<uint8> Bytes; FString Extension, Error; int32 Count;
-    if (!TestTrue(TEXT("production serializer"), UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(Frame,Config,Extension,Bytes,Count,Error))) return false;
+    if (!TestTrue(TEXT("production serializer"), UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame,Config,Extension,Bytes,Count,Error))) return false;
     int32 End = 0; while (End < Bytes.Num() && Bytes[End] != '\n') ++End;
     const int32 Begin = ++End; while (End < Bytes.Num() && Bytes[End] != '\n') ++End;
     FUTF8ToTCHAR Header(reinterpret_cast<const ANSICHAR*>(Bytes.GetData() + Begin), End - Begin);
@@ -150,8 +150,8 @@ bool FLidarSurfaceOrderRegression::RunTest(const FString&)
     for (auto Mode : {ELidarMonitorProjectionMode::WorldTopDown, ELidarMonitorProjectionMode::TopDown, ELidarMonitorProjectionMode::RangeImage})
     {
         S.ProjectionMode = Mode;
-        const auto A = UVirtualLidarVisualizationComponent::BuildProjectionPixelsForTesting({Plate,Object}, S, FTransform::Identity);
-        const auto B = UVirtualLidarVisualizationComponent::BuildProjectionPixelsForTesting({Object,Plate}, S, FTransform::Identity);
+        const auto A = UVirtualLidarVisualizationComp::BuildProjectionPixelsForTesting({Plate,Object}, S, FTransform::Identity);
+        const auto B = UVirtualLidarVisualizationComp::BuildProjectionPixelsForTesting({Object,Plate}, S, FTransform::Identity);
         TestTrue(TEXT("surface selection independent of point array order"), A.Num() > 0 && A == B);
     }
     return true;

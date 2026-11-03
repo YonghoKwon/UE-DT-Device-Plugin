@@ -7,16 +7,16 @@
 #include "Device/Sensor/VirtualSensorDeviceProfileTypes.h"
 #include "Device/Sensor/VirtualSensorRuntimeTypes.h"
 #include "Device/Camera/VirtualCameraPayloadCodec.h"
-#include "Device/Camera/VirtualCameraGroundTruth.h"
+#include "Device/Camera/VirtualCameraGroundTruthComp.h"
 #include "Device/Core/VirtualSensorResourceDiagnostics.h"
 #include "VirtualCameraCaptureComponent.generated.h"
 
 class UTextureRenderTarget2D;
-class UVirtualSensorTransportComponent;
-class UVirtualSensorRecorderComponent;
+class UVirtualSensorTransportComp;
+class UVirtualSensorRecorderComp;
 class UVirtualSensorSchedulerSubsystem;
 class FRHIGPUTextureReadback;
-class UVirtualCameraGroundTruth;
+class UVirtualCameraGroundTruthComp;
 struct FVirtualCameraLocalReadbackState;
 struct FVirtualCameraPreviewFence;
 struct FVirtualCameraPreviewCompletion
@@ -71,9 +71,9 @@ public:
     void CancelGroundTruthSave();
     bool IsGroundTruthSavePending() const;
     void SetGroundTruthPreviewDemand(bool bEnabled);
-    UVirtualCameraGroundTruth* GetGroundTruth() const { return GroundTruth; }
+    UVirtualCameraGroundTruthComp* GetGroundTruth() const { return GroundTruth; }
     /** Explicit dataset session, stopped camera only. Asynchronous RGB + CAM-GT readback. */
-    bool CaptureDatasetFrame(UVirtualCameraGroundTruth& Destination,bool IncludeTruth=true);
+    bool CaptureDatasetFrame(UVirtualCameraGroundTruthComp& Destination,bool IncludeTruth=true);
 
 protected:
     virtual void BeginPlay() override;
@@ -143,10 +143,10 @@ public:
     void ApplySimulationQuality(EVirtualSensorSimulationQuality NewQuality);
 
     UFUNCTION(BlueprintCallable, Category = "DigitalTwin|VirtualCamera|Transport")
-    void SetTransportComponent(UVirtualSensorTransportComponent* InTransportComponent);
+    void SetTransportComponent(UVirtualSensorTransportComp* InTransportComponent);
 
     UFUNCTION(BlueprintCallable, Category = "DigitalTwin|VirtualCamera|Recorder")
-    void SetRecorderComponent(UVirtualSensorRecorderComponent* InRecorderComponent);
+    void SetRecorderComponent(UVirtualSensorRecorderComp* InRecorderComponent);
 
     UFUNCTION(BlueprintPure, Category = "DigitalTwin|VirtualCamera")
     UTextureRenderTarget2D* GetCameraRenderTarget() const { return CameraRenderTarget; }
@@ -224,13 +224,13 @@ public:
     TObjectPtr<UTextureRenderTarget2D> CameraRenderTarget;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualCamera|Transport")
-    TObjectPtr<UVirtualSensorTransportComponent> TransportComponent;
+    TObjectPtr<UVirtualSensorTransportComp> TransportComp;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualCamera|Recorder")
-    TObjectPtr<UVirtualSensorRecorderComponent> RecorderComponent;
+    TObjectPtr<UVirtualSensorRecorderComp> RecorderComp;
 
 private:
-    UPROPERTY(Transient) TObjectPtr<UVirtualCameraGroundTruth> GroundTruth;
+    UPROPERTY(Transient) TObjectPtr<UVirtualCameraGroundTruthComp> GroundTruth;
     bool bGroundTruthSaveRequested=false;
     FVirtualCameraTruthSaveCompletion GroundTruthSaveCompletion;
     double GroundTruthPreviewDemandUntil=0, NextGroundTruthPreview=0;

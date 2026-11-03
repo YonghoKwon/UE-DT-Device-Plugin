@@ -5,9 +5,9 @@
 #include "Components/ActorComponent.h"
 #include "Device/Sensor/VirtualSensorRuntimeTypes.h"
 #include "Device/Core/VirtualSensorResourceDiagnostics.h"
-#include "VirtualSensorStreamPublisherComponent.generated.h"
+#include "VirtualSensorStreamPublisherComp.generated.h"
 
-class UVirtualSensorTransportComponent;
+class UVirtualSensorTransportComp;
 struct FVirtualSensorTransportResult;
 struct FVirtualSensorStreamTelemetry;
 struct FVirtualSensorHighThroughputProfile;
@@ -18,7 +18,7 @@ struct FVirtualSensorHighThroughputProfile;
  * at most one in-flight item and one replaceable latest item.
  */
 UCLASS(ClassGroup = (DigitalTwin), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualSensorStreamPublisherComponent : public UActorComponent
+class DEVICERUNTIME_API UVirtualSensorStreamPublisherComp : public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -35,13 +35,13 @@ public:
 	bool bDefaultPcdCompression = true;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="DigitalTwin|VirtualSensor|PCD")
 	TMap<FString,FVirtualPcdSendOptions> PcdSendOptionsBySensor;
-	UVirtualSensorStreamPublisherComponent();
+	UVirtualSensorStreamPublisherComp();
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	void SetTransportComponent(UVirtualSensorTransportComponent* InTransportComponent);
+	void SetTransportComponent(UVirtualSensorTransportComp* InTransportComponent);
 	void SubmitFrame(const FVirtualSensorFrameEnvelope& Frame);
     void SubmitImuBatch(const FString& Id,int64 Batch,FDateTime Utc,const FString& Json);
 	bool NeedsCompatibilityLidarOutput(const FString& SensorId) const;
@@ -151,7 +151,7 @@ public:
 	float ReconnectCooldownSeconds = 5.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
-	TObjectPtr<UVirtualSensorTransportComponent> TransportComponent;
+	TObjectPtr<UVirtualSensorTransportComp> TransportComp;
 
 private:
 	TSet<FString> LocalCaptureSuspensions;

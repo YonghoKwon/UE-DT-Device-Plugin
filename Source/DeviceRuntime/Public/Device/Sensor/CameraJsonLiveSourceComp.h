@@ -1,19 +1,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Device/Sensor/RealSensorSourceComponent.h"
-#include "CameraJsonLiveSourceComponent.generated.h"
+#include "Device/Sensor/RealSensorSourceComp.h"
+#include "CameraJsonLiveSourceComp.generated.h"
 
 class UVirtualCameraCaptureComponent;
 class AVirtualSensorActorBase;
 
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UCameraJsonLiveSourceComponent : public URealSensorSourceComponent
+class DEVICERUNTIME_API UCameraJsonLiveSourceComp : public URealSensorSourceComp
 {
     GENERATED_BODY()
 
 public:
-    UCameraJsonLiveSourceComponent();
+    UCameraJsonLiveSourceComp();
 
     virtual bool StartSource() override;
     virtual void StopSource() override;

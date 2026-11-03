@@ -5,7 +5,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Device/Core/VirtualPcdBandwidthMetrics.h"
 #include "Device/Sensor/VirtualSensorRuntimeTypes.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 #include "Device/Contracts/VirtualSensorStreamReceiverTypes.h"
 #include "VirtualSensorHighThroughputTransportSubsystem.generated.h"
 

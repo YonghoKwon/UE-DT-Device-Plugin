@@ -1,9 +1,9 @@
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 #include "Misc/AutomationTest.h"
-#include "Device/Camera/VirtualCameraGroundTruth.h"
+#include "Device/Camera/VirtualCameraGroundTruthComp.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualSensorSemanticLabels.h"
 #include "Device/Sensor/VirtualSensorEditableTypes.h"
 #include "PreviewScene.h"
@@ -59,12 +59,12 @@ public:
                 auto* A=World->SpawnActor<AStaticMeshActor>();A->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);A->GetStaticMeshComponent()->SetStaticMesh(Cube);
                 A->Tags.Add(TEXT("Slab"));A->SetActorLocation(FVector(1000,N?200:-200,0));A->SetActorScale3D(FVector(.2,2,2));Targets.Add(A);
             }
-            Camera=World->SpawnActor<AVirtualCameraSensorActor>();auto* C=Camera->CaptureComponent.Get();C->StopCapture();C->CaptureMode=EVirtualCameraCaptureMode::PreviewOnly;C->CaptureResolution=FIntPoint(128,64);C->FOVAngle=60;
-            Scan=NewObject<UVirtualLidarScanComponent>(Camera);Scan->ResetDefaultSemanticClassRules();
+            Camera=World->SpawnActor<AVirtualCameraSensorActor>();auto* C=Camera->CaptureComp.Get();C->StopCapture();C->CaptureMode=EVirtualCameraCaptureMode::PreviewOnly;C->CaptureResolution=FIntPoint(128,64);C->FOVAngle=60;
+            Scan=NewObject<UVirtualLidarScanComp>(Camera);Scan->ResetDefaultSemanticClassRules();
             for(auto* A:Targets)Test->TestEqual(TEXT("canonical camera/LiDAR same Actor label"),VirtualSensorSemanticLabels::Resolve(A->GetStaticMeshComponent()),Scan->ResolveSemanticLabelForComponent(A->GetStaticMeshComponent()));
             World->SendAllEndOfFrameUpdates();C->CaptureAndSendImage();Test->TestNull(TEXT("disabled RGB capture allocates no truth service"),C->GetGroundTruth());C->SetGroundTruthEnabled(true);C->StartCapture();return false;
         }
-        auto* C=Camera->CaptureComponent.Get();
+        auto* C=Camera->CaptureComp.Get();
         if(Now-Started>60){Test->AddError(TEXT("truth RHI timeout: ")+(C->GetGroundTruth()?C->GetGroundTruth()->Status:FString()));return Finish();}
         if(Now-Started<2||(GShaderCompilingManager&&GShaderCompilingManager->IsCompiling()))return false;
         if(!Requested&&Now>=NextAttempt)
@@ -122,11 +122,11 @@ public:
         return Finish();
     }
 private:
-    bool Finish(){if(Camera)Camera->CaptureComponent->StopCapture();Scene.Reset();return true;}
+    bool Finish(){if(Camera)Camera->CaptureComp->StopCapture();Scene.Reset();return true;}
     FAutomationTestBase* Test;
     TUniquePtr<FPreviewScene> Scene;
     AVirtualCameraSensorActor* Camera=nullptr;
-    UVirtualLidarScanComponent* Scan=nullptr;
+    UVirtualLidarScanComp* Scan=nullptr;
     TArray<AStaticMeshActor*> Targets;
     TSet<uint32> FirstIds;
     double Started=0,NextAttempt=0;

@@ -4,7 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "Device/Camera/VirtualCameraPayloadCodec.h"
 #include "Device/Sensor/VirtualLidarSemanticScene.h"
-#include "VirtualCameraGroundTruth.generated.h"
+#include "VirtualCameraGroundTruthComp.generated.h"
 
 class UVirtualCameraCaptureComponent;
 class UTexture2D;
@@ -44,12 +44,12 @@ using FVirtualCameraTruthSaveCompletion=TFunction<void(const FVirtualCameraTruth
 
 /** Lazy, bounded opt-in capture. No transport, registration loop or source geometry writes. */
 UCLASS()
-class DEVICERUNTIME_API UVirtualCameraGroundTruth : public UActorComponent
+class DEVICERUNTIME_API UVirtualCameraGroundTruthComp : public UActorComponent
 {
     GENERATED_BODY()
 public:
-    UVirtualCameraGroundTruth();
-    virtual ~UVirtualCameraGroundTruth() override;
+    UVirtualCameraGroundTruthComp();
+    virtual ~UVirtualCameraGroundTruthComp() override;
     bool Capture(UVirtualCameraCaptureComponent& Source, const FVirtualCameraPayloadSnapshot& Snapshot, bool bSave, bool bDataset=false, bool bIncludeTruth=true, FVirtualCameraTruthSaveCompletion Completion={});
     void Cancel(const FString& Reason=TEXT("센서 변경 또는 종료로 정답 데이터 저장을 취소했습니다."));
     void Poll();

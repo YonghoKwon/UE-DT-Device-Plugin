@@ -1,10 +1,10 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "DeviceUI/DeviceSensorPanelBase.h"
-#include "DeviceSensorMonitorPanel.generated.h"
+#include "DeviceUI/DxDeviceSensorPanelBase.h"
+#include "DxDeviceSensorMonitorPanel.generated.h"
 
 class AVirtualSensorActorBase;
-class UVirtualLidarScanComponent;
+class UVirtualLidarScanComp;
 class UVirtualCameraCaptureComponent;
 class UComboBoxString;
 class UImage;
@@ -12,7 +12,7 @@ class UTextBlock;
 
 /** Standalone DTCore panel. Preview controls never change acquisition or server output. */
 UCLASS(Blueprintable)
-class DEVICEUI_API UDeviceSensorMonitorPanel : public UDeviceSensorPanelBase
+class DEVICEUI_API UDxDeviceSensorMonitorPanel : public UDxDeviceSensorPanelBase
 {
     GENERATED_BODY()
 public:
@@ -30,7 +30,7 @@ protected:
 private:
     friend struct FDeviceSensorMonitorBody;
     bool bShowingLidar=false;
-    UPROPERTY(Transient) TObjectPtr<UVirtualLidarScanComponent> LidarComp;
+    UPROPERTY(Transient) TObjectPtr<UVirtualLidarScanComp> LidarComp;
     UPROPERTY(Transient) TObjectPtr<UVirtualCameraCaptureComponent> CameraComp;
     UPROPERTY(Transient) TObjectPtr<UComboBoxString> SensorList;
     UPROPERTY(Transient) TObjectPtr<UTextBlock> Summary;
@@ -40,7 +40,7 @@ private:
     FTimerHandle RefreshTimer;
     FString StatusText;
     bool bRefreshingList=false;
-    const UVirtualLidarScanComponent* GetTargetLidarForPreview() const { return LidarComp; }
+    const UVirtualLidarScanComp* GetTargetLidarForPreview() const { return LidarComp; }
     UFUNCTION() void HandleSelection(FString Item, ESelectInfo::Type Type);
     UFUNCTION() void MorePreview();
     UFUNCTION() void LessPreview();

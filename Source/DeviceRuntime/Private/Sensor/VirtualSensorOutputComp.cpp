@@ -1,25 +1,25 @@
-#include "Device/Sensor/VirtualSensorOutputComponent.h"
+#include "Device/Sensor/VirtualSensorOutputComp.h"
 
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 
-UVirtualSensorOutputComponent::UVirtualSensorOutputComponent()
+UVirtualSensorOutputComp::UVirtualSensorOutputComp()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UVirtualSensorOutputComponent::SetSharedServices(
-	UVirtualSensorTransportComponent* InTransport,
-	UVirtualSensorRecorderComponent* InRecorder,
-	UVirtualSensorStreamPublisherComponent* InStreamPublisher)
+void UVirtualSensorOutputComp::SetSharedServices(
+	UVirtualSensorTransportComp* InTransport,
+	UVirtualSensorRecorderComp* InRecorder,
+	UVirtualSensorStreamPublisherComp* InStreamPublisher)
 {
-	TransportComponent = InTransport;
-	RecorderComponent = InRecorder;
-	StreamPublisherComponent = InStreamPublisher;
+	TransportComp = InTransport;
+	RecorderComp = InRecorder;
+	StreamPublisherComp = InStreamPublisher;
 }
 
-bool UVirtualSensorOutputComponent::RouteFrame(const FVirtualSensorFrameEnvelope& Frame)
+bool UVirtualSensorOutputComp::RouteFrame(const FVirtualSensorFrameEnvelope& Frame)
 {
 	if (!Frame.HasJsonPayload() || Frame.SensorId.IsEmpty())
 	{
@@ -36,26 +36,26 @@ bool UVirtualSensorOutputComponent::RouteFrame(const FVirtualSensorFrameEnvelope
 	LastJsonPayload = *Frame.JsonPayload;
 
 	const FString SensorType = BuildSensorType(Frame.SensorKind);
-	if (StreamPublisherComponent)
+	if (StreamPublisherComp)
 	{
-		StreamPublisherComponent->SubmitFrame(Frame);
+		StreamPublisherComp->SubmitFrame(Frame);
 	}
-	else if (TransportComponent && Frame.bSendTransport)
+	else if (TransportComp && Frame.bSendTransport)
 	{
-		TransportComponent->SendJson(Frame.SensorId, SensorType, LastJsonPayload);
+		TransportComp->SendJson(Frame.SensorId, SensorType, LastJsonPayload);
 	}
-	if (RecorderComponent && Frame.bRecord)
+	if (RecorderComp && Frame.bRecord)
 	{
-		RecorderComponent->RecordJsonFrame(Frame.SensorId, SensorType, Frame.FrameId, LastJsonPayload);
+		RecorderComp->RecordJsonFrame(Frame.SensorId, SensorType, Frame.FrameId, LastJsonPayload);
 	}
 
 	OnFrameRouted.Broadcast(Frame.SensorId, Frame.FrameId);
 	return true;
 }
 
-bool UVirtualSensorOutputComponent::RouteAcquiredFrame(const FVirtualSensorFrameEnvelope& Frame)
+bool UVirtualSensorOutputComp::RouteAcquiredFrame(const FVirtualSensorFrameEnvelope& Frame)
 {
-	if (Frame.SensorId.IsEmpty() || !StreamPublisherComponent)
+	if (Frame.SensorId.IsEmpty() || !StreamPublisherComp)
 	{
 		return false;
 	}
@@ -63,11 +63,11 @@ bool UVirtualSensorOutputComponent::RouteAcquiredFrame(const FVirtualSensorFrame
 	{
 		return false;
 	}
-	StreamPublisherComponent->SubmitFrame(Frame);
+	StreamPublisherComp->SubmitFrame(Frame);
 	return true;
 }
 
-FString UVirtualSensorOutputComponent::BuildSensorType(EVirtualSensorKind Kind) const
+FString UVirtualSensorOutputComp::BuildSensorType(EVirtualSensorKind Kind) const
 {
 	return Kind == EVirtualSensorKind::Camera ? TEXT("virtual_camera") : TEXT("virtual_lidar");
 }

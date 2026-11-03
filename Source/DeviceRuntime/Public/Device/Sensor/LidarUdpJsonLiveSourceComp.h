@@ -2,19 +2,19 @@
 
 #include "CoreMinimal.h"
 #include "Common/UdpSocketReceiver.h"
-#include "Device/Sensor/LidarJsonLiveSourceComponent.h"
-#include "LidarUdpJsonLiveSourceComponent.generated.h"
+#include "Device/Sensor/LidarJsonLiveSourceComp.h"
+#include "LidarUdpJsonLiveSourceComp.generated.h"
 
 class FSocket;
 struct FIPv4Endpoint;
 
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API ULidarUdpJsonLiveSourceComponent : public ULidarJsonLiveSourceComponent
+class DEVICERUNTIME_API ULidarUdpJsonLiveSourceComp : public ULidarJsonLiveSourceComp
 {
     GENERATED_BODY()
 
 public:
-    ULidarUdpJsonLiveSourceComponent();
+    ULidarUdpJsonLiveSourceComp();
 
     virtual bool StartSource() override;
     virtual void StopSource() override;

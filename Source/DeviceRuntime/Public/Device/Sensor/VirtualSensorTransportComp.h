@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "Device/Contracts/VirtualSensorDefaults.h"
 #include "Components/ActorComponent.h"
-#include "VirtualSensorTransportComponent.generated.h"
+#include "VirtualSensorTransportComp.generated.h"
 
 struct FVirtualPointCloudBinaryMetadata;
 
@@ -125,12 +125,12 @@ struct DEVICERUNTIME_API FVirtualSensorTransportResult
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVirtualSensorDataSent, const FVirtualSensorTransportResult&, Result);
 
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualSensorTransportComponent : public UActorComponent
+class DEVICERUNTIME_API UVirtualSensorTransportComp : public UActorComponent
 {
     GENERATED_BODY()
 
 public:
-    UVirtualSensorTransportComponent();
+    UVirtualSensorTransportComp();
 
     UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorTransport")
     FVirtualSensorTransportResult SendJson(const FString& SensorId, const FString& SensorType, const FString& JsonText);

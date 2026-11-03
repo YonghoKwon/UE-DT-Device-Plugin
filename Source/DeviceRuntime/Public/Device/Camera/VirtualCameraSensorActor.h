@@ -19,7 +19,7 @@ public:
 	AVirtualCameraSensorActor();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	TObjectPtr<UVirtualCameraCaptureComponent> CaptureComponent;
+	TObjectPtr<UVirtualCameraCaptureComponent> CaptureComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|EditorVisualization")
 	TObjectPtr<UDrawFrustumComponent> EditorFrustumComp;

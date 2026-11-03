@@ -3,12 +3,12 @@
 #include "Device/Core/VirtualSensorHitchDiagnostics.h"
 
 #include "Components/ArrowComponent.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
-#include "Device/Sensor/VirtualLidarAnalysisComponent.h"
-#include "Device/Sensor/VirtualLidarExportComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
+#include "Device/Sensor/VirtualLidarAnalysisComp.h"
+#include "Device/Sensor/VirtualLidarExportComp.h"
 #include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
-#include "Device/Sensor/VirtualLidarVisualizationComponent.h"
-#include "Device/Sensor/VirtualSensorOutputComponent.h"
+#include "Device/Sensor/VirtualLidarVisualizationComp.h"
+#include "Device/Sensor/VirtualSensorOutputComp.h"
 #include "Device/Core/VirtualSensorSchedulerSubsystem.h"
 #include "Device/Sensor/VirtualSensorEditableTypes.h"
 
@@ -16,14 +16,14 @@ AVirtualLidarSensorActor::AVirtualLidarSensorActor()
 {
     PrimaryActorTick.bCanEverTick = false;
 
-    ScanComponent = CreateDefaultSubobject<UVirtualLidarScanComponent>(TEXT("LidarScanComponent"));
-    RootComponent = ScanComponent;
-    AnalysisComponent = CreateDefaultSubobject<UVirtualLidarAnalysisComponent>(TEXT("LidarAnalysisComponent"));
-    VisualizationComponent = CreateDefaultSubobject<UVirtualLidarVisualizationComponent>(TEXT("LidarVisualizationComponent"));
-    ExportComponent = CreateDefaultSubobject<UVirtualLidarExportComponent>(TEXT("LidarExportComponent"));
+    ScanComp = CreateDefaultSubobject<UVirtualLidarScanComp>(TEXT("LidarScanComponent"));
+    RootComponent = ScanComp;
+    AnalysisComp = CreateDefaultSubobject<UVirtualLidarAnalysisComp>(TEXT("LidarAnalysisComponent"));
+    VisualizationComp = CreateDefaultSubobject<UVirtualLidarVisualizationComp>(TEXT("LidarVisualizationComponent"));
+    ExportComp = CreateDefaultSubobject<UVirtualLidarExportComp>(TEXT("LidarExportComponent"));
     GpuDepthProjectionComponent = CreateDefaultSubobject<UVirtualLidarGpuDepthProjectionComponent>(TEXT("LidarGpuDepthProjectionComponent"));
-    GpuDepthProjectionComponent->SetupAttachment(ScanComponent);
-    ScanComponent->BindGpuDepthProjectionComponent(GpuDepthProjectionComponent);
+    GpuDepthProjectionComponent->SetupAttachment(ScanComp);
+    ScanComp->BindGpuDepthProjectionComponent(GpuDepthProjectionComponent);
 
     EditorForwardArrowComp = CreateDefaultSubobject<UArrowComponent>(TEXT("EditorForwardArrowComp"));
     EditorForwardArrowComp->SetupAttachment(RootComponent);
@@ -35,67 +35,67 @@ AVirtualLidarSensorActor::AVirtualLidarSensorActor()
 void AVirtualLidarSensorActor::BeginPlay()
 {
     Super::BeginPlay();
-    if (ScanComponent)
+    if (ScanComp)
     {
-        ScanComponent->SetTransportComponent(nullptr);
-        ScanComponent->SetRecorderComponent(nullptr);
-        ScanComponent->OutputMode = EVirtualLidarOutputMode::None;
-        ScanComponent->OnFrameAcquired.AddDynamic(this, &AVirtualLidarSensorActor::HandleLidarFrameAcquired);
-        ScanComponent->OnDerivedFrameCompletedNative.AddUObject(this,&AVirtualLidarSensorActor::HandleDerivedLidarFrame);
-        if (AnalysisComponent) AnalysisComponent->BindScanComponent(ScanComponent);
-        if (VisualizationComponent) VisualizationComponent->BindScanComponent(ScanComponent);
-        if (ExportComponent) ExportComponent->BindScanComponent(ScanComponent);
+        ScanComp->SetTransportComponent(nullptr);
+        ScanComp->SetRecorderComponent(nullptr);
+        ScanComp->OutputMode = EVirtualLidarOutputMode::None;
+        ScanComp->OnFrameAcquired.AddDynamic(this, &AVirtualLidarSensorActor::HandleLidarFrameAcquired);
+        ScanComp->OnDerivedFrameCompletedNative.AddUObject(this,&AVirtualLidarSensorActor::HandleDerivedLidarFrame);
+        if (AnalysisComp) AnalysisComp->BindScanComponent(ScanComp);
+        if (VisualizationComp) VisualizationComp->BindScanComponent(ScanComp);
+        if (ExportComp) ExportComp->BindScanComponent(ScanComp);
     }
 }
 
-FString AVirtualLidarSensorActor::GetSensorId() const { return ScanComponent ? ScanComponent->SensorId : FString(); }
+FString AVirtualLidarSensorActor::GetSensorId() const { return ScanComp ? ScanComp->SensorId : FString(); }
 EVirtualSensorKind AVirtualLidarSensorActor::GetSensorKind() const { return EVirtualSensorKind::Lidar; }
-bool AVirtualLidarSensorActor::IsSensorRunning() const { return ScanComponent && ScanComponent->IsScanRunning(); }
-void AVirtualLidarSensorActor::StartSensor() { ++SensorRunControlRevision; if (ScanComponent) ScanComponent->StartScan(); }
-void AVirtualLidarSensorActor::StopSensor() { ++SensorRunControlRevision; if (ScanComponent) ScanComponent->StopScan(); }
-void AVirtualLidarSensorActor::CaptureSensorOnce() { if (ScanComponent) ScanComponent->ScanAndSend(); }
-UTexture* AVirtualLidarSensorActor::GetSensorPreviewTexture() const { return ScanComponent ? ScanComponent->GetLidarViewTexture() : nullptr; }
-FVirtualSensorRuntimeStatus AVirtualLidarSensorActor::GetSensorRuntimeStatus() const { return ScanComponent ? ScanComponent->GetRuntimeStatus() : FVirtualSensorRuntimeStatus(); }
+bool AVirtualLidarSensorActor::IsSensorRunning() const { return ScanComp && ScanComp->IsScanRunning(); }
+void AVirtualLidarSensorActor::StartSensor() { ++SensorRunControlRevision; if (ScanComp) ScanComp->StartScan(); }
+void AVirtualLidarSensorActor::StopSensor() { ++SensorRunControlRevision; if (ScanComp) ScanComp->StopScan(); }
+void AVirtualLidarSensorActor::CaptureSensorOnce() { if (ScanComp) ScanComp->ScanAndSend(); }
+UTexture* AVirtualLidarSensorActor::GetSensorPreviewTexture() const { return ScanComp ? ScanComp->GetLidarViewTexture() : nullptr; }
+FVirtualSensorRuntimeStatus AVirtualLidarSensorActor::GetSensorRuntimeStatus() const { return ScanComp ? ScanComp->GetRuntimeStatus() : FVirtualSensorRuntimeStatus(); }
 
 bool AVirtualLidarSensorActor::SubmitExternalFrame(const FVirtualSensorFrameEnvelope& Frame, bool bSendTransport)
 {
-    if (!ScanComponent || Frame.SensorKind != EVirtualSensorKind::Lidar || !Frame.PointSnapshot.IsValid()) return false;
+    if (!ScanComp || Frame.SensorKind != EVirtualSensorKind::Lidar || !Frame.PointSnapshot.IsValid()) return false;
     PendingExternalSendTransport = bSendTransport;
-    ScanComponent->InjectPointCloudFrame(*Frame.PointSnapshot, false);
+    ScanComp->InjectPointCloudFrame(*Frame.PointSnapshot, false);
     return true;
 }
 
 bool AVirtualLidarSensorActor::ReadEditableState(FVirtualSensorEditableState& OutState) const
 {
-    if (!ScanComponent) return false;
+    if (!ScanComp) return false;
     OutState.TargetKind = EVirtualSensorTargetKind::Lidar;
-    OutState.OriginalSensorId = ScanComponent->SensorId;
-    OutState.SensorId = ScanComponent->SensorId;
+    OutState.OriginalSensorId = ScanComp->SensorId;
+    OutState.SensorId = ScanComp->SensorId;
     OutState.ActorTransform = GetActorTransform();
-    OutState.SimulationQuality = ScanComponent->SimulationQuality;
-    OutState.LidarProfile = ScanComponent->DeviceProfile;
-    OutState.LidarScanInterval = ScanComponent->ScanInterval;
-    OutState.LidarMaxDistance = ScanComponent->MaxDistance;
-    OutState.LidarHorizontalSamples = ScanComponent->HorizontalSamples;
-    OutState.LidarVerticalChannels = ScanComponent->VerticalChannels;
-    OutState.LidarHorizontalFov = ScanComponent->HorizontalFov;
-    OutState.LidarMinVerticalAngle = ScanComponent->MinVerticalAngle;
-    OutState.LidarMaxVerticalAngle = ScanComponent->MaxVerticalAngle;
-    OutState.ServerPayloadStride = ScanComponent->ServerPayloadStride;
-    OutState.CompatibilityOutputPolicy=ScanComponent->CompatibilityOutputPolicy;
-    OutState.MaxServerPayloadPoints = ScanComponent->MaxServerPayloadPoints;
-    OutState.bIncludeMissPointsInServerPayload = ScanComponent->bIncludeMissPointsInServerPayload;
-    OutState.PreviewPointStride = ScanComponent->PreviewPointStride;
-    OutState.MaxPreviewPoints = ScanComponent->MaxPreviewPoints;
-    OutState.bPreviewHitOnly = ScanComponent->bPointCloudPreviewHitOnly;
-    OutState.bUseMultiHit = ScanComponent->bUseMultiHit;
-    OutState.bLidarPointTime = ScanComponent->bUseRollingPointTimestamps;
-    OutState.bLidarMotionDistortion = ScanComponent->bEnableMotionDistortion;
-    OutState.bLidarMaterialResponse = ScanComponent->bEnableMaterialResponse;
-    OutState.MaxHitsPerRay = ScanComponent->MaxHitsPerRay;
-    OutState.bExportCsvOnScan = ScanComponent->bExportCsvOnScan;
-    OutState.bExportJsonLinesOnScan = ScanComponent->bExportJsonLinesOnScan;
-    OutState.bExportPcdOnScan = ScanComponent->bExportPcdOnScan;
+    OutState.SimulationQuality = ScanComp->SimulationQuality;
+    OutState.LidarProfile = ScanComp->DeviceProfile;
+    OutState.LidarScanInterval = ScanComp->ScanInterval;
+    OutState.LidarMaxDistance = ScanComp->MaxDistance;
+    OutState.LidarHorizontalSamples = ScanComp->HorizontalSamples;
+    OutState.LidarVerticalChannels = ScanComp->VerticalChannels;
+    OutState.LidarHorizontalFov = ScanComp->HorizontalFov;
+    OutState.LidarMinVerticalAngle = ScanComp->MinVerticalAngle;
+    OutState.LidarMaxVerticalAngle = ScanComp->MaxVerticalAngle;
+    OutState.ServerPayloadStride = ScanComp->ServerPayloadStride;
+    OutState.CompatibilityOutputPolicy=ScanComp->CompatibilityOutputPolicy;
+    OutState.MaxServerPayloadPoints = ScanComp->MaxServerPayloadPoints;
+    OutState.bIncludeMissPointsInServerPayload = ScanComp->bIncludeMissPointsInServerPayload;
+    OutState.PreviewPointStride = ScanComp->PreviewPointStride;
+    OutState.MaxPreviewPoints = ScanComp->MaxPreviewPoints;
+    OutState.bPreviewHitOnly = ScanComp->bPointCloudPreviewHitOnly;
+    OutState.bUseMultiHit = ScanComp->bUseMultiHit;
+    OutState.bLidarPointTime = ScanComp->bUseRollingPointTimestamps;
+    OutState.bLidarMotionDistortion = ScanComp->bEnableMotionDistortion;
+    OutState.bLidarMaterialResponse = ScanComp->bEnableMaterialResponse;
+    OutState.MaxHitsPerRay = ScanComp->MaxHitsPerRay;
+    OutState.bExportCsvOnScan = ScanComp->bExportCsvOnScan;
+    OutState.bExportJsonLinesOnScan = ScanComp->bExportJsonLinesOnScan;
+    OutState.bExportPcdOnScan = ScanComp->bExportPcdOnScan;
     return true;
 }
 
@@ -121,59 +121,59 @@ bool AVirtualLidarSensorActor::ApplyEditableState(const FVirtualSensorEditableSt
     Current.PersistentActorTag=State.PersistentActorTag;Current.OriginalSensorId=State.OriginalSensorId;
     if(FVirtualSensorEditableState::StaticStruct()->CompareScriptStruct(&Current,&State,PPF_None))
     {
-        if(ScanComponent->CompatibilityOutputPolicy!=State.CompatibilityOutputPolicy){ScanComponent->SetCompatibilityOutputPolicy(State.CompatibilityOutputPolicy);++ConfigurationRevision;}
+        if(ScanComp->CompatibilityOutputPolicy!=State.CompatibilityOutputPolicy){ScanComp->SetCompatibilityOutputPolicy(State.CompatibilityOutputPolicy);++ConfigurationRevision;}
         return true;
     }
-    const bool bWasRunning=bInteractiveManipulationActive?bWasRunningBeforeInteraction:ScanComponent->IsScanRunning();
+    const bool bWasRunning=bInteractiveManipulationActive?bWasRunningBeforeInteraction:ScanComp->IsScanRunning();
     TGuardValue<bool> Transaction(bSettingsTransaction,true);if(bInteractiveManipulationActive)EndInteractiveManipulation();
     SetActorTransform(State.ActorTransform, false, nullptr, ETeleportType::TeleportPhysics);
-    if(ScanComponent->IsScanRunning())ScanComponent->StopScan();
-    const auto PreservedBackend=ScanComponent->AcquisitionBackend;
-    ScanComponent->ApplyDeviceProfile(State.LidarProfile);
-    ScanComponent->ApplySimulationQuality(State.SimulationQuality);
-    ScanComponent->AcquisitionBackend=PreservedBackend;
-    ScanComponent->SensorId = State.SensorId;
-    ScanComponent->ScanInterval = State.LidarScanInterval;
-    ScanComponent->MaxDistance = State.LidarMaxDistance;
-    ScanComponent->HorizontalSamples = State.LidarHorizontalSamples;
-    ScanComponent->VerticalChannels = State.LidarVerticalChannels;
-    ScanComponent->HorizontalFov = State.LidarHorizontalFov;
-    ScanComponent->MinVerticalAngle = State.LidarMinVerticalAngle;
-    ScanComponent->MaxVerticalAngle = State.LidarMaxVerticalAngle;
-    ScanComponent->SetServerPayloadPolicy(State.ServerPayloadStride, State.MaxServerPayloadPoints, State.bIncludeMissPointsInServerPayload);
-    ScanComponent->SetCompatibilityOutputPolicy(State.CompatibilityOutputPolicy);
-    ScanComponent->SetPreviewPolicy(State.PreviewPointStride, State.MaxPreviewPoints, State.bPreviewHitOnly);
-    ScanComponent->bUseMultiHit = State.bUseMultiHit;
-    ScanComponent->bUseRollingPointTimestamps = State.bLidarPointTime;
-    ScanComponent->bEnableMotionDistortion = State.bLidarMotionDistortion;
-    ScanComponent->bEnableMaterialResponse = State.bLidarMaterialResponse;
-    ScanComponent->InvalidateSurfaceResponseCache();
-    ScanComponent->MaxHitsPerRay = State.MaxHitsPerRay;
-    ScanComponent->bExportCsvOnScan = State.bExportCsvOnScan;
-    ScanComponent->bExportJsonLinesOnScan = State.bExportJsonLinesOnScan;
-    ScanComponent->bExportPcdOnScan = State.bExportPcdOnScan;
-    if(bWasRunning) ScanComponent->StartScan();
+    if(ScanComp->IsScanRunning())ScanComp->StopScan();
+    const auto PreservedBackend=ScanComp->AcquisitionBackend;
+    ScanComp->ApplyDeviceProfile(State.LidarProfile);
+    ScanComp->ApplySimulationQuality(State.SimulationQuality);
+    ScanComp->AcquisitionBackend=PreservedBackend;
+    ScanComp->SensorId = State.SensorId;
+    ScanComp->ScanInterval = State.LidarScanInterval;
+    ScanComp->MaxDistance = State.LidarMaxDistance;
+    ScanComp->HorizontalSamples = State.LidarHorizontalSamples;
+    ScanComp->VerticalChannels = State.LidarVerticalChannels;
+    ScanComp->HorizontalFov = State.LidarHorizontalFov;
+    ScanComp->MinVerticalAngle = State.LidarMinVerticalAngle;
+    ScanComp->MaxVerticalAngle = State.LidarMaxVerticalAngle;
+    ScanComp->SetServerPayloadPolicy(State.ServerPayloadStride, State.MaxServerPayloadPoints, State.bIncludeMissPointsInServerPayload);
+    ScanComp->SetCompatibilityOutputPolicy(State.CompatibilityOutputPolicy);
+    ScanComp->SetPreviewPolicy(State.PreviewPointStride, State.MaxPreviewPoints, State.bPreviewHitOnly);
+    ScanComp->bUseMultiHit = State.bUseMultiHit;
+    ScanComp->bUseRollingPointTimestamps = State.bLidarPointTime;
+    ScanComp->bEnableMotionDistortion = State.bLidarMotionDistortion;
+    ScanComp->bEnableMaterialResponse = State.bLidarMaterialResponse;
+    ScanComp->InvalidateSurfaceResponseCache();
+    ScanComp->MaxHitsPerRay = State.MaxHitsPerRay;
+    ScanComp->bExportCsvOnScan = State.bExportCsvOnScan;
+    ScanComp->bExportJsonLinesOnScan = State.bExportJsonLinesOnScan;
+    ScanComp->bExportPcdOnScan = State.bExportPcdOnScan;
+    if(bWasRunning) ScanComp->StartScan();
     ++ConfigurationRevision;
     return true;
 }
 
 void AVirtualLidarSensorActor::HandleLidarFrameAcquired(int64 FrameId)
 {
-    const TSharedPtr<const FVirtualLidarFrameSnapshot, ESPMode::ThreadSafe> Snapshot = ScanComponent
-        ? ScanComponent->GetLastFrameSnapshot()
+    const TSharedPtr<const FVirtualLidarFrameSnapshot, ESPMode::ThreadSafe> Snapshot = ScanComp
+        ? ScanComp->GetLastFrameSnapshot()
         : nullptr;
     if (!Snapshot.IsValid() || FrameId != Snapshot->FrameId)
     {
         return;
     }
 
-    if (OutputComponent)
+    if (OutputComp)
     {
         FVirtualSensorFrameEnvelope AcquiredFrame;
-        AcquiredFrame.SensorId = ScanComponent->SensorId;
+        AcquiredFrame.SensorId = ScanComp->SensorId;
         AcquiredFrame.SensorKind = EVirtualSensorKind::Lidar;
         AcquiredFrame.FrameId = Snapshot->FrameId;
-		AcquiredFrame.RequestedAcquisitionIntervalSeconds = ScanComponent->ScanInterval;
+		AcquiredFrame.RequestedAcquisitionIntervalSeconds = ScanComp->ScanInterval;
 		AcquiredFrame.SlabContext = Snapshot->SlabContext;
         AcquiredFrame.TimestampUtc = Snapshot->GetAcquisitionStartUtc();
         if(AcquiredFrame.TimestampUtc.GetTicks()<=0)AcquiredFrame.TimestampUtc=FDateTime::UtcNow();
@@ -182,23 +182,23 @@ void AVirtualLidarSensorActor::HandleLidarFrameAcquired(int64 FrameId)
         AcquiredFrame.LidarFrameSnapshot = Snapshot;
         AcquiredFrame.bSendTransport = false;
         AcquiredFrame.bRecord = false;
-        OutputComponent->RouteAcquiredFrame(AcquiredFrame);
+        OutputComp->RouteAcquiredFrame(AcquiredFrame);
     }
 
-    if (AnalysisComponent)
+    if (AnalysisComp)
     {
-        AnalysisComponent->ApplyPrecomputedStatistics(ScanComponent->GetLastHitPointCount(), ScanComponent->GetLastSemanticCounts());
+        AnalysisComp->ApplyPrecomputedStatistics(ScanComp->GetLastHitPointCount(), ScanComp->GetLastSemanticCounts());
     }
-    if (VisualizationComponent)
+    if (VisualizationComp)
     {
         UVirtualSensorSchedulerSubsystem* Scheduler = GetWorld() ? GetWorld()->GetSubsystem<UVirtualSensorSchedulerSubsystem>() : nullptr;
         // Measurement and transport stay at the configured sensor frequency.
         // Rendering the same 32k-point snapshot at 20 Hz is optional derived
         // work, so keep the selected monitor responsive at 10 Hz without
         // delaying the next ML-X acquisition.
-        if (!Scheduler || Scheduler->ConsumeLidarPreviewRefresh(ScanComponent, 10.0f))
+        if (!Scheduler || Scheduler->ConsumeLidarPreviewRefresh(ScanComp, 10.0f))
         {
-            VisualizationComponent->RefreshLatestFrame();
+            VisualizationComp->RefreshLatestFrame();
         }
     }
 }
@@ -210,40 +210,40 @@ bool AVirtualLidarSensorActor::ApplyDatasetState(const FVirtualSensorEditableSta
     Allowed.CompatibilityOutputPolicy=State.CompatibilityOutputPolicy;Allowed.bExportCsvOnScan=State.bExportCsvOnScan;Allowed.bExportJsonLinesOnScan=State.bExportJsonLinesOnScan;Allowed.bExportPcdOnScan=State.bExportPcdOnScan;
     if(!FVirtualSensorEditableState::StaticStruct()->CompareScriptStruct(&Allowed,&State,PPF_None)){Error=TEXT("데이터셋 중 센서 규격이 변경되었습니다");return false;}
     SetActorTransform(State.ActorTransform,false,nullptr,ETeleportType::TeleportPhysics);
-    ScanComponent->bUseRollingPointTimestamps=State.bLidarPointTime;ScanComponent->bEnableMotionDistortion=State.bLidarMotionDistortion;ScanComponent->bEnableMaterialResponse=State.bLidarMaterialResponse;
-    ScanComponent->SetCompatibilityOutputPolicy(State.CompatibilityOutputPolicy);ScanComponent->bExportCsvOnScan=State.bExportCsvOnScan;ScanComponent->bExportJsonLinesOnScan=State.bExportJsonLinesOnScan;ScanComponent->bExportPcdOnScan=State.bExportPcdOnScan;
+    ScanComp->bUseRollingPointTimestamps=State.bLidarPointTime;ScanComp->bEnableMotionDistortion=State.bLidarMotionDistortion;ScanComp->bEnableMaterialResponse=State.bLidarMaterialResponse;
+    ScanComp->SetCompatibilityOutputPolicy(State.CompatibilityOutputPolicy);ScanComp->bExportCsvOnScan=State.bExportCsvOnScan;ScanComp->bExportJsonLinesOnScan=State.bExportJsonLinesOnScan;ScanComp->bExportPcdOnScan=State.bExportPcdOnScan;
     ++ConfigurationRevision;return true;
 }
 
 bool AVirtualLidarSensorActor::BeginInteractiveManipulation(const FVirtualSensorInteractionRequest& Request)
 {
-	if (!ScanComponent || bInteractiveManipulationActive) return ScanComponent != nullptr;
+	if (!ScanComp || bInteractiveManipulationActive) return ScanComp != nullptr;
     if(!Super::BeginInteractiveManipulation(Request))return false;
-	bWasRunningBeforeInteraction = ScanComponent->IsScanRunning();
-	SavedInteractionHorizontalSamples = ScanComponent->HorizontalSamples;
-	SavedInteractionVerticalChannels = ScanComponent->VerticalChannels;
-	SavedInteractionInterval = ScanComponent->ScanInterval;
-	ScanComponent->StopScan();
-	ScanComponent->HorizontalSamples = Request.LidarHorizontalSamples;
-	ScanComponent->VerticalChannels = Request.LidarVerticalChannels;
-	ScanComponent->ScanInterval = Request.LidarPreviewInterval;
-	ScanComponent->SetInteractivePreviewMode(true, Request.bSuppressDerivedOutput);
-	if (bWasRunningBeforeInteraction) ScanComponent->StartScan();
+	bWasRunningBeforeInteraction = ScanComp->IsScanRunning();
+	SavedInteractionHorizontalSamples = ScanComp->HorizontalSamples;
+	SavedInteractionVerticalChannels = ScanComp->VerticalChannels;
+	SavedInteractionInterval = ScanComp->ScanInterval;
+	ScanComp->StopScan();
+	ScanComp->HorizontalSamples = Request.LidarHorizontalSamples;
+	ScanComp->VerticalChannels = Request.LidarVerticalChannels;
+	ScanComp->ScanInterval = Request.LidarPreviewInterval;
+	ScanComp->SetInteractivePreviewMode(true, Request.bSuppressDerivedOutput);
+	if (bWasRunningBeforeInteraction) ScanComp->StartScan();
 	return true;
 }
 
 void AVirtualLidarSensorActor::EndInteractiveManipulation()
 {
-	if (!ScanComponent || !bInteractiveManipulationActive) return;
-	ScanComponent->StopScan();
-	ScanComponent->HorizontalSamples = SavedInteractionHorizontalSamples;
-	ScanComponent->VerticalChannels = SavedInteractionVerticalChannels;
-	ScanComponent->ScanInterval = SavedInteractionInterval;
-	ScanComponent->SetInteractivePreviewMode(false);
+	if (!ScanComp || !bInteractiveManipulationActive) return;
+	ScanComp->StopScan();
+	ScanComp->HorizontalSamples = SavedInteractionHorizontalSamples;
+	ScanComp->VerticalChannels = SavedInteractionVerticalChannels;
+	ScanComp->ScanInterval = SavedInteractionInterval;
+	ScanComp->SetInteractivePreviewMode(false);
 	if (bWasRunningBeforeInteraction&&!bSettingsTransaction)
 	{
-		ScanComponent->StartScan();
-		ScanComponent->RequestImmediateScheduledScan();
+		ScanComp->StartScan();
+		ScanComp->RequestImmediateScheduledScan();
 	}
 	Super::EndInteractiveManipulation();
 }
@@ -251,19 +251,19 @@ void AVirtualLidarSensorActor::EndInteractiveManipulation()
 bool AVirtualLidarSensorActor::ApplyProfileAndSimulationQuality(const FVirtualSensorEditableState& RequestedState, FVirtualSensorEditableState& OutAppliedState, FString& OutError)
 {
     if(!CanEditSensorConfiguration(OutError))return false;
-    if (!ScanComponent || RequestedState.TargetKind != EVirtualSensorTargetKind::Lidar)
+    if (!ScanComp || RequestedState.TargetKind != EVirtualSensorTargetKind::Lidar)
     {
         OutError = TEXT("선택한 LiDAR 센서를 사용할 수 없습니다.");
         return false;
     }
-    const bool bWasRunning = bInteractiveManipulationActive?bWasRunningBeforeInteraction:ScanComponent->IsScanRunning();
+    const bool bWasRunning = bInteractiveManipulationActive?bWasRunningBeforeInteraction:ScanComp->IsScanRunning();
     TGuardValue<bool> Transaction(bSettingsTransaction,true);if(bInteractiveManipulationActive)EndInteractiveManipulation();
-    if(ScanComponent->IsScanRunning())ScanComponent->StopScan();
-    const auto PreservedBackend=ScanComponent->AcquisitionBackend;
-    ScanComponent->ApplyDeviceProfile(RequestedState.LidarProfile);
-    ScanComponent->ApplySimulationQuality(RequestedState.SimulationQuality);
-    ScanComponent->AcquisitionBackend=PreservedBackend;
-    if (bWasRunning) ScanComponent->StartScan();
+    if(ScanComp->IsScanRunning())ScanComp->StopScan();
+    const auto PreservedBackend=ScanComp->AcquisitionBackend;
+    ScanComp->ApplyDeviceProfile(RequestedState.LidarProfile);
+    ScanComp->ApplySimulationQuality(RequestedState.SimulationQuality);
+    ScanComp->AcquisitionBackend=PreservedBackend;
+    if (bWasRunning) ScanComp->StartScan();
     ++ConfigurationRevision;
     return ReadEditableState(OutAppliedState);
 }
@@ -274,7 +274,7 @@ bool AVirtualLidarSensorActor::ValidateEditableState(const FVirtualSensorEditabl
     { OutError=TEXT("움직임 왜곡에는 점별 시간차가 필요합니다."); return false; }
     if(!CanEditSensorConfiguration(OutError))return false;
     if((State.SensorId!=GetSensorId()||!State.ActorTransform.Equals(GetActorTransform()))&&!CanEditSensorPlacement(OutError))return false;
-    if (!ScanComponent || State.TargetKind != EVirtualSensorTargetKind::Lidar)
+    if (!ScanComp || State.TargetKind != EVirtualSensorTargetKind::Lidar)
     {
         OutError = TEXT("선택한 LiDAR 센서를 사용할 수 없습니다.");
         return false;
@@ -308,7 +308,7 @@ bool AVirtualLidarSensorActor::ValidateEditableState(const FVirtualSensorEditabl
 
 void AVirtualLidarSensorActor::HandleLidarFrame(const FString& JsonPayload, UTexture2D* ViewTexture)
 {
-    if(!ScanComponent)return;const auto& Frame=ScanComponent->GetLastCompletedDerivedFrame();
+    if(!ScanComp)return;const auto& Frame=ScanComp->GetLastCompletedDerivedFrame();
     if(Frame.HasJsonPayload()&&*Frame.JsonPayload==JsonPayload)HandleDerivedLidarFrame(Frame);
 }
 
@@ -321,16 +321,16 @@ bool AVirtualLidarSensorActor::ReadCollectionState(FVirtualSensorEditableState& 
 }
 void AVirtualLidarSensorActor::HandleDerivedLidarFrame(const FVirtualSensorFrameEnvelope& Captured)
 {
-    if(!OutputComponent||!Captured.HasJsonPayload())return;
+    if(!OutputComp||!Captured.HasJsonPayload())return;
     auto Frame=Captured;Frame.bSendTransport=PendingExternalSendTransport.IsSet()?PendingExternalSendTransport.GetValue():Captured.bSendTransport;
-    PendingExternalSendTransport.Reset();OutputComponent->RouteFrame(Frame);
+    PendingExternalSendTransport.Reset();OutputComp->RouteFrame(Frame);
 }
 
 bool AVirtualLidarSensorActor::SetLidarAcquisitionBackend(EVirtualLidarAcquisitionBackend Backend,FString& OutReason)
 {
-    if(!ScanComponent||uint8(Backend)>uint8(EVirtualLidarAcquisitionBackend::ReplayOrExternal)){OutReason=TEXT("Invalid acquisition backend");return false;}
+    if(!ScanComp||uint8(Backend)>uint8(EVirtualLidarAcquisitionBackend::ReplayOrExternal)){OutReason=TEXT("Invalid acquisition backend");return false;}
     if(!CanEditSensorConfiguration(OutReason))return false;
-    if(ScanComponent->AcquisitionBackend==Backend){OutReason.Reset();return true;}
-    const bool Running=ScanComponent->IsScanRunning();ScanComponent->StopScan();ScanComponent->AcquisitionBackend=Backend;++ConfigurationRevision;
-    if(Running)ScanComponent->StartScan();OutReason.Reset();return true;
+    if(ScanComp->AcquisitionBackend==Backend){OutReason.Reset();return true;}
+    const bool Running=ScanComp->IsScanRunning();ScanComp->StopScan();ScanComp->AcquisitionBackend=Backend;++ConfigurationRevision;
+    if(Running)ScanComp->StartScan();OutReason.Reset();return true;
 }

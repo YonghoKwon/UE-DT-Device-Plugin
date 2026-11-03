@@ -4,9 +4,9 @@
 #include "Device/Camera/VirtualCameraSensorActor.h"
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSensorResourceSnapshotTest,"MA0T10.ResourceLifecycle.SnapshotIsReadOnly",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCameraOrderedFailureRecoveryTest,"MA0T10.ResourceLifecycle.CameraFailedHeadReleasesFollowers",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
@@ -30,7 +30,7 @@ bool FSensorResourceSnapshotTest::RunTest(const FString&)
     Camera->StopSensor();Lidar->StopSensor();const auto CameraId=Camera->GetSensorRuntimeStatus().FrameId,LidarId=Lidar->GetSensorRuntimeStatus().FrameId;
     for(int32 I=0;I<25;++I)
     {
-        const auto C=Camera->CaptureComponent->GetResourceSnapshot();const auto L=Lidar->ScanComponent->GetResourceSnapshot();
+        const auto C=Camera->CaptureComp->GetResourceSnapshot();const auto L=Lidar->ScanComp->GetResourceSnapshot();
         TestEqual(TEXT("stopped camera has no encode jobs"),C.Counts.FindRef(TEXT("active_encodes")),int64(0));
         TestEqual(TEXT("stopped camera has no acquisition metadata"),C.Counts.FindRef(TEXT("acquisition_snapshots")),int64(0));
         TestEqual(TEXT("stopped lidar has no scheduled scan"),L.Counts.FindRef(TEXT("scan_in_flight")),int64(0));

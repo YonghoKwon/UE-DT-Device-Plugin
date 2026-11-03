@@ -4,7 +4,7 @@
 #include "Device/Core/VirtualSensorPeriodicFileSaveSubsystem.h"
 #include "Device/Core/VirtualSensorFileSaveSubsystem.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
 #include "Device/Camera/VirtualCameraPayloadCodec.h"
@@ -75,7 +75,7 @@ bool FSensorPeriodicSessionIsolationTest::RunTest(const FString&)
 	TestTrue(TEXT("natural movement does not cancel periodic acquisition snapshots"),P->GetPeriodicStatus(Moving).bActive);
 	P->StopPeriodicSave(Moving);
 	const FString Changed=P->StartPeriodicSave(Sensor,Selection);
-	Sensor->ScanComponent->MaxDistance+=10;P->Tick(.016f);
+	Sensor->ScanComp->MaxDistance+=10;P->Tick(.016f);
 	TestFalse(TEXT("revision change ends fixed-target session"),P->GetPeriodicStatus(Changed).bActive);
 	TestEqual(TEXT("revision change counted once"),P->GetPeriodicStatus(Changed).FailedCount,int64(1));
 	for(int32 I=0;I<40;++I)P->StartPeriodicSave(nullptr,Selection);
@@ -91,7 +91,7 @@ bool FSensorPeriodicUnavailableOutputTest::RunTest(const FString&)
 	auto* Camera=World->SpawnActor<AVirtualCameraSensorActor>();
 	FVirtualSensorCaptureSelection Selection;Selection.bCameraImage=true;Selection.bCameraPayload=false;
 	const int32 Before=Files->GetRecentRequests().Num();
-	TestFalse(TEXT("invalid external input is rejected by camera parser"),Camera->CaptureComponent->InjectExternalJsonPayload(TEXT("{}"),false));
+	TestFalse(TEXT("invalid external input is rejected by camera parser"),Camera->CaptureComp->InjectExternalJsonPayload(TEXT("{}"),false));
 	const FString Empty=P->StartPeriodicSave(Camera,Selection);P->Tick(.016f);
 	const auto NoFrame=P->GetPeriodicStatus(Empty);
 	TestEqual(TEXT("missing acquisition is distinct from unsupported output"),NoFrame.WaitReason,EVirtualSensorPeriodicSaveWaitReason::NoCompletedFrame);
@@ -102,13 +102,13 @@ bool FSensorPeriodicUnavailableOutputTest::RunTest(const FString&)
 	FVirtualCameraPayloadSnapshot Descriptor;Descriptor.SensorId=Camera->GetSensorId();Descriptor.Manufacturer=TEXT("Fixture");Descriptor.Model=TEXT("JSONOnly");Descriptor.SimulationQuality=TEXT("Debug");Descriptor.FrameId=301;Descriptor.TimestampUtc=FDateTime(2026,9,21,1,2,3);Descriptor.Width=2;Descriptor.Height=2;Descriptor.HorizontalFov=87;Descriptor.VerticalFov=58;
 	const TArray<uint8> Signature={0xff,0xd8,0xff,0xd9};
 	const FString Original=FVirtualCameraPayloadCodec::EncodeJpegBase64(Descriptor,FBase64::Encode(Signature),Signature.Num());
-	TestTrue(TEXT("valid JSON-only input accepted"),Camera->CaptureComponent->InjectExternalJsonPayload(Original,false));
-    TestEqual(TEXT("manual JSON cache preserves payload frame"),Camera->CaptureComponent->GetLastJsonPayloadFrameId(),int64(301));
+	TestTrue(TEXT("valid JSON-only input accepted"),Camera->CaptureComp->InjectExternalJsonPayload(Original,false));
+    TestEqual(TEXT("manual JSON cache preserves payload frame"),Camera->CaptureComp->GetLastJsonPayloadFrameId(),int64(301));
     Descriptor.FrameId=250;const FString Older=FVirtualCameraPayloadCodec::EncodeJpegBase64(Descriptor,FBase64::Encode(Signature),Signature.Num());
-    TestTrue(TEXT("older source payload accepted independently of runtime maximum"),Camera->CaptureComponent->InjectExternalJsonPayload(Older,false));
-    TestEqual(TEXT("cached payload does not borrow runtime frame id"),Camera->CaptureComponent->GetLastJsonPayloadFrameId(),int64(250));
-    TestEqual(TEXT("cached source id preserved"),Camera->CaptureComponent->GetLastJsonPayloadSensorId(),Descriptor.SensorId);
-    Camera->CaptureComponent->InjectExternalJsonPayload(Original,false);
+    TestTrue(TEXT("older source payload accepted independently of runtime maximum"),Camera->CaptureComp->InjectExternalJsonPayload(Older,false));
+    TestEqual(TEXT("cached payload does not borrow runtime frame id"),Camera->CaptureComp->GetLastJsonPayloadFrameId(),int64(250));
+    TestEqual(TEXT("cached source id preserved"),Camera->CaptureComp->GetLastJsonPayloadSensorId(),Descriptor.SensorId);
+    Camera->CaptureComp->InjectExternalJsonPayload(Original,false);
 	TestEqual(TEXT("source frame exists even without local JPEG snapshot"),Files->GetAvailableFrameId(Camera),int64(301));
 	const FString Id=P->StartPeriodicSave(Camera,Selection);P->Tick(.016f);
 	const auto Waiting=P->GetPeriodicStatus(Id);

@@ -1,6 +1,6 @@
-#include "Device/Sensor/VirtualLidarSurfaceResponseComponent.h"
+#include "Device/Sensor/VirtualLidarSurfaceResponseComp.h"
 
-UVirtualLidarSurfaceResponseComponent::UVirtualLidarSurfaceResponseComponent()
+UVirtualLidarSurfaceResponseComp::UVirtualLidarSurfaceResponseComp()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }

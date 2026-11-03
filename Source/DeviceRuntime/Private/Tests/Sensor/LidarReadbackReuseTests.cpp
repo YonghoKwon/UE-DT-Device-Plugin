@@ -5,7 +5,7 @@
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
 #include "RHIGlobals.h"
 
@@ -23,7 +23,7 @@ public:
             Plate->GetStaticMeshComponent()->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube")));
             Plate->SetActorLocation(FVector(0,0,-5)); Plate->SetActorScale3D(FVector(20,20,.1));
             Sensor = World->SpawnActor<AVirtualLidarSensorActor>();
-            Sensor->ScanComponent->StopScan();
+            Sensor->ScanComp->StopScan();
             World->SendAllEndOfFrameUpdates();
             Started = FPlatformTime::Seconds();
             return false;

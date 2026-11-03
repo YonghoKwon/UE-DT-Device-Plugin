@@ -1,6 +1,6 @@
 #include "CreateDTDeviceDemoCommandlet.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
 #include "DeviceUI/DeviceSensorMonitorHostActor.h"
@@ -42,9 +42,9 @@ int32 UCreateDTDeviceDemoCommandlet::Main(const FString& Params)
     World->SpawnActor<APlayerStart>(FVector(-800,-1200,650),FRotator(-12,45,0));
     auto* Lidar=World->SpawnActor<AVirtualLidarSensorActor>(FVector(0,0,300),FRotator(-5,0,0));
     Lidar->SetActorLabel(TEXT("Demo LiDAR"));
-    Lidar->ScanComponent->ApplySimulationQuality(EVirtualSensorSimulationQuality::RealTimePreview);
-    Lidar->ScanComponent->bUseMultiHit=false;
-    Lidar->ScanComponent->SetPointCloudPreviewEnabled(true);
+    Lidar->ScanComp->ApplySimulationQuality(EVirtualSensorSimulationQuality::RealTimePreview);
+    Lidar->ScanComp->bUseMultiHit=false;
+    Lidar->ScanComp->SetPointCloudPreviewEnabled(true);
     auto* Camera=World->SpawnActor<AVirtualCameraSensorActor>(FVector(-400,-600,450),FRotator(-10,25,0));
     Camera->SetActorLabel(TEXT("Demo Camera"));
     World->SpawnActor<ADeviceSensorMonitorHostActor>();

@@ -1,4 +1,4 @@
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/DeviceSemanticPolicy.h"
 #include "MA0T10MemoryTags.h"
 #include "Memory26Diagnostics.h"
@@ -193,7 +193,7 @@ void NormalizeCpuSnapshot(const TSharedPtr<FVirtualLidarSceneQueryJob,ESPMode::T
  J->Buffer->Busy.store(false,std::memory_order_release);J->WorkerReady.store(true,std::memory_order_release);
 }
 }
-void UVirtualLidarScanComponent::BeginSceneQueryBatch()
+void UVirtualLidarScanComp::BeginSceneQueryBatch()
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarRtScene);
  const bool bRequestedHardware=ActiveAcquisitionBackend==EVirtualLidarAcquisitionBackend::HardwareRayTracing;
@@ -294,7 +294,7 @@ void UVirtualLidarScanComponent::BeginSceneQueryBatch()
  SceneQueryJob=J;
  if(bRequestedHardware&&!J->GpuScan)ReportHardwareSemanticDiagnostics({},TEXT("not_admitted"));
 }
-bool UVirtualLidarScanComponent::PollSceneQueryBatch()
+bool UVirtualLidarScanComp::PollSceneQueryBatch()
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
  auto J=SceneQueryJob;if(!J)return true;
@@ -392,7 +392,7 @@ bool UVirtualLidarScanComponent::PollSceneQueryBatch()
  });
  return false;
 }
-void UVirtualLidarScanComponent::ReportHardwareSemanticDiagnostics(const TArray<FSensorRtHit>& Hits,const TCHAR* Stage,const FString& Failure)
+void UVirtualLidarScanComp::ReportHardwareSemanticDiagnostics(const TArray<FSensorRtHit>& Hits,const TCHAR* Stage,const FString& Failure)
 {
  using namespace VirtualLidarSemanticDiagnostics;
  if(bHardwareSemanticDiagnosticIssued||!IsEnabled())return;
@@ -409,20 +409,20 @@ void UVirtualLidarScanComponent::ReportHardwareSemanticDiagnostics(const TArray<
  Report->SetStringField(TEXT("query_backend"),J&&J->Scene?J->Scene->BackendName().ToString():TEXT("none"));
  Persist(this,SensorId,J?J->Frame:FrameId+1,ScheduledGeneration,TEXT("hardware_ray_tracing"),Stage,Report);
 }
-bool UVirtualLidarScanComponent::ResolveSceneQueryRay(int32 Index,FVector Start,FVector End,FHitResult& Hit) const
+bool UVirtualLidarScanComp::ResolveSceneQueryRay(int32 Index,FVector Start,FVector End,FHitResult& Hit) const
 {return SceneQueryJob&&Index<SceneQueryJob->ReadyRays.load(std::memory_order_acquire)&&SceneQueryBuffer->Hits.IsValidIndex(Index)&&ScheduledRayQuery->Resolve(Start,End,SceneQueryBuffer->Hits[Index],Hit);}
-int32 UVirtualLidarScanComponent::SceneQueryReadyRays() const
+int32 UVirtualLidarScanComp::SceneQueryReadyRays() const
 {return SceneQueryJob?SceneQueryJob->ReadyRays.load(std::memory_order_acquire):0;}
-void UVirtualLidarScanComponent::CancelSceneQueryBatch()
+void UVirtualLidarScanComp::CancelSceneQueryBatch()
 {if(SceneQueryJob){SceneQueryJob->Cancelled.store(true,std::memory_order_release);if(SceneQueryJob->GpuScan)SceneQueryJob->GpuScan->Cancel();}SceneQueryJob.Reset();}
-uint64 UVirtualLidarScanComponent::SceneQueryBufferBytes() const
+uint64 UVirtualLidarScanComp::SceneQueryBufferBytes() const
 {return (SceneQueryBuffer?SceneQueryBuffer->Hits.GetAllocatedSize():0)+(SharedSceneQueryDirections?SharedSceneQueryDirections->GetAllocatedSize():0);}
-void UVirtualLidarScanComponent::RecordSceneQueryWork(double Seconds,bool Complete)
+void UVirtualLidarScanComp::RecordSceneQueryWork(double Seconds,bool Complete)
 {
  if(!SceneQueryJob)return;SceneQueryGameSeconds+=Seconds;
  if(Complete){const auto F=ScheduledRayQuery->FallbackStatistics();LastSceneQueryStatistics=FVector4(SceneQueryJob->GeometryMs.load(std::memory_order_acquire),SceneQueryGameSeconds*1000,F.X,F.Y);}
 }
-void UVirtualLidarScanComponent::AcquireScenePointStorage(int32 Capacity)
+void UVirtualLidarScanComp::AcquireScenePointStorage(int32 Capacity)
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarPoints);
  CSV_SCOPED_TIMING_STAT(LidarWallclock28b,PointStorage);
@@ -464,10 +464,10 @@ void UVirtualLidarScanComponent::AcquireScenePointStorage(int32 Capacity)
 #endif
  ScheduledPoints.Reserve(Capacity);
 }
-void UVirtualLidarScanComponent::RecycleScenePointStorage()
+void UVirtualLidarScanComp::RecycleScenePointStorage()
 {if(ScenePointLease){*ScenePointLease=MoveTemp(ScheduledPoints);ScenePointLease.Reset();}}
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
-bool UVirtualLidarScanComponent::WaitForScenePointPoolCleanupForTesting() const
+bool UVirtualLidarScanComp::WaitForScenePointPoolCleanupForTesting() const
 {
  check(IsInGameThread());auto Pool=ScenePointPool;if(!Pool)return true;
  const double Deadline=FPlatformTime::Seconds()+2;
@@ -475,12 +475,12 @@ bool UVirtualLidarScanComponent::WaitForScenePointPoolCleanupForTesting() const
  return Pool->PendingResets.load(std::memory_order_acquire)==0;
 }
 #endif
-TSharedPtr<TArray<FVirtualLidarPoint>,ESPMode::ThreadSafe> UVirtualLidarScanComponent::CompleteScenePointStorage()
+TSharedPtr<TArray<FVirtualLidarPoint>,ESPMode::ThreadSafe> UVirtualLidarScanComp::CompleteScenePointStorage()
 {
  if(!ScenePointLease)return {};
  *ScenePointLease=MoveTemp(ScheduledPoints);ScenePublishedPool=ScenePointPool;ScenePublishedPoints=ScenePointLease;return MoveTemp(ScenePointLease);
 }
-uint64 UVirtualLidarScanComponent::ScheduledPointStorageBytes() const
+uint64 UVirtualLidarScanComp::ScheduledPointStorageBytes() const
 {
  uint64 Bytes=(ScenePointPool?ScenePointPool->Bytes:0)+(ScenePointLease?0:ScheduledPoints.GetAllocatedSize());
  if(ScenePointPool&&ScenePublishedPool.Pin()==ScenePointPool&&ScenePublishedPoints.Pin()==LastPointStorage)Bytes-=LastPointStorage->GetAllocatedSize();
@@ -488,7 +488,7 @@ uint64 UVirtualLidarScanComponent::ScheduledPointStorageBytes() const
  return Bytes;
 }
 
-bool UVirtualLidarScanComponent::CopyHardwareSemanticMetadata(FVirtualLidarPoint& Point,const FHitResult& Hit) const
+bool UVirtualLidarScanComp::CopyHardwareSemanticMetadata(FVirtualLidarPoint& Point,const FHitResult& Hit) const
 {
  if(const auto* Frozen=HardwareSurfaceIdentities.Find(Hit.GetComponent()))
  {
@@ -497,13 +497,13 @@ bool UVirtualLidarScanComponent::CopyHardwareSemanticMetadata(FVirtualLidarPoint
  }
  return false;
 }
-bool UVirtualLidarScanComponent::ShouldIgnoreScheduledHit(const FHitResult& Hit) const
+bool UVirtualLidarScanComp::ShouldIgnoreScheduledHit(const FHitResult& Hit) const
 {
  if(const auto* Frozen=HardwareSurfaceIdentities.Find(Hit.GetComponent()))return Frozen->bIgnore;
  return ShouldIgnoreHitActor(Hit.GetActor());
 }
 
-int32 UVirtualLidarScanComponent::CompleteHardwareNormalizedFrame()
+int32 UVirtualLidarScanComp::CompleteHardwareNormalizedFrame()
 {
  auto J=SceneQueryJob;if(!J||!J->WorkerStarted||!J->WorkerReady.load(std::memory_order_acquire))return -1;
  CSV_SCOPED_TIMING_STAT(LidarWallclock28b,ConsumeNormalized);

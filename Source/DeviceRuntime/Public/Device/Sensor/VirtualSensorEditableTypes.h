@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "VirtualSensorEditableTypes.generated.h"
 
 UENUM(BlueprintType)

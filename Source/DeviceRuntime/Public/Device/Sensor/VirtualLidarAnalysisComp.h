@@ -2,18 +2,18 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "VirtualLidarAnalysisComponent.generated.h"
+#include "VirtualLidarAnalysisComp.generated.h"
 
-class UVirtualLidarScanComponent;
+class UVirtualLidarScanComp;
 
 UCLASS(ClassGroup = (DigitalTwin), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualLidarAnalysisComponent : public UActorComponent
+class DEVICERUNTIME_API UVirtualLidarAnalysisComp : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	UVirtualLidarAnalysisComponent();
-	void BindScanComponent(UVirtualLidarScanComponent* InScanComponent);
+	UVirtualLidarAnalysisComp();
+	void BindScanComponent(UVirtualLidarScanComp* InScanComponent);
 	void AnalyzeLatestFrame();
 	void ApplyPrecomputedStatistics(int32 HitPointCount, const TMap<FString, int32>& SemanticCounts);
 
@@ -25,7 +25,7 @@ public:
 
 private:
 	UPROPERTY(Transient)
-	TObjectPtr<UVirtualLidarScanComponent> ScanComponent;
+	TObjectPtr<UVirtualLidarScanComp> ScanComp;
 
 	UPROPERTY(Transient)
 	TMap<FString, int32> LatestSemanticCounts;

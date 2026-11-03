@@ -7,12 +7,12 @@
 #include "ShaderCompiler.h"
 #include "RHIGlobals.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
 #include "Device/Sensor/VirtualSensorEditableTypes.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
-#include "Device/Camera/VirtualCameraGroundTruth.h"
+#include "Device/Camera/VirtualCameraGroundTruthComp.h"
 #include "HAL/PlatformMemory.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -33,11 +33,11 @@ public:
             if(Material)Material->CacheShaders(EMaterialShaderPrecompileMode::Default);
             Target=W->SpawnActor<AStaticMeshActor>();Target->Tags.Add(TEXT("Slab"));Target->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);
             Target->GetStaticMeshComponent()->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube")));Target->SetActorLocation(FVector(1000,0,0));Target->SetActorScale3D(FVector(.5,8,4));
-            Lidar=W->SpawnActor<AVirtualLidarSensorActor>();Scan=Lidar->ScanComponent.Get();Scan->StopScan();Scan->DeviceProfile=EVirtualLidarDeviceProfile::IYOBOT_MLX80_NATIVE;
+            Lidar=W->SpawnActor<AVirtualLidarSensorActor>();Scan=Lidar->ScanComp.Get();Scan->StopScan();Scan->DeviceProfile=EVirtualLidarDeviceProfile::IYOBOT_MLX80_NATIVE;
             Scan->HorizontalSamples=64;Scan->VerticalChannels=16;Scan->HorizontalFov=30;Scan->MinVerticalAngle=-8;Scan->MaxVerticalAngle=8;Scan->ScanInterval=.05;
             Scan->MaxDistance=5000;Scan->AcquisitionBackend=EVirtualLidarAcquisitionBackend::GpuDepthProjection;Scan->bEnableMaterialResponse=true;Scan->bEnableRangeNoise=false;Scan->FidelityMode=EVirtualSensorFidelityMode::IdealTruth;
-            Camera=W->SpawnActor<AVirtualCameraSensorActor>();auto* C=Camera->CaptureComponent.Get();C->StopCapture();C->CaptureResolution=FIntPoint(128,64);C->CaptureMode=EVirtualCameraCaptureMode::PreviewOnly;C->FOVAngle=60;C->SetGroundTruthEnabled(true);
-            Truth=NewObject<UVirtualCameraGroundTruth>(Camera);Camera->AddInstanceComponent(Truth);Truth->RegisterComponent();
+            Camera=W->SpawnActor<AVirtualCameraSensorActor>();auto* C=Camera->CaptureComp.Get();C->StopCapture();C->CaptureResolution=FIntPoint(128,64);C->CaptureMode=EVirtualCameraCaptureMode::PreviewOnly;C->FOVAngle=60;C->SetGroundTruthEnabled(true);
+            Truth=NewObject<UVirtualCameraGroundTruthComp>(Camera);Camera->AddInstanceComponent(Truth);Truth->RegisterComponent();
             MemoryStart=FPlatformMemory::GetStats().UsedPhysical;return false;
         }
         if(Now-Started>120){Test->AddError(FString::Printf(TEXT("capture matrix timeout mode%d phase%d GT=%s"),Mode,Completed,*Truth->Status));return Finish();}
@@ -54,7 +54,7 @@ public:
             Scene->GetWorld()->SendAllEndOfFrameUpdates();Truth->LastFrame.Reset();LidarDone=Mode==1;CameraDone=Mode==0||Mode==3;
             if(!CameraDone)
             {
-                auto* C=Camera->CaptureComponent.Get();C->CaptureAndSendImage();
+                auto* C=Camera->CaptureComp.Get();C->CaptureAndSendImage();
                 FVirtualCameraPayloadSnapshot S;S.SensorId=C->SensorId;S.FrameId=Completed+1;S.AcquisitionRevision=C->GetFileCaptureRevision();S.TimestampUtc=FDateTime::UtcNow();S.Width=128;S.Height=64;S.HorizontalFov=60;
                 if(!Truth->Capture(*C,S,false)){Test->AddError(Truth->Status);return Finish();}
             }
@@ -77,11 +77,11 @@ private:
     bool Finish()
     {
         Test->AddInfo(FString::Printf(TEXT("GPU-CRASH-01 mode%d final%d wall%.3fs memoryStartMiB%.3f memoryEndMiB%.3f"),Mode,Completed,FPlatformTime::Seconds()-Started,MemoryStart/1048576.,FPlatformMemory::GetStats().UsedPhysical/1048576.));
-        if(Truth)Truth->Cancel();if(Scan)Scan->StopScan();if(Camera)Camera->CaptureComponent->StopCapture();if(Lidar)Lidar->GpuDepthProjectionComponent->UnregisterComponent();Scene.Reset();return true;
+        if(Truth)Truth->Cancel();if(Scan)Scan->StopScan();if(Camera)Camera->CaptureComp->StopCapture();if(Lidar)Lidar->GpuDepthProjectionComponent->UnregisterComponent();Scene.Reset();return true;
     }
     FAutomationTestBase* Test;int32 Mode,Completed=0;double Started=0;uint64 NextFrame=0,MemoryStart=0;int64 Baseline=-1;
     bool Pending=false,LidarDone=false,CameraDone=false;
-    TUniquePtr<FPreviewScene> Scene;AStaticMeshActor* Target=nullptr;AVirtualLidarSensorActor* Lidar=nullptr;UVirtualLidarScanComponent* Scan=nullptr;AVirtualCameraSensorActor* Camera=nullptr;UVirtualCameraGroundTruth* Truth=nullptr;
+    TUniquePtr<FPreviewScene> Scene;AStaticMeshActor* Target=nullptr;AVirtualLidarSensorActor* Lidar=nullptr;UVirtualLidarScanComp* Scan=nullptr;AVirtualCameraSensorActor* Camera=nullptr;UVirtualCameraGroundTruthComp* Truth=nullptr;
 };
 IMPLEMENT_COMPLEX_AUTOMATION_TEST(FGpuCaptureLifetimeTest,"MA0T10.GpuCaptureLifetime",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 void FGpuCaptureLifetimeTest::GetTests(TArray<FString>& Names,TArray<FString>& Commands) const

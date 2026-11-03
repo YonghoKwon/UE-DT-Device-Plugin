@@ -6,8 +6,8 @@
 
 class APlayerController;
 class UVirtualCameraCaptureComponent;
-class UVirtualLidarScanComponent;
-class URealSensorSourceComponent;
+class UVirtualLidarScanComp;
+class URealSensorSourceComp;
 
 UINTERFACE(MinimalAPI, meta = (CannotImplementInterfaceInBlueprint))
 class UVirtualSensorMonitorView : public UInterface
@@ -21,8 +21,8 @@ class DEVICERUNTIME_API IVirtualSensorMonitorView
     GENERATED_BODY()
 public:
     virtual void BindMonitorCamera(UVirtualCameraCaptureComponent* Camera) = 0;
-    virtual void BindMonitorLidar(UVirtualLidarScanComponent* Lidar) = 0;
-    virtual void BindMonitorExternalSource(URealSensorSourceComponent* Source) = 0;
+    virtual void BindMonitorLidar(UVirtualLidarScanComp* Lidar) = 0;
+    virtual void BindMonitorExternalSource(URealSensorSourceComp* Source) = 0;
     virtual void ShowMonitorCamera() = 0;
     virtual void ShowMonitorLidar() = 0;
     virtual APlayerController* GetMonitorViewController() const = 0;

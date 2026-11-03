@@ -1,4 +1,4 @@
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "SensorUploadDiagnostics.h"
 #include "MA0T10MemoryTags.h"
 #include "Device/Contracts/DeviceIdentityPolicy.h"
@@ -23,17 +23,17 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Serialization/BufferArchive.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
 #include "Device/Core/VirtualSensorSchedulerSubsystem.h"
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarPayloadCodec.h"
 #include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
-#include "Device/Sensor/VirtualLidarSurfaceResponseComponent.h"
-#include "Device/Sensor/VirtualLidarVisualizationComponent.h"
-#include "Device/Sensor/VirtualSensorOutputComponent.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Sensor/VirtualLidarSurfaceResponseComp.h"
+#include "Device/Sensor/VirtualLidarVisualizationComp.h"
+#include "Device/Sensor/VirtualSensorOutputComp.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Misc/Crc.h"
 #include <atomic>
 
@@ -48,13 +48,13 @@ FString JoinNames(const TArray<FName>& Names) { FString R; for (int32 I = 0; I <
 
 
 #if WITH_EDITOR
-void UVirtualLidarScanComponent::PostEditChangeProperty(FPropertyChangedEvent& Event)
+void UVirtualLidarScanComp::PostEditChangeProperty(FPropertyChangedEvent& Event)
 {
     FVirtualSensorHitchScope Scope(EVirtualSensorHitchSection::EditorProperty);
     Super::PostEditChangeProperty(Event);
 }
 #endif
-void UVirtualLidarScanComponent::BeginPlay()
+void UVirtualLidarScanComp::BeginPlay()
 {
     SensorId=DeviceIdentityPolicy::Canonical(SensorId);
     Super::BeginPlay();
@@ -66,7 +66,7 @@ void UVirtualLidarScanComponent::BeginPlay()
     if (bAutoStartScan) { StartScan(); }
 }
 
-void UVirtualLidarScanComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UVirtualLidarScanComp::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     StopScan();
     CompatibilityConsumers.Reset();
@@ -80,7 +80,7 @@ void UVirtualLidarScanComponent::EndPlay(const EEndPlayReason::Type EndPlayReaso
     Super::EndPlay(EndPlayReason);
 }
 
-void UVirtualLidarScanComponent::CompleteScheduledScan(double NowSeconds)
+void UVirtualLidarScanComp::CompleteScheduledScan(double NowSeconds)
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarPoints);
 #if WITH_DEV_AUTOMATION_TESTS
@@ -116,7 +116,7 @@ void UVirtualLidarScanComponent::CompleteScheduledScan(double NowSeconds)
         // also rebuild the legacy CPU ISM here; that duplicated every preview
         // update and made a FullSpec scan pay the render cost twice.
         const AVirtualLidarSensorActor* SensorOwner = Cast<AVirtualLidarSensorActor>(GetOwner());
-        if (!SensorOwner || !SensorOwner->VisualizationComponent)
+        if (!SensorOwner || !SensorOwner->VisualizationComp)
         {
             RefreshPointCloudPreview();
         }
@@ -142,7 +142,7 @@ void UVirtualLidarScanComponent::CompleteScheduledScan(double NowSeconds)
     else {++CompatibilityStatus.SkippedUnrequested;RuntimeStatus.MeasuredOutputRateHz=0;LastScheduledOutputTime=-1;}
 }
 
-void UVirtualLidarScanComponent::QueueScheduledAutoExports(TSharedPtr<const FVirtualLidarFrameSnapshot,ESPMode::ThreadSafe> Frame)
+void UVirtualLidarScanComp::QueueScheduledAutoExports(TSharedPtr<const FVirtualLidarFrameSnapshot,ESPMode::ThreadSafe> Frame)
 {
     if (!bExportCsvOnScan && !bExportJsonLinesOnScan && !bExportPcdOnScan) return;
     if (bScheduledAutoExportInFlight)
@@ -163,7 +163,7 @@ void UVirtualLidarScanComponent::QueueScheduledAutoExports(TSharedPtr<const FVir
     const bool bHitOnly = bExportHitOnlyPointCloud;
     const int32 Generation = ScheduledGeneration;
     TSharedPtr<const TArray<FVirtualLidarPoint>, ESPMode::ThreadSafe> Points = Frame.IsValid()?Frame->Points:GetLastPointSnapshot();
-    TWeakObjectPtr<UVirtualLidarScanComponent> WeakThis(this);
+    TWeakObjectPtr<UVirtualLidarScanComp> WeakThis(this);
     bScheduledAutoExportInFlight = true;
     RuntimeStatus.bDerivedWorkInFlight = true;
 
@@ -231,7 +231,7 @@ void UVirtualLidarScanComponent::QueueScheduledAutoExports(TSharedPtr<const FVir
     });
 }
 
-void UVirtualLidarScanComponent::SetPreviewPolicy(int32 InStride, int32 InMaxPoints, bool bInHitOnly)
+void UVirtualLidarScanComp::SetPreviewPolicy(int32 InStride, int32 InMaxPoints, bool bInHitOnly)
 {
     PreviewPointStride = FMath::Clamp(InStride, 1, 100);
     MaxPreviewPoints = FMath::Clamp(InMaxPoints, 0, 1000000);
@@ -241,11 +241,11 @@ void UVirtualLidarScanComponent::SetPreviewPolicy(int32 InStride, int32 InMaxPoi
     RefreshPointCloudPreview();
 	if (AVirtualLidarSensorActor* SensorActor = Cast<AVirtualLidarSensorActor>(GetOwner()))
 	{
-		if (SensorActor->VisualizationComponent) SensorActor->VisualizationComponent->RefreshLatestFrame();
+		if (SensorActor->VisualizationComp) SensorActor->VisualizationComp->RefreshLatestFrame();
 	}
 }
 
-FVirtualLidarPreviewPolicy UVirtualLidarScanComponent::GetPreviewPolicyState() const
+FVirtualLidarPreviewPolicy UVirtualLidarScanComp::GetPreviewPolicyState() const
 {
 	FVirtualLidarPreviewPolicy Policy;
 	Policy.PointStride = PreviewPointStride;
@@ -254,7 +254,7 @@ FVirtualLidarPreviewPolicy UVirtualLidarScanComponent::GetPreviewPolicyState() c
 	return Policy;
 }
 
-void UVirtualLidarScanComponent::SetPreviewBackend(ELidarPointCloudPreviewBackend InBackend, bool bAllowExperimentalGpuBackend)
+void UVirtualLidarScanComp::SetPreviewBackend(ELidarPointCloudPreviewBackend InBackend, bool bAllowExperimentalGpuBackend)
 {
     PreviewBackend = InBackend;
     bAllowExperimentalGpuPreviewBackend = bAllowExperimentalGpuBackend;
@@ -262,7 +262,7 @@ void UVirtualLidarScanComponent::SetPreviewBackend(ELidarPointCloudPreviewBacken
     RefreshPointCloudPreview();
 }
 
-FString UVirtualLidarScanComponent::GetPreviewBackendName() const
+FString UVirtualLidarScanComp::GetPreviewBackendName() const
 {
     if (bGpuPreviewBackendRuntimeActive) return TEXT("NiagaraGpuSprites");
     switch (PreviewBackend)
@@ -277,29 +277,29 @@ FString UVirtualLidarScanComponent::GetPreviewBackendName() const
     }
 }
 
-bool UVirtualLidarScanComponent::IsGpuPreviewBackendRequested() const
+bool UVirtualLidarScanComp::IsGpuPreviewBackendRequested() const
 {
     return bGpuPreviewBackendRuntimeRequested ||
         PreviewBackend == ELidarPointCloudPreviewBackend::NiagaraCandidate ||
         PreviewBackend == ELidarPointCloudPreviewBackend::CustomGpuCandidate;
 }
 
-void UVirtualLidarScanComponent::SetPointCloudPreviewEnabled(bool bEnabled)
+void UVirtualLidarScanComp::SetPointCloudPreviewEnabled(bool bEnabled)
 {
     bPointCloudPreviewEnabled = bEnabled;
     if (bPointCloudPreviewEnabled) { EnsurePointCloudPreviewComponent(); ApplyPointCloudPreviewStyle(); RefreshPointCloudPreview(); }
     else { ClearPointCloudPreview(); }
 }
-void UVirtualLidarScanComponent::ClearPointCloudPreview()
+void UVirtualLidarScanComp::ClearPointCloudPreview()
 {
     if (PointCloudPreviewComponent) { PointCloudPreviewComponent->ClearInstances(); PointCloudPreviewComponent->SetHiddenInGame(true); PointCloudPreviewComponent->SetVisibility(false, true); }
 }
-void UVirtualLidarScanComponent::ApplyPointCloudPreviewStyle()
+void UVirtualLidarScanComp::ApplyPointCloudPreviewStyle()
 {
     if (PointCloudPreviewComponent && PointCloudPreviewMaterial) PointCloudPreviewComponent->SetMaterial(0, PointCloudPreviewMaterial);
 }
 
-void UVirtualLidarScanComponent::ApplyPreset(EVirtualLidarPreset NewPreset)
+void UVirtualLidarScanComp::ApplyPreset(EVirtualLidarPreset NewPreset)
 {
     Preset = NewPreset;
     if (Preset == EVirtualLidarPreset::LowDebug) { HorizontalSamples = 90; VerticalChannels = 8; ScanInterval = 1.0f; PreviewPointStride = 1; MaxPreviewPoints = 2000; PointCloudPreviewStride = PreviewPointStride; MaxPointCloudPreviewInstances = MaxPreviewPoints; PayloadPointStride = ServerPayloadStride; MaxPayloadPoints = MaxServerPayloadPoints; }
@@ -307,7 +307,7 @@ void UVirtualLidarScanComponent::ApplyPreset(EVirtualLidarPreset NewPreset)
     else if (Preset == EVirtualLidarPreset::HighQuality) { HorizontalSamples = 360; VerticalChannels = 32; ScanInterval = 0.25f; PreviewPointStride = 4; MaxPreviewPoints = 5000; PointCloudPreviewStride = PreviewPointStride; MaxPointCloudPreviewInstances = MaxPreviewPoints; PayloadPointStride = ServerPayloadStride; MaxPayloadPoints = MaxServerPayloadPoints; }
 }
 
-void UVirtualLidarScanComponent::ApplySimulationQuality(EVirtualSensorSimulationQuality NewQuality)
+void UVirtualLidarScanComp::ApplySimulationQuality(EVirtualSensorSimulationQuality NewQuality)
 {
     SimulationQuality = NewQuality;
     if (SimulationQuality != EVirtualSensorSimulationQuality::Custom)
@@ -343,7 +343,7 @@ void UVirtualLidarScanComponent::ApplySimulationQuality(EVirtualSensorSimulation
     MaxPayloadPoints = MaxServerPayloadPoints;
 }
 
-int32 UVirtualLidarScanComponent::CountPreviewPoints(const TArray<FVirtualLidarPoint>& Points) const
+int32 UVirtualLidarScanComp::CountPreviewPoints(const TArray<FVirtualLidarPoint>& Points) const
 {
     const int32 SafeStride = FMath::Max(1, PreviewPointStride);
     const int32 SafeMax = FMath::Max(0, MaxPreviewPoints);
@@ -357,7 +357,7 @@ int32 UVirtualLidarScanComponent::CountPreviewPoints(const TArray<FVirtualLidarP
     return Count;
 }
 
-FString UVirtualLidarScanComponent::BuildPerformanceWarning() const
+FString UVirtualLidarScanComp::BuildPerformanceWarning() const
 {
     TArray<FString> Warnings;
     if (SimulationQuality == EVirtualSensorSimulationQuality::FullSpec && bUseMultiHit)
@@ -387,7 +387,7 @@ FString UVirtualLidarScanComponent::BuildPerformanceWarning() const
     return FString::Join(Warnings, TEXT("; "));
 }
 
-void UVirtualLidarScanComponent::UpdateRuntimeStatusAfterScan(int32 PayloadLength)
+void UVirtualLidarScanComp::UpdateRuntimeStatusAfterScan(int32 PayloadLength)
 {
     const TArray<FVirtualLidarPoint>& LastPoints = GetLastPoints();
     RuntimeStatus.SensorId = SensorId;
@@ -424,7 +424,7 @@ void UVirtualLidarScanComponent::UpdateRuntimeStatusAfterScan(int32 PayloadLengt
         LastPerformanceWarning.IsEmpty() ? TEXT("None") : *LastPerformanceWarning);
 }
 
-void UVirtualLidarScanComponent::ExportEnabledPointCloudFormats() const
+void UVirtualLidarScanComp::ExportEnabledPointCloudFormats() const
 {
     if (bExportCsvOnScan)
     {
@@ -439,16 +439,16 @@ void UVirtualLidarScanComponent::ExportEnabledPointCloudFormats() const
         ExportLastPointCloudPcd();
     }
 }
-void UVirtualLidarScanComponent::SaveJsonToDisk(const FString& JsonPayload) const { const FString Path = BuildExportPath(TEXT("json"), SensorId); FFileHelper::SaveStringToFile(JsonPayload, *Path); }
+void UVirtualLidarScanComp::SaveJsonToDisk(const FString& JsonPayload) const { const FString Path = BuildExportPath(TEXT("json"), SensorId); FFileHelper::SaveStringToFile(JsonPayload, *Path); }
 
-FString UVirtualLidarScanComponent::BuildExportPath(const FString& Extension, const FString& FileNamePrefix) const
+FString UVirtualLidarScanComp::BuildExportPath(const FString& Extension, const FString& FileNamePrefix) const
 {
     const FString Dir = FPaths::Combine(FPaths::ProjectSavedDir(), VirtualSensorDefaults::CaptureDirectory, SensorId, VirtualSensorDefaults::PointCloudSubdirectory); IFileManager::Get().MakeDirectory(*Dir, true); const FString Prefix = FileNamePrefix.IsEmpty() ? SensorId : FileNamePrefix; const FDateTime N = FDateTime::UtcNow(); const FString Ts = FString::Printf(TEXT("%s_%03d_%lld"), *N.ToString(TEXT("%Y%m%d_%H%M%S")), N.GetMillisecond(), N.GetTicks()); LastPointCloudExportPath = FPaths::Combine(Dir, FString::Printf(TEXT("%s_%s.%s"), *Prefix, *Ts, *Extension)); return LastPointCloudExportPath;
 }
 
-void UVirtualLidarScanComponent::CollectExportPoints(TArray<const FVirtualLidarPoint*>& Out) const { Out.Reset(); for (const FVirtualLidarPoint& P : GetLastPoints()) if (!bExportHitOnlyPointCloud || P.bHit) Out.Add(&P); }
+void UVirtualLidarScanComp::CollectExportPoints(TArray<const FVirtualLidarPoint*>& Out) const { Out.Reset(); for (const FVirtualLidarPoint& P : GetLastPoints()) if (!bExportHitOnlyPointCloud || P.bHit) Out.Add(&P); }
 
-void UVirtualLidarScanComponent::LogLastPointCloud(int32 MaxPointsToLog, bool bHitOnly) const
+void UVirtualLidarScanComp::LogLastPointCloud(int32 MaxPointsToLog, bool bHitOnly) const
 {
     const TArray<FVirtualLidarPoint>& LastPoints = GetLastPoints();
     int32 Logged = 0, Candidates = 0; UE_LOG(LogTemp, Warning, TEXT("[VirtualLidar:%s] PointCloud frame=%lld total=%d"), *SensorId, FrameId, LastPoints.Num());
@@ -456,7 +456,7 @@ void UVirtualLidarScanComponent::LogLastPointCloud(int32 MaxPointsToLog, bool bH
     UE_LOG(LogTemp, Warning, TEXT("[VirtualLidar:%s] PointCloud log complete. candidates=%d logged=%d"), *SensorId, Candidates, Logged);
 }
 
-bool UVirtualLidarScanComponent::ExportLastPointCloudCsv(const FString& FileNamePrefix) const
+bool UVirtualLidarScanComp::ExportLastPointCloudCsv(const FString& FileNamePrefix) const
 {
     TArray<const FVirtualLidarPoint*> Points;
     CollectExportPoints(Points);
@@ -502,7 +502,7 @@ bool UVirtualLidarScanComponent::ExportLastPointCloudCsv(const FString& FileName
     return bFileSaved;
 }
 
-bool UVirtualLidarScanComponent::ExportLastPointCloudJsonLines(const FString& FileNamePrefix) const
+bool UVirtualLidarScanComp::ExportLastPointCloudJsonLines(const FString& FileNamePrefix) const
 {
     TArray<const FVirtualLidarPoint*> Points; CollectExportPoints(Points); FString Text;
     for (const FVirtualLidarPoint* P : Points)
@@ -546,7 +546,7 @@ bool UVirtualLidarScanComponent::ExportLastPointCloudJsonLines(const FString& Fi
     return bFileSaved;
 }
 
-bool UVirtualLidarScanComponent::ExportLastPointCloudPcd(const FString& FileNamePrefix) const
+bool UVirtualLidarScanComp::ExportLastPointCloudPcd(const FString& FileNamePrefix) const
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_PcdEncode);
     TArray<const FVirtualLidarPoint*> Points;
@@ -585,12 +585,12 @@ bool UVirtualLidarScanComponent::ExportLastPointCloudPcd(const FString& FileName
     return bFileSaved;
 }
 
-bool UVirtualLidarScanComponent::ExportLastPointCloudLas(const FString& FileNamePrefix) const
+bool UVirtualLidarScanComp::ExportLastPointCloudLas(const FString& FileNamePrefix) const
 {
     return ExportLastPointCloudLasToPath(BuildExportPath(TEXT("las"), FileNamePrefix));
 }
 
-bool UVirtualLidarScanComponent::ExportLastPointCloudLasToPath(const FString& Path) const
+bool UVirtualLidarScanComp::ExportLastPointCloudLasToPath(const FString& Path) const
 {
     TArray<const FVirtualLidarPoint*> Points; CollectExportPoints(Points); if (Points.Num() <= 0) return false;
     FVector Min(FLT_MAX), Max(-FLT_MAX); for (const FVirtualLidarPoint* P : Points) if (P) { Min.X = FMath::Min(Min.X, P->WorldLocation.X); Min.Y = FMath::Min(Min.Y, P->WorldLocation.Y); Min.Z = FMath::Min(Min.Z, P->WorldLocation.Z); Max.X = FMath::Max(Max.X, P->WorldLocation.X); Max.Y = FMath::Max(Max.Y, P->WorldLocation.Y); Max.Z = FMath::Max(Max.Z, P->WorldLocation.Z); }
@@ -608,7 +608,7 @@ bool UVirtualLidarScanComponent::ExportLastPointCloudLasToPath(const FString& Pa
     return bFileSaved;
 }
 
-bool UVirtualLidarScanComponent::RunExternalLazCompressor(const FString& LasSourcePath, const FString& LazOutputPath) const
+bool UVirtualLidarScanComp::RunExternalLazCompressor(const FString& LasSourcePath, const FString& LazOutputPath) const
 {
     bLastLazExternalCompressorAttempted = true;
     bLastLazExternalCompressorSucceeded = false;
@@ -690,7 +690,7 @@ bool UVirtualLidarScanComponent::RunExternalLazCompressor(const FString& LasSour
     return true;
 }
 
-bool UVirtualLidarScanComponent::ExportLastPointCloudLaz(const FString& FileNamePrefix) const
+bool UVirtualLidarScanComp::ExportLastPointCloudLaz(const FString& FileNamePrefix) const
 {
     ResetLastLazExportStatus(TEXT("NotStarted"));
     bLastLazExportAttempted = true;
@@ -721,9 +721,9 @@ bool UVirtualLidarScanComponent::ExportLastPointCloudLaz(const FString& FileName
     const FString LazOutputPath = BuildExportPath(TEXT("laz"), FileNamePrefix);
     return RunExternalLazCompressor(LasSourcePath, LazOutputPath);
 }
-bool UVirtualLidarScanComponent::ExportLastPointCloudCsvLasLaz(const FString& FileNamePrefix) const { const bool A = ExportLastPointCloudCsv(FileNamePrefix); const bool B = ExportLastPointCloudLas(FileNamePrefix); const bool C = ExportLastPointCloudLaz(FileNamePrefix); return A || B || C; }
+bool UVirtualLidarScanComp::ExportLastPointCloudCsvLasLaz(const FString& FileNamePrefix) const { const bool A = ExportLastPointCloudCsv(FileNamePrefix); const bool B = ExportLastPointCloudLas(FileNamePrefix); const bool C = ExportLastPointCloudLaz(FileNamePrefix); return A || B || C; }
 
-void UVirtualLidarScanComponent::ResetLastLazExportStatus(const FString& StatusText) const
+void UVirtualLidarScanComp::ResetLastLazExportStatus(const FString& StatusText) const
 {
     LastLazExportStatusText = StatusText;
     LastLazExportWarningText.Reset();
@@ -742,7 +742,7 @@ void UVirtualLidarScanComponent::ResetLastLazExportStatus(const FString& StatusT
     LastLazOutputSizeBytes = 0;
 }
 
-UInstancedStaticMeshComponent* UVirtualLidarScanComponent::EnsurePointCloudPreviewComponent()
+UInstancedStaticMeshComponent* UVirtualLidarScanComp::EnsurePointCloudPreviewComponent()
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarPreview);
     if (!PointCloudPreviewComponent)
@@ -767,7 +767,7 @@ UInstancedStaticMeshComponent* UVirtualLidarScanComponent::EnsurePointCloudPrevi
     return PointCloudPreviewComponent;
 }
 
-void UVirtualLidarScanComponent::RefreshPointCloudPreview()
+void UVirtualLidarScanComp::RefreshPointCloudPreview()
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarPreview);
     UWorld* World = GetWorld(); if (!bPointCloudPreviewEnabled || !World) { ClearPointCloudPreview(); return; }
@@ -779,7 +779,7 @@ void UVirtualLidarScanComponent::RefreshPointCloudPreview()
     TArray<FTransform> InstanceTransforms;
     InstanceTransforms.Reserve(PreviewCapacity);
     const AVirtualLidarSensorActor* SensorOwner = Cast<AVirtualLidarSensorActor>(GetOwner());
-    const UVirtualLidarVisualizationComponent* Visualizer = SensorOwner ? SensorOwner->VisualizationComponent : nullptr;
+    const UVirtualLidarVisualizationComp* Visualizer = SensorOwner ? SensorOwner->VisualizationComp : nullptr;
     auto DisplayColor = [&](const FVirtualLidarPoint& P) { return Visualizer ? Visualizer->GetPointDisplayColor(P) : ((bUseSemanticColorInPointCloudPreview && P.bHit) ? ResolveSemanticColor(P) : PointCloudPreviewColor); };
     for (int32 I = 0; I < LastPoints.Num(); I += Stride)
     {

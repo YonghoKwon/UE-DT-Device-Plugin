@@ -1,8 +1,8 @@
 #include "Device/Sensor/VirtualLidarSemanticScene.h"
 #include "Device/Core/DeviceSensorAssetSettings.h"
 #include "SensorUploadDiagnostics.h"
-#include "Device/Sensor/VirtualLidarSurfaceResponseComponent.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarSurfaceResponseComp.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualLidarSemanticDiagnostics.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -17,25 +17,25 @@
 FVirtualLidarSemanticScene::FVirtualLidarSemanticScene()
     : Scene(FPreviewScene::ConstructionValues().SetEditor(GIsEditor).SetCreateDefaultLighting(false).SetCreatePhysicsScene(false).SetTransactional(false).SetForceMipsResident(false))
 {
-    CaptureComponent = NewObject<USceneCaptureComponent2D>();
-    CaptureComponent->bCaptureEveryFrame = false;
-    CaptureComponent->bCaptureOnMovement = false;
-    CaptureComponent->CaptureSource = ESceneCaptureSource::SCS_SceneColorSceneDepth;
-    CaptureComponent->ShowFlags.DisableAdvancedFeatures();
-    CaptureComponent->ShowFlags.SetLighting(false);
-    CaptureComponent->ShowFlags.SetPostProcessing(false);
-    CaptureComponent->ShowFlags.SetEyeAdaptation(false);
-    CaptureComponent->ShowFlags.SetTonemapper(false);
-    CaptureComponent->ShowFlags.SetAtmosphere(false);
-    CaptureComponent->ShowFlags.SetFog(false);
-    CaptureComponent->ShowFlags.SetAntiAliasing(false);
-    CaptureComponent->TextureTarget = NewObject<UTextureRenderTarget2D>(CaptureComponent);
-    CaptureComponent->TextureTarget->ClearColor = FLinearColor::Black;
-    Scene.AddComponent(CaptureComponent, FTransform::Identity);
+    CaptureComp = NewObject<USceneCaptureComponent2D>();
+    CaptureComp->bCaptureEveryFrame = false;
+    CaptureComp->bCaptureOnMovement = false;
+    CaptureComp->CaptureSource = ESceneCaptureSource::SCS_SceneColorSceneDepth;
+    CaptureComp->ShowFlags.DisableAdvancedFeatures();
+    CaptureComp->ShowFlags.SetLighting(false);
+    CaptureComp->ShowFlags.SetPostProcessing(false);
+    CaptureComp->ShowFlags.SetEyeAdaptation(false);
+    CaptureComp->ShowFlags.SetTonemapper(false);
+    CaptureComp->ShowFlags.SetAtmosphere(false);
+    CaptureComp->ShowFlags.SetFog(false);
+    CaptureComp->ShowFlags.SetAntiAliasing(false);
+    CaptureComp->TextureTarget = NewObject<UTextureRenderTarget2D>(CaptureComp);
+    CaptureComp->TextureTarget->ClearColor = FLinearColor::Black;
+    Scene.AddComponent(CaptureComp, FTransform::Identity);
 }
-UTextureRenderTarget2D* FVirtualLidarSemanticScene::GetTarget() const { return CaptureComponent->TextureTarget; }
+UTextureRenderTarget2D* FVirtualLidarSemanticScene::GetTarget() const { return CaptureComp->TextureTarget; }
 
-bool FVirtualLidarSemanticScene::Capture(UVirtualLidarScanComponent& Scan, const FVirtualLidarDepthAcquisitionRequest& Request, int32 Width, int32 Height)
+bool FVirtualLidarSemanticScene::Capture(UVirtualLidarScanComp& Scan, const FVirtualLidarDepthAcquisitionRequest& Request, int32 Width, int32 Height)
 {
     return Capture(Scan.GetWorld(), Scan.GetOwner(), Request.AcquisitionTransform, Request.HorizontalFovDegrees, Width, Height,
         [&Scan](const UPrimitiveComponent* Component){ return Scan.ResolveSemanticLabelForComponent(Component); }, false, {}, Request.bRequestFidelity);
@@ -154,7 +154,7 @@ bool FVirtualLidarSemanticScene::Capture(UWorld* World, AActor* IgnoreOwner, con
         Identity.ActorName = Source->GetOwner()->GetFName();
         Identity.ActorClass = Source->GetOwner()->GetClass()->GetFName();
         Identity.ActorTags = Source->GetOwner()->Tags;
-        if(const auto* Response=Source->GetOwner()->FindComponentByClass<UVirtualLidarSurfaceResponseComponent>();Response&&Response->bUseGpuReflectivityOverride)
+        if(const auto* Response=Source->GetOwner()->FindComponentByClass<UVirtualLidarSurfaceResponseComp>();Response&&Response->bUseGpuReflectivityOverride)
         {
             Identity.bHasOpticalOverride=true;Identity.Reflectivity940Nm=FMath::Clamp(Response->Reflectivity940Nm,.001f,1.f);Identity.IntensityGain=FMath::Max(0.f,Response->IntensityGain);
         }
@@ -169,9 +169,9 @@ bool FVirtualLidarSemanticScene::Capture(UWorld* World, AActor* IgnoreOwner, con
         Target->InitAutoFormat(Width, Height);
         Target->UpdateResourceImmediate(true);
     }
-    CaptureComponent->SetWorldTransform(Pose);
-    CaptureComponent->FOVAngle = HorizontalFov;
-    VirtualSensorCaptureRendering::Prepare(*CaptureComponent, true);
+    CaptureComp->SetWorldTransform(Pose);
+    CaptureComp->FOVAngle = HorizontalFov;
+    VirtualSensorCaptureRendering::Prepare(*CaptureComp, true);
     Scene.GetWorld()->SendAllEndOfFrameUpdates();
     // Submit a ready render before diagnostic/status string assembly, as in the
     // original immediate path. Cold PSOs still use the frozen pending snapshot.
@@ -217,7 +217,7 @@ bool FVirtualLidarSemanticScene::PollPendingCapture(bool bUpdateStatus)
         {Scene.GetWorld()->SendAllEndOfFrameUpdates();bPendingProxyUpdateSent=true;}
         for(const auto* Mesh:PendingProxies)if(!Mesh->SceneProxy)return false;
     }
-    CaptureComponent->CaptureScene();
+    CaptureComp->CaptureScene();
     if(bUpdateStatus)Status+=TEXT(" · 의미 분류 준비 완료");
     bCapturePending=false;
     return true;

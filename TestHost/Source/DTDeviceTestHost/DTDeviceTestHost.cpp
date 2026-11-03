@@ -1,6 +1,6 @@
 #include "Modules/ModuleManager.h"
 #include "Device/Sensor/DeviceSemanticPolicy.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 class FDTDeviceTestHostModule final : public FDefaultGameModuleImpl
 {
     void StartupModule() override

@@ -3,18 +3,18 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Device/Sensor/VirtualSensorRuntimeTypes.h"
-#include "VirtualLidarExportComponent.generated.h"
+#include "VirtualLidarExportComp.generated.h"
 
-class UVirtualLidarScanComponent;
+class UVirtualLidarScanComp;
 
 UCLASS(ClassGroup = (DigitalTwin), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualLidarExportComponent : public UActorComponent
+class DEVICERUNTIME_API UVirtualLidarExportComp : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	UVirtualLidarExportComponent();
-	void BindScanComponent(UVirtualLidarScanComponent* InScanComponent);
+	UVirtualLidarExportComp();
+	void BindScanComponent(UVirtualLidarScanComp* InScanComponent);
 
 	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|VirtualLidar|Export")
 	bool ExportCsv(const FString& FileNamePrefix = TEXT("")) const;
@@ -38,5 +38,5 @@ public:
 
 private:
 	UPROPERTY(Transient)
-	TObjectPtr<UVirtualLidarScanComponent> ScanComponent;
+	TObjectPtr<UVirtualLidarScanComp> ScanComp;
 };

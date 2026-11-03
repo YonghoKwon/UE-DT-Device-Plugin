@@ -2,7 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "Misc/SecureHash.h"
 #include "Device/Core/VirtualSensorWireHeaders.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
 #include "Device/Transport/VirtualPointCloudStreamReceiverTC.h"
 #include "Device/Contracts/VirtualSensorStreamReceiverRegistry.h"
@@ -22,10 +22,10 @@ bool FSensorIncomingProductionContractTest::RunTest(const FString& Parameters)
 	TArray<FVirtualLidarPoint> Points; Points.SetNum(InputCount);
 	for (auto& P:Points) { P.bHit=true; P.Validity=EVirtualLidarPointValidity::Valid; P.SensorLocalPositionMeters=FVector(1,2,3); }
 	Source.PointSnapshot=MakeShared<const TArray<FVirtualLidarPoint>,ESPMode::ThreadSafe>(MoveTemp(Points));
-	auto Config=UVirtualSensorStreamPublisherComponent::NormalizeLiveConfig(FVirtualSensorStreamConfig());
-	Config.StreamKind=EVirtualSensorStreamKind::PointCloud; Config=UVirtualSensorStreamPublisherComponent::NormalizeLiveConfig(Config);
+	auto Config=UVirtualSensorStreamPublisherComp::NormalizeLiveConfig(FVirtualSensorStreamConfig());
+	Config.StreamKind=EVirtualSensorStreamKind::PointCloud; Config=UVirtualSensorStreamPublisherComp::NormalizeLiveConfig(Config);
 	TArray<uint8> Body; FString Extension,Error; int32 Count=0;
-	TestTrue(TEXT("production serializer"),UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(Source,Config,Extension,Body,Count,Error));
+	TestTrue(TEXT("production serializer"),UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Source,Config,Extension,Body,Count,Error));
 	FVirtualPointCloudBinaryMetadata Meta;
 	Meta.SensorId=Source.SensorId; Meta.FrameId=Source.FrameId; Meta.TimestampUtc=Source.TimestampUtc.ToIso8601();
 	Meta.ProfileKey=TEXT("MLX80_Native"); Meta.PointCount=Count; Meta.SourcePointCount=InputCount; Meta.ByteCount=Body.Num();

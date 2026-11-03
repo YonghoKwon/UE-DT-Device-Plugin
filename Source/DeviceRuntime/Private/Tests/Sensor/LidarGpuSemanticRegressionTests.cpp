@@ -8,7 +8,7 @@
 #include "ShaderCompiler.h"
 #include "Components/StaticMeshComponent.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
 #include "RHIGlobals.h"
 
@@ -38,7 +38,7 @@ public:
             Sensor = World->SpawnActor<AVirtualLidarSensorActor>();
             Sensor->SetActorLocation(FVector(0,0,1000));
             Sensor->SetActorRotation(FRotator(-90,0,0));
-            auto* Scan = Sensor->ScanComponent.Get();
+            auto* Scan = Sensor->ScanComp.Get();
             Scan->StopScan();
             Scan->ApplyDeviceProfile(EVirtualLidarDeviceProfile::IYOBOT_MLX80_NATIVE);
             Scan->ApplySimulationQuality(EVirtualSensorSimulationQuality::FullSpec);
@@ -61,7 +61,7 @@ public:
         const double Now = FPlatformTime::Seconds();
         if (Now - Started < 2.0) return false;
         if (GShaderCompilingManager && GShaderCompilingManager->IsCompiling() && Now - Started < 60.0) return false;
-        auto* Scan = Sensor->ScanComponent.Get();
+        auto* Scan = Sensor->ScanComp.Get();
         if (!bRequested)
         {
             Scan->StartScan(); Scan->RequestImmediateScheduledScan(); Scan->PrepareScheduledScan(0.0);
@@ -107,7 +107,7 @@ public:
         return Finish();
     }
 private:
-    bool Finish() { if (Sensor) { Sensor->ScanComponent->StopScan(); Sensor->GpuDepthProjectionComponent->UnregisterComponent(); } Scene.Reset(); return true; }
+    bool Finish() { if (Sensor) { Sensor->ScanComp->StopScan(); Sensor->GpuDepthProjectionComponent->UnregisterComponent(); } Scene.Reset(); return true; }
     FAutomationTestBase* Test;
     TUniquePtr<FPreviewScene> Scene;
     AStaticMeshActor* Plate = nullptr;

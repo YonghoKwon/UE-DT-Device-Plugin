@@ -7,10 +7,10 @@
 #include "VirtualSensorActorBase.generated.h"
 
 class UTexture;
-class UVirtualSensorOutputComponent;
-class UVirtualSensorRecorderComponent;
-class UVirtualSensorTransportComponent;
-class UVirtualSensorStreamPublisherComponent;
+class UVirtualSensorOutputComp;
+class UVirtualSensorRecorderComp;
+class UVirtualSensorTransportComp;
+class UVirtualSensorStreamPublisherComp;
 class AVirtualSensorActorBase;
 class UStaticMeshComponent;
 DECLARE_MULTICAST_DELEGATE_OneParam(FVirtualSensorActivated,AVirtualSensorActorBase*);
@@ -84,10 +84,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "DigitalTwin|Sensor|Interaction")
 	bool IsInteractiveManipulationActive() const { return bInteractiveManipulationActive; }
 
-	void SetSharedOutputServices(UVirtualSensorTransportComponent* Transport, UVirtualSensorRecorderComponent* Recorder, UVirtualSensorStreamPublisherComponent* StreamPublisher = nullptr);
+	void SetSharedOutputServices(UVirtualSensorTransportComp* Transport, UVirtualSensorRecorderComp* Recorder, UVirtualSensorStreamPublisherComp* StreamPublisher = nullptr);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|Sensor")
-	TObjectPtr<UVirtualSensorOutputComponent> OutputComponent;
+	TObjectPtr<UVirtualSensorOutputComp> OutputComp;
 
 protected:
 	uint64 SensorRunControlRevision=0;

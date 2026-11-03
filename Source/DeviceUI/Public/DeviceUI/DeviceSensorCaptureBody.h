@@ -35,13 +35,13 @@
 #include "Device/Core/VirtualSensorFileSaveSubsystem.h"
 #include "Device/Core/VirtualSensorOutputPreflight.h"
 #include "Device/Core/VirtualSensorPeriodicFileSaveSubsystem.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
 #include "Device/Sensor/VirtualSensorEditableTypes.h"
 #include "Device/Sensor/VirtualSensorExternalSourceHostActor.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 #define LOCTEXT_NAMESPACE "VirtualSensorCaptureExportPanelWidget"
 /** Generic View contract: host policy, public BP state and optional extensions stay in the facade.
  * No concrete project widget, Workspace, scenario or job type is included here.

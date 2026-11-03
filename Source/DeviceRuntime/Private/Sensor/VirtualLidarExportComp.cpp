@@ -1,52 +1,52 @@
-#include "Device/Sensor/VirtualLidarExportComponent.h"
+#include "Device/Sensor/VirtualLidarExportComp.h"
 
-#include "Device/Sensor/VirtualLidarScanComponent.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 
-UVirtualLidarExportComponent::UVirtualLidarExportComponent()
+UVirtualLidarExportComp::UVirtualLidarExportComp()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-bool UVirtualLidarExportComponent::SerializeImmutableFrame(const FVirtualSensorFrameEnvelope& Frame,const FVirtualSensorStreamConfig& Config,FString& Extension,TArray<uint8>& Bytes,int32& PointCount,FString& Error)
+bool UVirtualLidarExportComp::SerializeImmutableFrame(const FVirtualSensorFrameEnvelope& Frame,const FVirtualSensorStreamConfig& Config,FString& Extension,TArray<uint8>& Bytes,int32& PointCount,FString& Error)
 {
 	FVirtualSensorStreamConfig FileConfig=Config;
 	FileConfig.PcdSendOptions=FVirtualPcdSendOptions(); // Export/Recorder always preserve Full binary storage.
-	const bool Success=UVirtualSensorStreamPublisherComponent::SerializePointCloudFrame(Frame,FileConfig,Extension,Bytes,PointCount,Error);
+	const bool Success=UVirtualSensorStreamPublisherComp::SerializePointCloudFrame(Frame,FileConfig,Extension,Bytes,PointCount,Error);
 	if(!Success&&Error.IsEmpty())Error=TEXT("선택 형식으로 저장할 검출점이 없거나 프레임 변환에 실패했습니다.");
 	return Success;
 }
 
-void UVirtualLidarExportComponent::BindScanComponent(UVirtualLidarScanComponent* InScanComponent)
+void UVirtualLidarExportComp::BindScanComponent(UVirtualLidarScanComp* InScanComponent)
 {
-	ScanComponent = InScanComponent;
+	ScanComp = InScanComponent;
 }
 
-bool UVirtualLidarExportComponent::ExportCsv(const FString& FileNamePrefix) const
+bool UVirtualLidarExportComp::ExportCsv(const FString& FileNamePrefix) const
 {
-	return ScanComponent && ScanComponent->ExportLastPointCloudCsv(FileNamePrefix);
+	return ScanComp && ScanComp->ExportLastPointCloudCsv(FileNamePrefix);
 }
 
-bool UVirtualLidarExportComponent::ExportJsonLines(const FString& FileNamePrefix) const
+bool UVirtualLidarExportComp::ExportJsonLines(const FString& FileNamePrefix) const
 {
-	return ScanComponent && ScanComponent->ExportLastPointCloudJsonLines(FileNamePrefix);
+	return ScanComp && ScanComp->ExportLastPointCloudJsonLines(FileNamePrefix);
 }
 
-bool UVirtualLidarExportComponent::ExportPcd(const FString& FileNamePrefix) const
+bool UVirtualLidarExportComp::ExportPcd(const FString& FileNamePrefix) const
 {
-	return ScanComponent && ScanComponent->ExportLastPointCloudPcd(FileNamePrefix);
+	return ScanComp && ScanComp->ExportLastPointCloudPcd(FileNamePrefix);
 }
 
-bool UVirtualLidarExportComponent::ExportLas(const FString& FileNamePrefix) const
+bool UVirtualLidarExportComp::ExportLas(const FString& FileNamePrefix) const
 {
-	return ScanComponent && ScanComponent->ExportLastPointCloudLas(FileNamePrefix);
+	return ScanComp && ScanComp->ExportLastPointCloudLas(FileNamePrefix);
 }
 
-bool UVirtualLidarExportComponent::ExportLaz(const FString& FileNamePrefix) const
+bool UVirtualLidarExportComp::ExportLaz(const FString& FileNamePrefix) const
 {
-	return ScanComponent && ScanComponent->ExportLastPointCloudLaz(FileNamePrefix);
+	return ScanComp && ScanComp->ExportLastPointCloudLaz(FileNamePrefix);
 }
 
-FString UVirtualLidarExportComponent::GetLastExportPath() const
+FString UVirtualLidarExportComp::GetLastExportPath() const
 {
-	return ScanComponent ? ScanComponent->GetLastPointCloudExportPath() : FString();
+	return ScanComp ? ScanComp->GetLastPointCloudExportPath() : FString();
 }

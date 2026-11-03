@@ -1,17 +1,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Device/Sensor/RealSensorSourceComponent.h"
+#include "Device/Sensor/RealSensorSourceComp.h"
 #include "Device/Sensor/VirtualLidarSensorTypes.h"
-#include "LidarJsonLiveSourceComponent.generated.h"
+#include "LidarJsonLiveSourceComp.generated.h"
 
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API ULidarJsonLiveSourceComponent : public URealSensorSourceComponent
+class DEVICERUNTIME_API ULidarJsonLiveSourceComp : public URealSensorSourceComp
 {
     GENERATED_BODY()
 
 public:
-    ULidarJsonLiveSourceComponent();
+    ULidarJsonLiveSourceComp();
 
     virtual bool StartSource() override;
 

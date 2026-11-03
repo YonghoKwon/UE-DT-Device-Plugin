@@ -1,12 +1,12 @@
 #pragma once
-#include "DeviceUI/DeviceSensorPanelBase.h"
+#include "DeviceUI/DxDeviceSensorPanelBase.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 
 /** Explicit construction-site registration, never walks another widget's children. */
 template<class WidgetType>
 struct TSensorToolWidgetDecl
 {
-	explicit TSensorToolWidgetDecl(UDeviceSensorPanelBase* InOwner,const ANSICHAR* InTypeName) : Owner(InOwner),TypeName(InTypeName) {}
+	explicit TSensorToolWidgetDecl(UDxDeviceSensorPanelBase* InOwner,const ANSICHAR* InTypeName) : Owner(InOwner),TypeName(InTypeName) {}
 	TSensorToolWidgetDecl& Expose(TSharedPtr<WidgetType>& Out) { Exposed = &Out; return *this; }
 	TSharedRef<WidgetType> operator<<=(const typename WidgetType::FArguments& Args)
 	{
@@ -16,7 +16,7 @@ struct TSensorToolWidgetDecl
 		if (Exposed) *Exposed = Widget;
 		return Widget;
 	}
-	UDeviceSensorPanelBase* Owner;
+	UDxDeviceSensorPanelBase* Owner;
 	const ANSICHAR* TypeName;
 	TSharedPtr<WidgetType>* Exposed = nullptr;
 };

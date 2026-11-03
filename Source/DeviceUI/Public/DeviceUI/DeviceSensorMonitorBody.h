@@ -44,16 +44,16 @@
 #include "Device/Contracts/DeviceIdentityPolicy.h"
 #include "Device/Contracts/VirtualSensorDefaults.h"
 #include "Device/Core/VirtualSensorSchedulerSubsystem.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
-#include "Device/Sensor/RealSensorSourceComponent.h"
+#include "Device/Sensor/RealSensorSourceComp.h"
 #include "Device/Sensor/VirtualLidarHeight.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarSensorTypes.h"
-#include "Device/Sensor/VirtualLidarVisualizationComponent.h"
+#include "Device/Sensor/VirtualLidarVisualizationComp.h"
 #include "Device/Sensor/VirtualSensorEditableTypes.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 #define LOCTEXT_NAMESPACE "VirtualSensorMonitorPanelWidget"
 /** Generic View contract: host policy, public BP state and optional extensions stay in the facade.
  * No concrete project widget, Workspace, scenario or job type is included here.
@@ -129,7 +129,7 @@ struct FDeviceSensorMonitorBody
         TWeakObjectPtr<TView> DeviceOwner(&View);
         auto* DeviceSelf=&View;
 
-    const UVirtualLidarScanComponent* TargetLidar = DeviceSelf->GetTargetLidarForPreview();
+    const UVirtualLidarScanComp* TargetLidar = DeviceSelf->GetTargetLidarForPreview();
     if (!TargetLidar)
     {
         return TEXT("Preview: unavailable");
@@ -180,11 +180,11 @@ struct FDeviceSensorMonitorBody
         TWeakObjectPtr<TView> DeviceOwner(&View);
         auto* DeviceSelf=&View;
 
-    const UVirtualSensorTransportComponent* TransportComp = DeviceSelf->SensorManager
-        ? DeviceSelf->SensorManager->SharedTransportComponent.Get()
+    const UVirtualSensorTransportComp* TransportComp = DeviceSelf->SensorManager
+        ? DeviceSelf->SensorManager->SharedTransportComp.Get()
         : (DeviceSelf->bShowingLidar && DeviceSelf->LidarComp
-            ? DeviceSelf->LidarComp->TransportComponent.Get()
-            : (!DeviceSelf->bShowingLidar && DeviceSelf->CameraComp ? DeviceSelf->CameraComp->TransportComponent.Get() : nullptr));
+            ? DeviceSelf->LidarComp->TransportComp.Get()
+            : (!DeviceSelf->bShowingLidar && DeviceSelf->CameraComp ? DeviceSelf->CameraComp->TransportComp.Get() : nullptr));
     FString SchedulerText;
     if (DeviceSelf->GetWorld()) if (const UVirtualSensorSchedulerSubsystem* Scheduler = DeviceSelf->GetWorld()->GetSubsystem<UVirtualSensorSchedulerSubsystem>()) SchedulerText = TEXT("\n성능: ") + Scheduler->GetTelemetrySummaryText();
     if (!TransportComp) return TEXT("Transport: unavailable") + SchedulerText;
@@ -228,7 +228,7 @@ struct FDeviceSensorMonitorBody
         TWeakObjectPtr<TView> DeviceOwner(&View);
         auto* DeviceSelf=&View;
 
-    const UVirtualLidarScanComponent* TargetLidar = DeviceSelf->GetTargetLidarForPreview();
+    const UVirtualLidarScanComp* TargetLidar = DeviceSelf->GetTargetLidarForPreview();
     const bool bTrueLazValidated = TargetLidar && TargetLidar->WasLastLazTrueCompressionValidated();
     const bool bHasServerPayload = DeviceSelf->bShowingLidar
         ? (TargetLidar && !TargetLidar->GetLastJsonPayload().IsEmpty())
@@ -247,9 +247,9 @@ struct FDeviceSensorMonitorBody
         TWeakObjectPtr<TView> DeviceOwner(&View);
         auto* DeviceSelf=&View;
 
-    if (DeviceSelf->RealSensorSourceComponent)
+    if (DeviceSelf->RealSensorSourceComp)
     {
-        return DeviceSelf->RealSensorSourceComponent->GetDeploymentReadinessSummaryText();
+        return DeviceSelf->RealSensorSourceComp->GetDeploymentReadinessSummaryText();
     }
     return TEXT("Real Sensor Deployment: source not bound; live adapter evidence pending");
 
@@ -262,7 +262,7 @@ struct FDeviceSensorMonitorBody
         TWeakObjectPtr<TView> DeviceOwner(&View);
         auto* DeviceSelf=&View;
 
-    const UVirtualLidarVisualizationComponent* Visualization = DeviceSelf->GetLidarVisualizationComponent();
+    const UVirtualLidarVisualizationComp* Visualization = DeviceSelf->GetLidarVisualizationComponent();
     if (!Visualization) return TEXT("3D 포인트 렌더러: 사용할 수 없음");
     const FVirtualLidarRendererTelemetry& Render = Visualization->GetRendererTelemetry();
     const TCHAR* StateText = TEXT("꺼짐");

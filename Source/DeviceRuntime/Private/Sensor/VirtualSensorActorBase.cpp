@@ -1,20 +1,20 @@
 #include "Device/Sensor/VirtualSensorActorBase.h"
 
-#include "Device/Sensor/VirtualSensorOutputComponent.h"
+#include "Device/Sensor/VirtualSensorOutputComp.h"
 #include "Device/Sensor/VirtualSensorEditableTypes.h"
 #include "Device/Contracts/VirtualSensorAcquisitionContext.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
 #include "Device/Core/VirtualSensorFileSaveSubsystem.h"
 #include "Device/Core/VirtualSensorPeriodicFileSaveSubsystem.h"
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 
 AVirtualSensorActorBase::AVirtualSensorActorBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	OutputComponent = CreateDefaultSubobject<UVirtualSensorOutputComponent>(TEXT("SensorOutputComponent"));
+	OutputComp = CreateDefaultSubobject<UVirtualSensorOutputComp>(TEXT("SensorOutputComponent"));
 }
 
 FString AVirtualSensorActorBase::GetSensorId() const
@@ -63,7 +63,7 @@ FVirtualSensorRuntimeStatus AVirtualSensorActorBase::GetSensorRuntimeStatus() co
 
 bool AVirtualSensorActorBase::SubmitExternalFrame(const FVirtualSensorFrameEnvelope& Frame, bool bSendTransport)
 {
-	return bSendTransport && OutputComponent ? OutputComponent->RouteFrame(Frame) : Frame.HasJsonPayload();
+	return bSendTransport && OutputComp ? OutputComp->RouteFrame(Frame) : Frame.HasJsonPayload();
 }
 
 bool AVirtualSensorActorBase::ReadEditableState(FVirtualSensorEditableState& OutState) const
@@ -173,11 +173,11 @@ bool AVirtualSensorActorBase::CanEditSensorPlacement(FString& Reason) const
 		if (const auto* Raw=GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>();Raw&&Raw->GetOutstandingSensorFrameCount(Id)>0)
 		{ Reason=TEXT("미확인 송신 프레임을 마무리한 뒤 위치를 변경할 수 있습니다."); return false; }
 	}
-	if (OutputComponent)
+	if (OutputComp)
 	{
-		if (OutputComponent->StreamPublisherComponent&&OutputComponent->StreamPublisherComponent->HasSensorPlacementWork(Id,GetSensorKind()))
+		if (OutputComp->StreamPublisherComp&&OutputComp->StreamPublisherComp->HasSensorPlacementWork(Id,GetSensorKind()))
 		{ Reason=TEXT("실시간 송신을 중지하고 정리가 끝난 뒤 위치를 변경할 수 있습니다."); return false; }
-		if (OutputComponent->RecorderComponent&&OutputComponent->RecorderComponent->IsRecordingSensor(Id))
+		if (OutputComp->RecorderComp&&OutputComp->RecorderComp->IsRecordingSensor(Id))
 		{ Reason=TEXT("센서 녹화를 종료한 뒤 위치를 변경할 수 있습니다."); return false; }
 	}
 	return true;
@@ -202,12 +202,12 @@ void AVirtualSensorActorBase::EndInteractiveManipulation()
 }
 
 void AVirtualSensorActorBase::SetSharedOutputServices(
-	UVirtualSensorTransportComponent* Transport,
-	UVirtualSensorRecorderComponent* Recorder,
-	UVirtualSensorStreamPublisherComponent* StreamPublisher)
+	UVirtualSensorTransportComp* Transport,
+	UVirtualSensorRecorderComp* Recorder,
+	UVirtualSensorStreamPublisherComp* StreamPublisher)
 {
-	if (OutputComponent)
+	if (OutputComp)
 	{
-		OutputComponent->SetSharedServices(Transport, Recorder, StreamPublisher);
+		OutputComp->SetSharedServices(Transport, Recorder, StreamPublisher);
 	}
 }

@@ -4,11 +4,11 @@
 #include "Misc/Paths.h"
 #include "Misc/SecureHash.h"
 #include "Interfaces/IPluginManager.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Device/Core/VirtualSensorWireHeaders.h"
 #include "Device/Core/VirtualSensorStompProtocol.h"
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 
 namespace
 {
@@ -49,11 +49,11 @@ bool FArchitectureWireGoldenTest::RunTest(const FString&)
         if (!TestTrue(*(Name + TEXT(" fixture exists")), FFileHelper::LoadFileToArray(Expected, *Path))) return false;
         return TestTrue(*(Name + TEXT(" byte identical")), Actual == Expected);
     };
-    auto* Publisher = NewObject<UVirtualSensorStreamPublisherComponent>();
-    Publisher->TransportComponent = NewObject<UVirtualSensorTransportComponent>(Publisher);
-    Publisher->TransportComponent->TransportMode = EVirtualSensorTransportMode::StompWebSocket;
-    Publisher->TransportComponent->TransportProfile.BrokerUrl = TEXT("tcp://127.0.0.1:61616");
-    auto* Scan = NewObject<UVirtualLidarScanComponent>();
+    auto* Publisher = NewObject<UVirtualSensorStreamPublisherComp>();
+    Publisher->TransportComp = NewObject<UVirtualSensorTransportComp>(Publisher);
+    Publisher->TransportComp->TransportMode = EVirtualSensorTransportMode::StompWebSocket;
+    Publisher->TransportComp->TransportProfile.BrokerUrl = TEXT("tcp://127.0.0.1:61616");
+    auto* Scan = NewObject<UVirtualLidarScanComp>();
     Scan->SensorId = TEXT("sensor-fixed-007");
     Scan->bIncludeSlabAnalysisInPayload = false;
     for (const bool WithContext : {false, true})
@@ -124,7 +124,7 @@ bool FArchitectureWireGoldenTest::RunTest(const FString&)
 
         for (const auto Kind : {EVirtualSensorStreamKind::LidarPayload, EVirtualSensorStreamKind::CameraImage})
         {
-            UVirtualSensorStreamPublisherComponent::FStreamRuntime Runtime;
+            UVirtualSensorStreamPublisherComp::FStreamRuntime Runtime;
             Runtime.Config.StreamKind = Kind;
             Runtime.Config.TransportBackend = EVirtualSensorStreamTransportBackend::TcpStompHighThroughput;
             Frame.SensorKind = Kind == EVirtualSensorStreamKind::CameraImage ? EVirtualSensorKind::Camera : EVirtualSensorKind::Lidar;

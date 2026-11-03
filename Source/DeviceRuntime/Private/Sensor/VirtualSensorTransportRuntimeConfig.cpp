@@ -1,4 +1,4 @@
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 #include "Misc/App.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FileHelper.h"
@@ -14,9 +14,9 @@
 // Unreal's ini writer (which cuts values at "//"), and a project Config/Game.ini staged
 // into the pak shadows the loose file. Both ini names are excluded from staging in
 // DefaultGame.ini [Staging]. Game.ini is still read for compatibility.
-const TCHAR* UVirtualSensorTransportComponent::RuntimeConfigSection=TEXT("MA0T10.SensorTransport");
+const TCHAR* UVirtualSensorTransportComp::RuntimeConfigSection=TEXT("MA0T10.SensorTransport");
 
-TArray<FString> UVirtualSensorTransportComponent::GetRuntimeConfigCandidateFiles()
+TArray<FString> UVirtualSensorTransportComp::GetRuntimeConfigCandidateFiles()
 {
 	// Same directory order as DTCore's runtime Game.ini (DTCoreRuntimeConfig.cpp).
 	TArray<FString> Dirs,Paths;
@@ -29,7 +29,7 @@ TArray<FString> UVirtualSensorTransportComponent::GetRuntimeConfigCandidateFiles
 	return Paths;
 }
 
-void UVirtualSensorTransportComponent::BeginPlay()
+void UVirtualSensorTransportComp::BeginPlay()
 {
 	Super::BeginPlay();
 #if !WITH_EDITOR
@@ -49,12 +49,12 @@ void UVirtualSensorTransportComponent::BeginPlay()
 	ApplyRuntimeConfigFile();
 }
 
-bool UVirtualSensorTransportComponent::ApplyRuntimeConfigFile()
+bool UVirtualSensorTransportComp::ApplyRuntimeConfigFile()
 {
 	return ApplyRuntimeConfigFrom(GetRuntimeConfigCandidateFiles(),true);
 }
 
-bool UVirtualSensorTransportComponent::ApplyRuntimeConfigFrom(const TArray<FString>& CandidateFiles,bool bUseGameIniFallback)
+bool UVirtualSensorTransportComp::ApplyRuntimeConfigFrom(const TArray<FString>& CandidateFiles,bool bUseGameIniFallback)
 {
 	static const TCHAR* Keys[]={TEXT("TransportMode"),TEXT("BrokerUrl"),TEXT("CameraTopic"),TEXT("LidarTopic"),TEXT("ExportTopic"),TEXT("AckTopic"),
 		TEXT("UserName"),TEXT("Passcode"),TEXT("HttpEndpoint"),TEXT("MaxMessageBytes"),TEXT("TimeoutSeconds")};

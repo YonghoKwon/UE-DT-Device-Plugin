@@ -1,4 +1,4 @@
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/DevicePointCloudAnalysis.h"
 #include "SensorUploadDiagnostics.h"
 #include "Device/Sensor/IndustrialLidarProfiles.h"
@@ -23,17 +23,17 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Serialization/BufferArchive.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
 #include "Device/Core/VirtualSensorSchedulerSubsystem.h"
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarPayloadCodec.h"
 #include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
-#include "Device/Sensor/VirtualLidarSurfaceResponseComponent.h"
-#include "Device/Sensor/VirtualLidarVisualizationComponent.h"
-#include "Device/Sensor/VirtualSensorOutputComponent.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Sensor/VirtualLidarSurfaceResponseComp.h"
+#include "Device/Sensor/VirtualLidarVisualizationComp.h"
+#include "Device/Sensor/VirtualSensorOutputComp.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Misc/Crc.h"
 #include <atomic>
 
@@ -45,7 +45,7 @@ namespace
 }
 
 
-void UVirtualLidarScanComponent::BuildBeamAngleTables(
+void UVirtualLidarScanComp::BuildBeamAngleTables(
     int32 InHorizontalSamples,
     int32 InVerticalChannels,
     TArray<float>& OutHorizontalAngles,
@@ -78,7 +78,7 @@ void UVirtualLidarScanComponent::BuildBeamAngleTables(
     }
 }
 
-float UVirtualLidarScanComponent::DeterministicUnitRandom(int32 RayIndex, int32 ReturnIndex, uint32 Salt) const
+float UVirtualLidarScanComp::DeterministicUnitRandom(int32 RayIndex, int32 ReturnIndex, uint32 Salt) const
 {
     uint32 Value = HashCombineFast(
         (DatasetNoiseSequence ? HashCombineFast(GetTypeHash(DatasetNoiseSequence->Key),GetTypeHash(DatasetNoiseSequence->Value)) : HashCombineFast(GetTypeHash(DeterministicNoiseSeed),GetTypeHash(FrameId+1))),
@@ -89,14 +89,14 @@ float UVirtualLidarScanComponent::DeterministicUnitRandom(int32 RayIndex, int32 
     return static_cast<float>(Value & 0x00ffffffu) / static_cast<float>(0x01000000u);
 }
 
-float UVirtualLidarScanComponent::DeterministicGaussian(int32 RayIndex, int32 ReturnIndex) const
+float UVirtualLidarScanComp::DeterministicGaussian(int32 RayIndex, int32 ReturnIndex) const
 {
     const float U1 = FMath::Max(1.0e-6f, DeterministicUnitRandom(RayIndex, ReturnIndex, 0x4d4c5831u));
     const float U2 = DeterministicUnitRandom(RayIndex, ReturnIndex, 0x4d4c5832u);
     return FMath::Sqrt(-2.0f * FMath::Loge(U1)) * FMath::Cos(2.0f * PI * U2);
 }
 
-void UVirtualLidarScanComponent::FinalizeEchoMetadata(TArray<FVirtualLidarPoint>& Points, int32 StartIndex, int32 EchoCount) const
+void UVirtualLidarScanComp::FinalizeEchoMetadata(TArray<FVirtualLidarPoint>& Points, int32 StartIndex, int32 EchoCount) const
 {
     for (int32 Echo = 0; Echo < EchoCount; ++Echo)
     {
@@ -123,13 +123,13 @@ void UVirtualLidarScanComponent::FinalizeEchoMetadata(TArray<FVirtualLidarPoint>
     }
 }
 
-void UVirtualLidarScanComponent::SetInteractivePreviewMode(bool bEnabled, bool bSuppressDerivedOutput)
+void UVirtualLidarScanComp::SetInteractivePreviewMode(bool bEnabled, bool bSuppressDerivedOutput)
 {
 	bInteractivePreviewMode = bEnabled;
 	bSuppressInteractiveDerivedOutput = bSuppressDerivedOutput;
 }
 
-EVirtualLidarAcquisitionBackend UVirtualLidarScanComponent::ResolveAcquisitionBackend(FString& OutReason) const
+EVirtualLidarAcquisitionBackend UVirtualLidarScanComp::ResolveAcquisitionBackend(FString& OutReason) const
 {
     OutReason.Reset();
     const bool bGpuAvailable = GpuDepthProjectionComponent.IsValid()
@@ -175,21 +175,21 @@ EVirtualLidarAcquisitionBackend UVirtualLidarScanComponent::ResolveAcquisitionBa
     return EVirtualLidarAcquisitionBackend::AccurateCpuTrace;
 }
 
-bool UVirtualLidarScanComponent::IsSemanticCaptureRequested() const
+bool UVirtualLidarScanComp::IsSemanticCaptureRequested() const
 {
     if(bDatasetSemanticDemand)return true;
     if(bEnableSemanticClassification&&ViewMode==EVirtualLidarViewMode::ActorClassColor)return true;
     if(!GetWorld())return false;
     for(TActorIterator<ADeviceSensorCoordinator> It(GetWorld());It;++It)
     {
-        const auto* Publisher=It->GetDeviceCoordinatorConfig().StreamPublisherComponent;if(!Publisher||!Publisher->IsStreamEnabled(EVirtualSensorStreamKind::PointCloud,SensorId))continue;
+        const auto* Publisher=It->GetDeviceCoordinatorConfig().StreamPublisherComp;if(!Publisher||!Publisher->IsStreamEnabled(EVirtualSensorStreamKind::PointCloud,SensorId))continue;
         const auto Filter=Publisher->GetEffectiveStreamConfig(EVirtualSensorStreamKind::PointCloud,SensorId).PointCloudFilter;
         if(Filter.IncludeActorTags.Num()||Filter.ExcludeActorTags.Num()||Filter.IncludeSemanticLabels.Num()||Filter.ExcludeSemanticLabels.Num())return true;
     }
     return false;
 }
 
-void UVirtualLidarScanComponent::RegisterWithPerformanceSubsystem()
+void UVirtualLidarScanComp::RegisterWithPerformanceSubsystem()
 {
     if (!GetWorld() || bRegisteredWithPerformanceSubsystem) return;
     if (UVirtualSensorSchedulerSubsystem* Subsystem = GetWorld()->GetSubsystem<UVirtualSensorSchedulerSubsystem>())
@@ -199,47 +199,47 @@ void UVirtualLidarScanComponent::RegisterWithPerformanceSubsystem()
     }
 }
 
-void UVirtualLidarScanComponent::UnregisterFromPerformanceSubsystem()
+void UVirtualLidarScanComp::UnregisterFromPerformanceSubsystem()
 {
     if (!GetWorld() || !bRegisteredWithPerformanceSubsystem) return;
     if (UVirtualSensorSchedulerSubsystem* Subsystem = GetWorld()->GetSubsystem<UVirtualSensorSchedulerSubsystem>()) Subsystem->UnregisterTask(this);
     bRegisteredWithPerformanceSubsystem = false;
 }
 
-void UVirtualLidarScanComponent::SetCompatibilityOutputPolicy(EVirtualLidarCompatibilityOutputPolicy Policy)
+void UVirtualLidarScanComp::SetCompatibilityOutputPolicy(EVirtualLidarCompatibilityOutputPolicy Policy)
 { CompatibilityOutputPolicy=Policy;TryStartPendingPayloadBuild(); }
-FString UVirtualLidarScanComponent::RegisterCompatibilityJsonConsumer(UObject* Owner)
+FString UVirtualLidarScanComp::RegisterCompatibilityJsonConsumer(UObject* Owner)
 {
     if(!IsValid(Owner))return FString();
     for(auto It=CompatibilityConsumers.CreateIterator();It;++It)if(!It.Value().IsValid())It.RemoveCurrent();
     for(const auto& Pair:CompatibilityConsumers)if(Pair.Value.Get()==Owner)return Pair.Key;
     const FString Token=FGuid::NewGuid().ToString();CompatibilityConsumers.Add(Token,Owner);return Token;
 }
-void UVirtualLidarScanComponent::UnregisterCompatibilityJsonConsumer(const FString& Token)
+void UVirtualLidarScanComp::UnregisterCompatibilityJsonConsumer(const FString& Token)
 {CompatibilityConsumers.Remove(Token);}
-bool UVirtualLidarScanComponent::HasCompatibilityJsonDemand(const FVirtualSensorAcquisitionContext& Context,FString* Reason) const
+bool UVirtualLidarScanComp::HasCompatibilityJsonDemand(const FVirtualSensorAcquisitionContext& Context,FString* Reason) const
 {
     auto Yes=[Reason](const TCHAR* Text){if(Reason)*Reason=Text;return true;};
     if(CompatibilityOutputPolicy==EVirtualLidarCompatibilityOutputPolicy::LegacyAlways)return Yes(TEXT("기존 호환 JSON 항상 생성"));
-    if((TransportComponent&&TransportComponent->TransportMode!=EVirtualSensorTransportMode::None)||OutputMode!=EVirtualLidarOutputMode::None)return Yes(TEXT("기존 JSON 출력 경로"));
-    if(RecorderComponent&&RecorderComponent->IsRecording())return Yes(TEXT("JSON 녹화 중"));
+    if((TransportComp&&TransportComp->TransportMode!=EVirtualSensorTransportMode::None)||OutputMode!=EVirtualLidarOutputMode::None)return Yes(TEXT("기존 JSON 출력 경로"));
+    if(RecorderComp&&RecorderComp->IsRecording())return Yes(TEXT("JSON 녹화 중"));
     if(OnScanCompleted.IsBound())return Yes(TEXT("Blueprint JSON 완료 구독"));
     for(const auto& Pair:CompatibilityConsumers)if(Pair.Value.IsValid())return Yes(TEXT("등록된 JSON 소비자"));
-    if(const auto* Actor=Cast<AVirtualLidarSensorActor>(GetOwner()))if(const auto* Output=Actor->OutputComponent.Get())
+    if(const auto* Actor=Cast<AVirtualLidarSensorActor>(GetOwner()))if(const auto* Output=Actor->OutputComp.Get())
     {
-        if(Output->RecorderComponent&&Output->RecorderComponent->IsRecording())return Yes(TEXT("공유 JSON 녹화 중"));
+        if(Output->RecorderComp&&Output->RecorderComp->IsRecording())return Yes(TEXT("공유 JSON 녹화 중"));
         if(Output->OnFrameRouted.IsBound())return Yes(TEXT("Blueprint 출력 완료 구독"));
-        if(Output->StreamPublisherComponent&&Output->StreamPublisherComponent->NeedsCompatibilityLidarOutputForContext(SensorId,Context))return Yes(TEXT("호환 LiDAR 스트림"));
-        if(!Output->StreamPublisherComponent&&Output->TransportComponent&&Output->TransportComponent->TransportMode!=EVirtualSensorTransportMode::None)return Yes(TEXT("기존 Actor JSON 전송"));
+        if(Output->StreamPublisherComp&&Output->StreamPublisherComp->NeedsCompatibilityLidarOutputForContext(SensorId,Context))return Yes(TEXT("호환 LiDAR 스트림"));
+        if(!Output->StreamPublisherComp&&Output->TransportComp&&Output->TransportComp->TransportMode!=EVirtualSensorTransportMode::None)return Yes(TEXT("기존 Actor JSON 전송"));
     }
     if(Reason)*Reason=TEXT("미사용 · PCD/미리보기는 정상 동작");return false;
 }
-void UVirtualLidarScanComponent::CompleteDerivedFrame(const FVirtualSensorFrameEnvelope& Frame)
+void UVirtualLidarScanComp::CompleteDerivedFrame(const FVirtualSensorFrameEnvelope& Frame)
 {LastCompletedDerivedFrame=Frame;OnDerivedFrameCompletedNative.Broadcast(Frame);}
-void UVirtualLidarScanComponent::SetTransportComponent(UVirtualSensorTransportComponent* InTransportComponent) { TransportComponent = InTransportComponent; }
-void UVirtualLidarScanComponent::SetRecorderComponent(UVirtualSensorRecorderComponent* InRecorderComponent) { RecorderComponent = InRecorderComponent; }
+void UVirtualLidarScanComp::SetTransportComponent(UVirtualSensorTransportComp* InTransportComponent) { TransportComp = InTransportComponent; }
+void UVirtualLidarScanComp::SetRecorderComponent(UVirtualSensorRecorderComp* InRecorderComponent) { RecorderComp = InRecorderComponent; }
 
-void UVirtualLidarScanComponent::SetServerPayloadPolicy(int32 InStride, int32 InMaxPoints, bool bInIncludeMissPoints)
+void UVirtualLidarScanComp::SetServerPayloadPolicy(int32 InStride, int32 InMaxPoints, bool bInIncludeMissPoints)
 {
     ServerPayloadStride = FMath::Clamp(InStride, 1, 100);
     MaxServerPayloadPoints = FMath::Clamp(InMaxPoints, 0, 1000000);
@@ -249,45 +249,45 @@ void UVirtualLidarScanComponent::SetServerPayloadPolicy(int32 InStride, int32 In
     bIncludeMissPointsInPayload = bIncludeMissPointsInServerPayload;
 }
 
-void UVirtualLidarScanComponent::SetPreviewPolicyState(const FVirtualLidarPreviewPolicy& InPolicy)
+void UVirtualLidarScanComp::SetPreviewPolicyState(const FVirtualLidarPreviewPolicy& InPolicy)
 {
 	SetPreviewPolicy(InPolicy.PointStride, InPolicy.MaxPoints, InPolicy.bHitOnly);
 }
 
-bool UVirtualLidarScanComponent::IsGpuPreviewBackendActive() const
+bool UVirtualLidarScanComp::IsGpuPreviewBackendActive() const
 {
     return bGpuPreviewBackendRuntimeActive;
 }
 
-void UVirtualLidarScanComponent::SetGpuPreviewBackendRuntimeState(bool bActive, const FString& InFallbackReason)
+void UVirtualLidarScanComp::SetGpuPreviewBackendRuntimeState(bool bActive, const FString& InFallbackReason)
 {
     bGpuPreviewBackendRuntimeActive = bActive;
     bGpuPreviewBackendRuntimeRequested = bActive || !InFallbackReason.IsEmpty();
     GpuPreviewFallbackReason = InFallbackReason;
 }
 
-void UVirtualLidarScanComponent::ResetDefaultSemanticClassRules()
+void UVirtualLidarScanComp::ResetDefaultSemanticClassRules()
 {
     SemanticClassRules = VirtualSensorSemanticLabels::Defaults();
 }
 
-FLinearColor UVirtualLidarScanComponent::GetSemanticColorForLabel(FName SemanticLabel) const
+FLinearColor UVirtualLidarScanComp::GetSemanticColorForLabel(FName SemanticLabel) const
 {
     for (const FVirtualLidarSemanticClassRule& R : SemanticClassRules) { if (!R.Label.IsNone() && R.Label == SemanticLabel) return R.DisplayColor; }
     return DefaultSemanticColor;
 }
 
-bool UVirtualLidarScanComponent::SemanticRuleMatches(const FVirtualLidarSemanticClassRule& Rule, const AActor* Actor, const UPrimitiveComponent* Component) const
+bool UVirtualLidarScanComp::SemanticRuleMatches(const FVirtualLidarSemanticClassRule& Rule, const AActor* Actor, const UPrimitiveComponent* Component) const
 {
     return VirtualSensorSemanticLabels::Matches(Rule, Actor, Component);
 }
 
-FName UVirtualLidarScanComponent::ResolveSemanticLabel(const FHitResult& Hit) const
+FName UVirtualLidarScanComp::ResolveSemanticLabel(const FHitResult& Hit) const
 {
     return ResolveSemanticLabelForComponent(Hit.GetComponent());
 }
 
-FName UVirtualLidarScanComponent::ResolveSemanticLabelForComponent(const UPrimitiveComponent* Component) const
+FName UVirtualLidarScanComp::ResolveSemanticLabelForComponent(const UPrimitiveComponent* Component) const
 {
     const AActor* Actor = Component ? Component->GetOwner() : nullptr;
     if (!bEnableSemanticClassification || !Actor) return DefaultSemanticLabel;
@@ -295,13 +295,13 @@ FName UVirtualLidarScanComponent::ResolveSemanticLabelForComponent(const UPrimit
     return DefaultSemanticLabel;
 }
 
-FLinearColor UVirtualLidarScanComponent::ResolveSemanticColor(const FVirtualLidarPoint& Point) const
+FLinearColor UVirtualLidarScanComp::ResolveSemanticColor(const FVirtualLidarPoint& Point) const
 {
     if (!Point.bHit) return FLinearColor(0.01f, 0.01f, 0.02f, 1.0f);
     return GetSemanticColorForLabel(Point.SemanticLabel.IsNone() ? DefaultSemanticLabel : Point.SemanticLabel);
 }
 
-void UVirtualLidarScanComponent::PopulatePointSemanticMetadata(FVirtualLidarPoint& Point, const FHitResult& Hit) const
+void UVirtualLidarScanComp::PopulatePointSemanticMetadata(FVirtualLidarPoint& Point, const FHitResult& Hit) const
 {
     if(CopyHardwareSemanticMetadata(Point,Hit))return;
     const AActor* A = Hit.GetActor();
@@ -312,13 +312,13 @@ void UVirtualLidarScanComponent::PopulatePointSemanticMetadata(FVirtualLidarPoin
     Point.SemanticLabel = A ? ResolveSemanticLabel(Hit) : NAME_None;
 }
 
-void UVirtualLidarScanComponent::ApplyDeviceProfile(EVirtualLidarDeviceProfile NewProfile)
+void UVirtualLidarScanComp::ApplyDeviceProfile(EVirtualLidarDeviceProfile NewProfile)
 {
     DeviceProfile = NewProfile;
     ApplySimulationQuality(SimulationQuality);
 }
 
-FVirtualLidarProfilePreset UVirtualLidarScanComponent::ResolveProfilePreset(
+FVirtualLidarProfilePreset UVirtualLidarScanComp::ResolveProfilePreset(
     EVirtualLidarDeviceProfile Profile,
     EVirtualSensorSimulationQuality Quality)
 {
@@ -443,7 +443,7 @@ FVirtualLidarProfilePreset UVirtualLidarScanComponent::ResolveProfilePreset(
     return Result;
 }
 
-FVirtualLidarSlabAnalysisResult UVirtualLidarScanComponent::AnalyzeSlabPoints(const TArray<FVirtualLidarPoint>& Points) const
+FVirtualLidarSlabAnalysisResult UVirtualLidarScanComp::AnalyzeSlabPoints(const TArray<FVirtualLidarPoint>& Points) const
 {
     const auto Provider=DevicePointCloudAnalysis::Snapshot();
     if(Provider)return Provider->Analyze(Points,SlabSemanticLabel,ReferenceSlabYawDegrees,MinSlabPointsForAnalysis);
@@ -453,7 +453,7 @@ FVirtualLidarSlabAnalysisResult UVirtualLidarScanComponent::AnalyzeSlabPoints(co
     return Result;
 }
 
-int32 UVirtualLidarScanComponent::CountServerPayloadPoints(const TArray<FVirtualLidarPoint>& Points) const
+int32 UVirtualLidarScanComp::CountServerPayloadPoints(const TArray<FVirtualLidarPoint>& Points) const
 {
     const int32 SafeStride = FMath::Max(1, ServerPayloadStride);
     const int32 SafeMax = FMath::Max(0, MaxServerPayloadPoints);
@@ -467,9 +467,9 @@ int32 UVirtualLidarScanComponent::CountServerPayloadPoints(const TArray<FVirtual
     return Count;
 }
 
-bool UVirtualLidarScanComponent::ShouldIgnoreHitActor(const AActor* Actor) const { if (!Actor) return false; for (const FName& Tag : IgnoreActorTags) if (!Tag.IsNone() && Actor->ActorHasTag(Tag)) return true; return false; }
+bool UVirtualLidarScanComp::ShouldIgnoreHitActor(const AActor* Actor) const { if (!Actor) return false; for (const FName& Tag : IgnoreActorTags) if (!Tag.IsNone() && Actor->ActorHasTag(Tag)) return true; return false; }
 
-void UVirtualLidarScanComponent::UpdateLidarViewTexture(const TArray<uint8>& Pixels)
+void UVirtualLidarScanComp::UpdateLidarViewTexture(const TArray<uint8>& Pixels)
 {
     const int32 W = FMath::Max(1, HorizontalSamples); const int32 H = FMath::Max(1, VerticalChannels); if (Pixels.Num() < W * H * 4) return;
     if (!LidarViewTexture || LidarViewTexture->GetSizeX() != W || LidarViewTexture->GetSizeY() != H)
@@ -495,11 +495,11 @@ void UVirtualLidarScanComponent::UpdateLidarViewTexture(const TArray<uint8>& Pix
         });
 }
 
-void UVirtualLidarScanComponent::DispatchPayload(const FString& JsonPayload) const
+void UVirtualLidarScanComp::DispatchPayload(const FString& JsonPayload) const
 {
-    if (TransportComponent)
+    if (TransportComp)
     {
-        TransportComponent->SendJson(SensorId, TEXT("virtual_lidar"), JsonPayload);
+        TransportComp->SendJson(SensorId, TEXT("virtual_lidar"), JsonPayload);
         return;
     }
 
@@ -516,11 +516,11 @@ void UVirtualLidarScanComponent::DispatchPayload(const FString& JsonPayload) con
         PostJson(JsonPayload);
     }
 }
-void UVirtualLidarScanComponent::PostJson(const FString& JsonPayload) const
+void UVirtualLidarScanComp::PostJson(const FString& JsonPayload) const
 {
     if (HttpEndpoint.IsEmpty()) return; TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest(); Request->SetURL(HttpEndpoint); Request->SetVerb(TEXT("POST")); Request->SetHeader(TEXT("Content-Type"), TEXT("application/json")); Request->SetContentAsString(JsonPayload); Request->ProcessRequest();
 }
-void UVirtualLidarScanComponent::RebuildLastPointStatistics()
+void UVirtualLidarScanComp::RebuildLastPointStatistics()
 {
     LastHitPointCount = 0;
     LastSemanticCounts.Reset();
@@ -532,7 +532,7 @@ void UVirtualLidarScanComponent::RebuildLastPointStatistics()
     }
 }
 
-void UVirtualLidarScanComponent::TryAutoRegisterToManager()
+void UVirtualLidarScanComp::TryAutoRegisterToManager()
 {
     if (!bAutoRegisterToManager || !GetWorld()) return; for (TActorIterator<ADeviceSensorCoordinator> It(GetWorld()); It; ++It) { if (*It) { It->RegisterLidar(this); return; } }
 }

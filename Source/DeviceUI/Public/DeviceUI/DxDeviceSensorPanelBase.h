@@ -6,11 +6,11 @@
 #include "Widgets/Input/SEditableTextBox.h"
 #include "DeviceUI/DeviceSensorPanelTypes.h"
 #include "DeviceUI/DevicePanelHostBridge.h"
-#include "DeviceSensorPanelBase.generated.h"
+#include "DxDeviceSensorPanelBase.generated.h"
 
 /** Common execution state only. Public legacy properties/pins and SaveGame policy live on the facade. */
 UCLASS(Abstract)
-class DEVICEUI_API UDeviceSensorPanelBase : public UDxWidget
+class DEVICEUI_API UDxDeviceSensorPanelBase : public UDxWidget
 {
     GENERATED_BODY()
 public:

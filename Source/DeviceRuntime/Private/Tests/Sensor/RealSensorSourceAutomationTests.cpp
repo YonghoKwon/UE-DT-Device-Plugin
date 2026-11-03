@@ -12,17 +12,17 @@
 #include "Misc/Paths.h"
 #include "Core/DTCoreSettings.h"
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
-#include "Device/Sensor/CameraJsonLiveSourceComponent.h"
-#include "Device/Sensor/LidarCsvReplaySourceComponent.h"
-#include "Device/Sensor/LidarHttpJsonLiveSourceComponent.h"
-#include "Device/Sensor/LidarJsonLinesReplaySourceComponent.h"
-#include "Device/Sensor/LidarJsonLiveSourceComponent.h"
-#include "Device/Sensor/LidarUdpJsonLiveSourceComponent.h"
+#include "Device/Sensor/CameraJsonLiveSourceComp.h"
+#include "Device/Sensor/LidarCsvReplaySourceComp.h"
+#include "Device/Sensor/LidarHttpJsonLiveSourceComp.h"
+#include "Device/Sensor/LidarJsonLinesReplaySourceComp.h"
+#include "Device/Sensor/LidarJsonLiveSourceComp.h"
+#include "Device/Sensor/LidarUdpJsonLiveSourceComp.h"
 #include "Device/Sensor/RealSensorAdapterStubs.h"
-#include "Device/Sensor/RealSensorSourceComponent.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
+#include "Device/Sensor/RealSensorSourceComp.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include "Device/Transport/LidarJsonLiveFrameTC.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 #include "SocketSubsystem.h"
@@ -141,8 +141,8 @@ private:
             return true;
         }
 
-        UVirtualLidarScanComponent* Target = NewObject<UVirtualLidarScanComponent>(Owner.Get());
-        ULidarJsonLiveSourceComponent* Source = NewObject<ULidarJsonLiveSourceComponent>(Owner.Get());
+        UVirtualLidarScanComp* Target = NewObject<UVirtualLidarScanComp>(Owner.Get());
+        ULidarJsonLiveSourceComp* Source = NewObject<ULidarJsonLiveSourceComp>(Owner.Get());
         Test->TestNotNull(TEXT("brokerless dispatch target LiDAR"), Target);
         Test->TestNotNull(TEXT("brokerless dispatch JSON live source"), Source);
         if (!Target || !Source)
@@ -214,8 +214,8 @@ private:
     static constexpr double TimeoutSeconds = 8.0;
     static constexpr int32 ExpectedPointCount = 3;
     TWeakObjectPtr<AActor> Owner;
-    TWeakObjectPtr<UVirtualLidarScanComponent> TargetLidar;
-    TWeakObjectPtr<ULidarJsonLiveSourceComponent> JsonLiveSource;
+    TWeakObjectPtr<UVirtualLidarScanComp> TargetLidar;
+    TWeakObjectPtr<ULidarJsonLiveSourceComp> JsonLiveSource;
     TWeakObjectPtr<UDxDataSubsystem> DataSubsystem;
 };
 #endif
@@ -303,8 +303,8 @@ private:
             return true;
         }
 
-        UVirtualLidarScanComponent* Target = NewObject<UVirtualLidarScanComponent>(Owner.Get());
-        ULidarHttpJsonLiveSourceComponent* Source = NewObject<ULidarHttpJsonLiveSourceComponent>(Owner.Get());
+        UVirtualLidarScanComp* Target = NewObject<UVirtualLidarScanComp>(Owner.Get());
+        ULidarHttpJsonLiveSourceComp* Source = NewObject<ULidarHttpJsonLiveSourceComp>(Owner.Get());
         Test->TestNotNull(TEXT("HTTP loopback target LiDAR"), Target);
         Test->TestNotNull(TEXT("HTTP loopback source"), Source);
         if (!Target || !Source)
@@ -439,8 +439,8 @@ private:
     static constexpr float TimeoutSeconds = 8.0f;
     static constexpr int32 ExpectedPointCount = 2;
     TWeakObjectPtr<AActor> Owner;
-    TWeakObjectPtr<UVirtualLidarScanComponent> TargetLidar;
-    TWeakObjectPtr<ULidarHttpJsonLiveSourceComponent> HttpSource;
+    TWeakObjectPtr<UVirtualLidarScanComp> TargetLidar;
+    TWeakObjectPtr<ULidarHttpJsonLiveSourceComp> HttpSource;
     TSharedPtr<IHttpRequest, ESPMode::ThreadSafe> HttpRequest;
 };
 
@@ -502,8 +502,8 @@ private:
             return true;
         }
 
-        UVirtualLidarScanComponent* Target = NewObject<UVirtualLidarScanComponent>(Owner.Get());
-        ULidarUdpJsonLiveSourceComponent* Source = NewObject<ULidarUdpJsonLiveSourceComponent>(Owner.Get());
+        UVirtualLidarScanComp* Target = NewObject<UVirtualLidarScanComp>(Owner.Get());
+        ULidarUdpJsonLiveSourceComp* Source = NewObject<ULidarUdpJsonLiveSourceComp>(Owner.Get());
         Test->TestNotNull(TEXT("UDP datagram target LiDAR"), Target);
         Test->TestNotNull(TEXT("UDP datagram source"), Source);
         if (!Target || !Source)
@@ -577,22 +577,22 @@ private:
     double StartTimeSeconds = 0.0;
     static constexpr double TimeoutSeconds = 5.0;
     TWeakObjectPtr<AActor> Owner;
-    TWeakObjectPtr<UVirtualLidarScanComponent> TargetLidar;
-    TWeakObjectPtr<ULidarUdpJsonLiveSourceComponent> UdpSource;
+    TWeakObjectPtr<UVirtualLidarScanComp> TargetLidar;
+    TWeakObjectPtr<ULidarUdpJsonLiveSourceComp> UdpSource;
 };
 
 bool FRealSensorSourceBaseStateTest::RunTest(const FString& Parameters)
 {
-    ULidarCsvReplaySourceComponent* CsvReplay = NewObject<ULidarCsvReplaySourceComponent>();
-    ULidarJsonLinesReplaySourceComponent* JsonReplay = NewObject<ULidarJsonLinesReplaySourceComponent>();
-    ULidarJsonLiveSourceComponent* JsonLive = NewObject<ULidarJsonLiveSourceComponent>();
+    ULidarCsvReplaySourceComp* CsvReplay = NewObject<ULidarCsvReplaySourceComp>();
+    ULidarJsonLinesReplaySourceComp* JsonReplay = NewObject<ULidarJsonLinesReplaySourceComp>();
+    ULidarJsonLiveSourceComp* JsonLive = NewObject<ULidarJsonLiveSourceComp>();
     TestNotNull(TEXT("CSV replay source"), CsvReplay);
     TestNotNull(TEXT("JSONL replay source"), JsonReplay);
     TestNotNull(TEXT("JSON live source"), JsonLive);
 
-    URealSensorSourceComponent* CsvAsSource = Cast<URealSensorSourceComponent>(CsvReplay);
-    URealSensorSourceComponent* JsonAsSource = Cast<URealSensorSourceComponent>(JsonReplay);
-    URealSensorSourceComponent* JsonLiveAsSource = Cast<URealSensorSourceComponent>(JsonLive);
+    URealSensorSourceComp* CsvAsSource = Cast<URealSensorSourceComp>(CsvReplay);
+    URealSensorSourceComp* JsonAsSource = Cast<URealSensorSourceComp>(JsonReplay);
+    URealSensorSourceComp* JsonLiveAsSource = Cast<URealSensorSourceComp>(JsonLive);
     TestNotNull(TEXT("CSV replay inherits real sensor source"), CsvAsSource);
     TestNotNull(TEXT("JSONL replay inherits real sensor source"), JsonAsSource);
     TestNotNull(TEXT("JSON live inherits real sensor source"), JsonLiveAsSource);
@@ -611,12 +611,12 @@ bool FRealSensorSourceBaseStateTest::RunTest(const FString& Parameters)
 
 bool FRealSensorSourcePlaceholderStateTest::RunTest(const FString& Parameters)
 {
-    TArray<URealSensorSourceComponent*> Sources;
-    Sources.Add(NewObject<URos2SensorBridgeSourceComponent>());
-    Sources.Add(NewObject<ULivoxLidarSourceComponent>());
-    Sources.Add(NewObject<URealSenseCameraSourceComponent>());
+    TArray<URealSensorSourceComp*> Sources;
+    Sources.Add(NewObject<URos2SensorBridgeSourceComp>());
+    Sources.Add(NewObject<ULivoxLidarSourceComp>());
+    Sources.Add(NewObject<URealSenseCameraSourceComp>());
 
-    for (URealSensorSourceComponent* Source : Sources)
+    for (URealSensorSourceComp* Source : Sources)
     {
         TestNotNull(TEXT("placeholder source"), Source);
         TestFalse(FString::Printf(TEXT("%s StartSource fails until implemented"), *Source->SourceId), Source->StartSource());
@@ -634,8 +634,8 @@ bool FRealSensorSourcePlaceholderStateTest::RunTest(const FString& Parameters)
 
 bool FRealSensorSourcePushFrameToTargetTest::RunTest(const FString& Parameters)
 {
-    UVirtualLidarScanComponent* CsvTargetLidar = NewObject<UVirtualLidarScanComponent>();
-    ULidarCsvReplaySourceComponent* CsvReplay = NewObject<ULidarCsvReplaySourceComponent>();
+    UVirtualLidarScanComp* CsvTargetLidar = NewObject<UVirtualLidarScanComp>();
+    ULidarCsvReplaySourceComp* CsvReplay = NewObject<ULidarCsvReplaySourceComp>();
     TestNotNull(TEXT("CSV target lidar"), CsvTargetLidar);
     TestNotNull(TEXT("CSV replay source"), CsvReplay);
     if (!CsvTargetLidar || !CsvReplay)
@@ -657,8 +657,8 @@ bool FRealSensorSourcePushFrameToTargetTest::RunTest(const FString& Parameters)
     TestEqual(TEXT("CSV target horizontal samples updated"), CsvTargetLidar->HorizontalSamples, 6);
     TestEqual(TEXT("CSV target runtime count"), CsvTargetLidar->GetRuntimeStatus().TotalPointCount, 24);
 
-    UVirtualLidarScanComponent* JsonTargetLidar = NewObject<UVirtualLidarScanComponent>();
-    ULidarJsonLinesReplaySourceComponent* JsonReplay = NewObject<ULidarJsonLinesReplaySourceComponent>();
+    UVirtualLidarScanComp* JsonTargetLidar = NewObject<UVirtualLidarScanComp>();
+    ULidarJsonLinesReplaySourceComp* JsonReplay = NewObject<ULidarJsonLinesReplaySourceComp>();
     TestNotNull(TEXT("JSONL target lidar"), JsonTargetLidar);
     TestNotNull(TEXT("JSONL replay source"), JsonReplay);
     if (!JsonTargetLidar || !JsonReplay)
@@ -682,8 +682,8 @@ bool FRealSensorSourcePushFrameToTargetTest::RunTest(const FString& Parameters)
 
 bool FRealSensorSourceJsonLiveBridgeTest::RunTest(const FString& Parameters)
 {
-    UVirtualLidarScanComponent* TargetLidar = NewObject<UVirtualLidarScanComponent>();
-    ULidarJsonLiveSourceComponent* JsonLive = NewObject<ULidarJsonLiveSourceComponent>();
+    UVirtualLidarScanComp* TargetLidar = NewObject<UVirtualLidarScanComp>();
+    ULidarJsonLiveSourceComp* JsonLive = NewObject<ULidarJsonLiveSourceComp>();
     TestNotNull(TEXT("JSON live target lidar"), TargetLidar);
     TestNotNull(TEXT("JSON live source"), JsonLive);
     if (!TargetLidar || !JsonLive)
@@ -748,13 +748,13 @@ bool FRealSensorSourceJsonLiveBridgeTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("JSON live pushes generic live payload without transport"), JsonLive->PushFrameOnce(false));
     TestEqual(TEXT("JSON live generic live payload target count"), TargetLidar->GetLastPoints().Num(), 2);
 
-    ULidarJsonLiveSourceComponent* EmptyLive = NewObject<ULidarJsonLiveSourceComponent>();
+    ULidarJsonLiveSourceComp* EmptyLive = NewObject<ULidarJsonLiveSourceComp>();
     TestNotNull(TEXT("empty JSON live source"), EmptyLive);
     TestFalse(TEXT("empty JSON live push fails"), EmptyLive->PushFrameOnce(false));
     TestEqual(TEXT("empty JSON live source reports error"), EmptyLive->GetConnectionState(), ERealSensorSourceConnectionState::Error);
     TestTrue(TEXT("empty JSON live source reports empty buffer"), EmptyLive->GetLastSourceMessage().Contains(TEXT("empty")));
 
-    ULidarJsonLiveSourceComponent* InvalidLive = NewObject<ULidarJsonLiveSourceComponent>();
+    ULidarJsonLiveSourceComp* InvalidLive = NewObject<ULidarJsonLiveSourceComp>();
     TestNotNull(TEXT("invalid JSON live source"), InvalidLive);
     InvalidLive->AppendJsonLine(TEXT("{\"not\":\"a point\"}"));
     InvalidLive->AppendJsonLine(TEXT("not json"));
@@ -764,7 +764,7 @@ bool FRealSensorSourceJsonLiveBridgeTest::RunTest(const FString& Parameters)
     InvalidLive->ClearBufferedFrame();
     TestEqual(TEXT("clear keeps last dropped diagnostic"), InvalidLive->LastDroppedLineCount, 2);
 
-    ULidarJsonLiveSourceComponent* MissingTargetLive = NewObject<ULidarJsonLiveSourceComponent>();
+    ULidarJsonLiveSourceComp* MissingTargetLive = NewObject<ULidarJsonLiveSourceComp>();
     TestNotNull(TEXT("missing target JSON live source"), MissingTargetLive);
     MissingTargetLive->AppendJsonLine(TEXT("{\"x\":100,\"y\":10,\"z\":0,\"hit\":true,\"semanticLabel\":\"Slab\"}"));
     TestFalse(TEXT("missing target push fails"), MissingTargetLive->PushFrameOnce(false));
@@ -790,8 +790,8 @@ bool FRealSensorSourceUdpJsonLiveBridgeTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    UVirtualLidarScanComponent* TargetLidar = NewObject<UVirtualLidarScanComponent>(SourceOwner);
-    ULidarUdpJsonLiveSourceComponent* UdpSource = NewObject<ULidarUdpJsonLiveSourceComponent>(SourceOwner);
+    UVirtualLidarScanComp* TargetLidar = NewObject<UVirtualLidarScanComp>(SourceOwner);
+    ULidarUdpJsonLiveSourceComp* UdpSource = NewObject<ULidarUdpJsonLiveSourceComp>(SourceOwner);
     TestNotNull(TEXT("UDP JSON live target LiDAR"), TargetLidar);
     TestNotNull(TEXT("UDP JSON live source"), UdpSource);
     if (!TargetLidar || !UdpSource)
@@ -841,8 +841,8 @@ bool FRealSensorSourceHttpJsonLiveBridgeTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    UVirtualLidarScanComponent* TargetLidar = NewObject<UVirtualLidarScanComponent>(SourceOwner);
-    ULidarHttpJsonLiveSourceComponent* HttpSource = NewObject<ULidarHttpJsonLiveSourceComponent>(SourceOwner);
+    UVirtualLidarScanComp* TargetLidar = NewObject<UVirtualLidarScanComp>(SourceOwner);
+    ULidarHttpJsonLiveSourceComp* HttpSource = NewObject<ULidarHttpJsonLiveSourceComp>(SourceOwner);
     TestNotNull(TEXT("HTTP JSON live target LiDAR"), TargetLidar);
     TestNotNull(TEXT("HTTP JSON live source"), HttpSource);
     if (!TargetLidar || !HttpSource)
@@ -913,9 +913,9 @@ bool FRealSensorSourceCameraJsonLiveBridgeTest::RunTest(const FString& Parameter
     }
 
     UVirtualCameraCaptureComponent* TargetCamera = NewObject<UVirtualCameraCaptureComponent>(SourceOwner);
-    UCameraJsonLiveSourceComponent* CameraSource = NewObject<UCameraJsonLiveSourceComponent>(SourceOwner);
-    UVirtualSensorTransportComponent* TransportComp = NewObject<UVirtualSensorTransportComponent>(SourceOwner);
-    UVirtualSensorRecorderComponent* RecorderComp = NewObject<UVirtualSensorRecorderComponent>(SourceOwner);
+    UCameraJsonLiveSourceComp* CameraSource = NewObject<UCameraJsonLiveSourceComp>(SourceOwner);
+    UVirtualSensorTransportComp* TransportComp = NewObject<UVirtualSensorTransportComp>(SourceOwner);
+    UVirtualSensorRecorderComp* RecorderComp = NewObject<UVirtualSensorRecorderComp>(SourceOwner);
     TestNotNull(TEXT("camera JSON live target camera"), TargetCamera);
     TestNotNull(TEXT("camera JSON live source"), CameraSource);
     TestNotNull(TEXT("camera JSON live transport"), TransportComp);
@@ -979,7 +979,7 @@ bool FRealSensorSourceCameraJsonLiveBridgeTest::RunTest(const FString& Parameter
 
     auto ExpectRejectedCameraPayload = [&](const TCHAR* CaseName, const FString& CandidatePayload)
     {
-        UCameraJsonLiveSourceComponent* RejectedSource = NewObject<UCameraJsonLiveSourceComponent>(SourceOwner);
+        UCameraJsonLiveSourceComp* RejectedSource = NewObject<UCameraJsonLiveSourceComp>(SourceOwner);
         const FString SourceLabel = FString::Printf(TEXT("%s camera JSON live source"), CaseName);
         TestNotNull(*SourceLabel, RejectedSource);
         if (!RejectedSource)
@@ -1004,7 +1004,7 @@ bool FRealSensorSourceCameraJsonLiveBridgeTest::RunTest(const FString& Parameter
         TestEqual(*RecorderLabel, RecorderComp->GetRecordedFrameCount(), 1);
     };
 
-    UCameraJsonLiveSourceComponent* InvalidSource = NewObject<UCameraJsonLiveSourceComponent>(SourceOwner);
+    UCameraJsonLiveSourceComp* InvalidSource = NewObject<UCameraJsonLiveSourceComp>(SourceOwner);
     TestNotNull(TEXT("invalid camera JSON live source"), InvalidSource);
     if (InvalidSource)
     {
@@ -1018,7 +1018,7 @@ bool FRealSensorSourceCameraJsonLiveBridgeTest::RunTest(const FString& Parameter
         TestEqual(TEXT("invalid camera JSON live does not record a frame"), RecorderComp->GetRecordedFrameCount(), 1);
     }
 
-    UCameraJsonLiveSourceComponent* InvalidBase64Source = NewObject<UCameraJsonLiveSourceComponent>(SourceOwner);
+    UCameraJsonLiveSourceComp* InvalidBase64Source = NewObject<UCameraJsonLiveSourceComp>(SourceOwner);
     TestNotNull(TEXT("invalid base64 camera JSON live source"), InvalidBase64Source);
     if (InvalidBase64Source)
     {
@@ -1033,7 +1033,7 @@ bool FRealSensorSourceCameraJsonLiveBridgeTest::RunTest(const FString& Parameter
         TestEqual(TEXT("invalid base64 camera JSON live does not record a frame"), RecorderComp->GetRecordedFrameCount(), 1);
     }
 
-    UCameraJsonLiveSourceComponent* InvalidQualitySource = NewObject<UCameraJsonLiveSourceComponent>(SourceOwner);
+    UCameraJsonLiveSourceComp* InvalidQualitySource = NewObject<UCameraJsonLiveSourceComp>(SourceOwner);
     TestNotNull(TEXT("invalid quality camera JSON live source"), InvalidQualitySource);
     if (InvalidQualitySource)
     {
@@ -1070,7 +1070,7 @@ bool FRealSensorSourceCameraJsonLiveBridgeTest::RunTest(const FString& Parameter
         TEXT("short transform array"),
         Payload.Replace(TEXT("\"forward\":[1,0,0]"), TEXT("\"forward\":[1,0]")));
 
-    UCameraJsonLiveSourceComponent* ByteMismatchSource = NewObject<UCameraJsonLiveSourceComponent>(SourceOwner);
+    UCameraJsonLiveSourceComp* ByteMismatchSource = NewObject<UCameraJsonLiveSourceComp>(SourceOwner);
     TestNotNull(TEXT("byte mismatch camera JSON live source"), ByteMismatchSource);
     if (ByteMismatchSource)
     {
@@ -1131,7 +1131,7 @@ bool FRealSensorSourceJsonLiveTransactionParseTest::RunTest(const FString& Param
         TestTrue(TEXT("JSON live TC includes second point"), ParsedData->JsonLines.Contains(TEXT("\"x\":120")));
     }
 
-    ULidarJsonLiveSourceComponent* HelperParityLive = NewObject<ULidarJsonLiveSourceComponent>();
+    ULidarJsonLiveSourceComp* HelperParityLive = NewObject<ULidarJsonLiveSourceComp>();
     TestNotNull(TEXT("JSON live helper parity source"), HelperParityLive);
     if (HelperParityLive)
     {
@@ -1185,10 +1185,10 @@ bool FRealSensorSourceJsonLiveTransactionRoutingTest::RunTest(const FString& Par
         return false;
     }
 
-    UVirtualLidarScanComponent* TargetA = NewObject<UVirtualLidarScanComponent>(SourceOwnerA);
-    UVirtualLidarScanComponent* TargetB = NewObject<UVirtualLidarScanComponent>(SourceOwnerB);
-    ULidarJsonLiveSourceComponent* SourceA = NewObject<ULidarJsonLiveSourceComponent>(SourceOwnerA);
-    ULidarJsonLiveSourceComponent* SourceB = NewObject<ULidarJsonLiveSourceComponent>(SourceOwnerB);
+    UVirtualLidarScanComp* TargetA = NewObject<UVirtualLidarScanComp>(SourceOwnerA);
+    UVirtualLidarScanComp* TargetB = NewObject<UVirtualLidarScanComp>(SourceOwnerB);
+    ULidarJsonLiveSourceComp* SourceA = NewObject<ULidarJsonLiveSourceComp>(SourceOwnerA);
+    ULidarJsonLiveSourceComp* SourceB = NewObject<ULidarJsonLiveSourceComp>(SourceOwnerB);
     TestNotNull(TEXT("target lidar A"), TargetA);
     TestNotNull(TEXT("target lidar B"), TargetB);
     TestNotNull(TEXT("JSON live source A"), SourceA);
@@ -1361,8 +1361,8 @@ bool FRealSensorSourceJsonLiveTransactionDataTableRegistrationTest::RunTest(cons
         return false;
     }
 
-    UVirtualLidarScanComponent* TargetLidar = NewObject<UVirtualLidarScanComponent>(SourceOwner);
-    ULidarJsonLiveSourceComponent* JsonLiveSource = NewObject<ULidarJsonLiveSourceComponent>(SourceOwner);
+    UVirtualLidarScanComp* TargetLidar = NewObject<UVirtualLidarScanComp>(SourceOwner);
+    ULidarJsonLiveSourceComp* JsonLiveSource = NewObject<ULidarJsonLiveSourceComp>(SourceOwner);
     TestNotNull(TEXT("registered route target lidar"), TargetLidar);
     TestNotNull(TEXT("registered route JSON live source"), JsonLiveSource);
     if (!TargetLidar || !JsonLiveSource)

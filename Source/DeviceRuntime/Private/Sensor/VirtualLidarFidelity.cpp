@@ -1,6 +1,6 @@
 #include "Device/Sensor/VirtualLidarFidelity.h"
 #include "Device/Sensor/DeviceSemanticPolicy.h"
-#include "Device/Sensor/VirtualLidarSurfaceResponseComponent.h"
+#include "Device/Sensor/VirtualLidarSurfaceResponseComp.h"
 #include "Device/Sensor/VirtualSensorSemanticLabels.h"
 #include "Components/PrimitiveComponent.h"
 #include "GameFramework/Actor.h"
@@ -47,7 +47,7 @@ FSurface ResolveSurface(const UPrimitiveComponent* Primitive)
     if (!Primitive || !Primitive->GetOwner()) return Surface;
     const AActor* Actor = Primitive->GetOwner();
     Surface.Reflectivity = SemanticReflectivity(VirtualSensorSemanticLabels::Resolve(Primitive), Actor->ActorHasTag(TEXT("Oxidized")) || Primitive->ComponentHasTag(TEXT("Oxidized")));
-    if (const auto* Response = Actor->FindComponentByClass<UVirtualLidarSurfaceResponseComponent>())
+    if (const auto* Response = Actor->FindComponentByClass<UVirtualLidarSurfaceResponseComp>())
     {
         Surface.Reflectivity = FMath::Clamp(Response->Reflectivity940Nm, .001f, 1.f);
         Surface.IntensityGain = FMath::Max(0.f, Response->IntensityGain);

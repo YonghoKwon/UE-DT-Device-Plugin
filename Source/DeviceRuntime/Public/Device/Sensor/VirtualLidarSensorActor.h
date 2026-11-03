@@ -6,10 +6,10 @@
 
 class UArrowComponent;
 class UTexture2D;
-class UVirtualLidarScanComponent;
-class UVirtualLidarAnalysisComponent;
-class UVirtualLidarExportComponent;
-class UVirtualLidarVisualizationComponent;
+class UVirtualLidarScanComp;
+class UVirtualLidarAnalysisComp;
+class UVirtualLidarExportComp;
+class UVirtualLidarVisualizationComp;
 class UVirtualLidarGpuDepthProjectionComponent;
 
 UCLASS()
@@ -24,16 +24,16 @@ public:
 #endif
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
-    TObjectPtr<UVirtualLidarScanComponent> ScanComponent;
+    TObjectPtr<UVirtualLidarScanComp> ScanComp;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
-    TObjectPtr<UVirtualLidarAnalysisComponent> AnalysisComponent;
+    TObjectPtr<UVirtualLidarAnalysisComp> AnalysisComp;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
-    TObjectPtr<UVirtualLidarVisualizationComponent> VisualizationComponent;
+    TObjectPtr<UVirtualLidarVisualizationComp> VisualizationComp;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
-    TObjectPtr<UVirtualLidarExportComponent> ExportComponent;
+    TObjectPtr<UVirtualLidarExportComp> ExportComp;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
     TObjectPtr<UVirtualLidarGpuDepthProjectionComponent> GpuDepthProjectionComponent;

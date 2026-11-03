@@ -1,10 +1,10 @@
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 #include "Misc/AutomationTest.h"
 #include "Device/Sensor/VirtualImuTypes.h"
-#include "Device/Sensor/VirtualImuComponent.h"
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Sensor/VirtualImuComp.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Dom/JsonObject.h"
 
 namespace
@@ -87,16 +87,16 @@ bool FImuNoiseTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FImuOutputTest,"MA0T10.IMU01.OutputOptInAndBounds",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FImuOutputTest::RunTest(const FString&)
 {
-    auto* P=NewObject<UVirtualSensorStreamPublisherComponent>();TestTrue(TEXT("no streams by default"),P->GetStreamStatuses().IsEmpty());
+    auto* P=NewObject<UVirtualSensorStreamPublisherComp>();TestTrue(TEXT("no streams by default"),P->GetStreamStatuses().IsEmpty());
     P->SubmitImuBatch(TEXT("test.imu"),1,FDateTime::UtcNow(),TEXT("{}"));TestTrue(TEXT("disabled submission creates nothing"),P->GetStreamStatuses().IsEmpty());
     FVirtualSensorStreamConfig Config;Config.StreamKind=EVirtualSensorStreamKind::Imu;Config.SensorId=TEXT("test.imu");Config.bEnabled=true;P->ConfigureStream(Config);
     FVirtualSensorFrameEnvelope Frame;Frame.SensorId=Config.SensorId;Frame.FrameId=1;Frame.JsonPayload=MakeShared<const FString,ESPMode::ThreadSafe>(TEXT("{}"));P->SubmitFrame(Frame);
     TestEqual(TEXT("ordinary LiDAR cannot enter IMU stream"),P->GetStreamStatuses()[0].InputFrameCount,int64(0));
     P->SubmitImuBatch(Config.SensorId,1,FDateTime::UtcNow(),TEXT("{}"));TestEqual(TEXT("IMU route enabled explicitly"),P->GetStreamStatuses()[0].InputFrameCount,int64(1));
-    auto* T=NewObject<UVirtualSensorTransportComponent>();TestEqual(TEXT("isolated topic"),T->ResolveDestination(TEXT("imu"),TEXT("imu-stream")),FString(TEXT("topic.virtual.sensor.imu.0")));
-    FVirtualImuConfig C;C.Noise=false;const auto Samples=Motion(C);const auto Json=UVirtualImuComponent::BatchJson(Config.SensorId,C,Samples);
+    auto* T=NewObject<UVirtualSensorTransportComp>();TestEqual(TEXT("isolated topic"),T->ResolveDestination(TEXT("imu"),TEXT("imu-stream")),FString(TEXT("topic.virtual.sensor.imu.0")));
+    FVirtualImuConfig C;C.Noise=false;const auto Samples=Motion(C);const auto Json=UVirtualImuComp::BatchJson(Config.SensorId,C,Samples);
     TestEqual(TEXT("new schema only"),Json->GetStringField(TEXT("schemaVersion")),FString(TEXT("virtual-imu.v1")));
-    auto* R=NewObject<UVirtualSensorRecorderComponent>();TArray<FVirtualImuSample> Large;Large.SetNum(24001);R->RecordImuSamples(Config.SensorId,Large);
+    auto* R=NewObject<UVirtualSensorRecorderComp>();TArray<FVirtualImuSample> Large;Large.SetNum(24001);R->RecordImuSamples(Config.SensorId,Large);
     TestEqual(TEXT("bounded recorder"),R->GetImuSamples(Config.SensorId).Num(),24000);TestEqual(TEXT("overflow explicit"),R->GetImuOverflowCount(Config.SensorId),int64(1));
     return true;
 }

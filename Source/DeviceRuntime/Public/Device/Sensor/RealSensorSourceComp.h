@@ -3,9 +3,9 @@
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
 #include "Device/Sensor/VirtualLidarSensorTypes.h"
-#include "RealSensorSourceComponent.generated.h"
+#include "RealSensorSourceComp.generated.h"
 
-class UVirtualLidarScanComponent;
+class UVirtualLidarScanComp;
 class AVirtualSensorActorBase;
 
 UENUM(BlueprintType)
@@ -29,12 +29,12 @@ enum class ERealSensorSourceConnectionState : uint8
 };
 
 UCLASS(Abstract, BlueprintType, ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API URealSensorSourceComponent : public USceneComponent
+class DEVICERUNTIME_API URealSensorSourceComp : public USceneComponent
 {
     GENERATED_BODY()
 
 public:
-    URealSensorSourceComponent();
+    URealSensorSourceComp();
 
 protected:
     virtual void BeginPlay() override;
@@ -73,7 +73,7 @@ public:
     FString SourceId = TEXT("RealSensorSource");
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|RealSensorSource")
-    TObjectPtr<UVirtualLidarScanComponent> TargetLidar;
+    TObjectPtr<UVirtualLidarScanComp> TargetLidar;
 
     /** Preferred V2 target. TargetLidar remains as a component-level compatibility fallback. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|RealSensorSource")
@@ -99,7 +99,7 @@ public:
 
 protected:
     AVirtualSensorActorBase* ResolveTargetSensorActor() const;
-    UVirtualLidarScanComponent* ResolveTargetLidar() const;
+    UVirtualLidarScanComp* ResolveTargetLidar() const;
     bool PushPointFrameToTarget(const TArray<FVirtualLidarPoint>& Points, bool bSendTransport, const FString& SuccessMessage, int32 Rows = 0, int32 Cols = 0, bool bUpdateLidarDimensions = false);
     void SetSourceState(ERealSensorSourceConnectionState NewState, const FString& Message);
     void MarkFramePushed(int32 PointCount, const FString& Message);

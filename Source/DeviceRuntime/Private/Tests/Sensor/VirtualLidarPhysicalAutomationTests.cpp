@@ -3,8 +3,8 @@
 #include "Misc/AutomationTest.h"
 #include "Json.h"
 #include "Device/Sensor/VirtualLidarPayloadCodec.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
-#include "Device/Sensor/VirtualLidarSurfaceResponseComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
+#include "Device/Sensor/VirtualLidarSurfaceResponseComp.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FVirtualLidarNativeProfileContractTest,
@@ -23,10 +23,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FVirtualLidarNativeProfileContractTest::RunTest(const FString& Parameters)
 {
-	const FVirtualLidarProfilePreset Integration = UVirtualLidarScanComponent::ResolveProfilePreset(
+	const FVirtualLidarProfilePreset Integration = UVirtualLidarScanComp::ResolveProfilePreset(
 		EVirtualLidarDeviceProfile::IYOBOT_MLX80,
 		EVirtualSensorSimulationQuality::FullSpec);
-	const FVirtualLidarProfilePreset Native = UVirtualLidarScanComponent::ResolveProfilePreset(
+	const FVirtualLidarProfilePreset Native = UVirtualLidarScanComp::ResolveProfilePreset(
 		EVirtualLidarDeviceProfile::IYOBOT_MLX80_NATIVE,
 		EVirtualSensorSimulationQuality::FullSpec);
 
@@ -122,7 +122,7 @@ bool FVirtualLidarV2CodecContractTest::RunTest(const FString& Parameters)
 
 bool FVirtualLidarSurfaceResponseDefaultsTest::RunTest(const FString& Parameters)
 {
-	const UVirtualLidarSurfaceResponseComponent* Response = NewObject<UVirtualLidarSurfaceResponseComponent>();
+	const UVirtualLidarSurfaceResponseComp* Response = NewObject<UVirtualLidarSurfaceResponseComp>();
 	TestTrue(TEXT("default reflectivity is 20 percent"), FMath::IsNearlyEqual(Response->Reflectivity940Nm, 0.2f));
 	TestTrue(TEXT("default intensity gain is neutral"), FMath::IsNearlyEqual(Response->IntensityGain, 1.0f));
 	TestTrue(TEXT("default detection multiplier is neutral"), FMath::IsNearlyEqual(Response->DetectionProbabilityScale, 1.0f));

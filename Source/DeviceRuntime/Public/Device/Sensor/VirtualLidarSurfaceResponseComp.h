@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "VirtualLidarSurfaceResponseComponent.generated.h"
+#include "VirtualLidarSurfaceResponseComp.generated.h"
 
 /**
  * Optional 940 nm optical response override for virtual LiDAR hits.
@@ -11,12 +11,12 @@
  * properties only; sensor noise and range response remain owned by the sensor.
  */
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualLidarSurfaceResponseComponent : public UActorComponent
+class DEVICERUNTIME_API UVirtualLidarSurfaceResponseComp : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	UVirtualLidarSurfaceResponseComponent();
+	UVirtualLidarSurfaceResponseComp();
 	/** Native opt-in for the existing GPU semantic proxy snapshot; false preserves prior GPU output. */
 	bool bUseGpuReflectivityOverride=false;
 

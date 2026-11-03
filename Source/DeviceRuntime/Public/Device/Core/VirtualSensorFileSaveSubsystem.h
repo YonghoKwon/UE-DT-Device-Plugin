@@ -4,7 +4,7 @@
 #include "Device/Core/VirtualSensorFileSaveTypes.h"
 #include "VirtualSensorFileSaveSubsystem.generated.h"
 class AVirtualSensorActorBase;
-class UVirtualImuComponent;
+class UVirtualImuComp;
 struct FVirtualImuSample;
 struct FVirtualCameraLocalSaveFrame;
 struct FVirtualSensorFileSaveRequest;
@@ -23,7 +23,7 @@ class DEVICERUNTIME_API UVirtualSensorFileSaveSubsystem : public UTickableWorldS
 public:
     /** Native opt-in analysis snapshot; bounded by the same admission, writer and cancellation policy. */
     FString RequestAnalysisJson(UObject* Owner,const FString& Json,const FString& SourceId=TEXT("Analysis"));
-    FString RequestImuCsv(UVirtualImuComponent* Source,const FString& Id,const TArray<FVirtualImuSample>& Samples);
+    FString RequestImuCsv(UVirtualImuComp* Source,const FString& Id,const TArray<FVirtualImuSample>& Samples);
     /** CAM-GT-01 adapter: capture is asynchronous and uses the existing file-save admission. */
     bool RequestCameraGroundTruthSave(AVirtualCameraSensorActor* Sensor);
     FString RequestTrackedCameraGroundTruthSave(AVirtualCameraSensorActor* Sensor);

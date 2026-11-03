@@ -3,7 +3,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 
 // Deployment Game.ini [MA0T10.SensorTransport] applies over map defaults, first file with
 // the section wins, empty keys keep current values, unknown mode is ignored.
@@ -17,7 +17,7 @@ bool FSensorTransportRuntimeConfigTest::RunTest(const FString&)
 	FFileHelper::SaveStringToFile(TEXT("[MA0T10.SensorTransport]\nTransportMode=StompWebSocket\nBrokerUrl=tcp://10.0.0.5:61616\nExportTopic=pcd.topic\nUserName=deploy\nPasscode=secret-for-test\nCameraTopic=\nMaxMessageBytes=4096\n"),*Game);
 	FFileHelper::SaveStringToFile(TEXT("[MA0T10.SensorTransport]\nBrokerUrl=tcp://never:1\n"),*Later);
 
-	auto* T=NewObject<UVirtualSensorTransportComponent>();
+	auto* T=NewObject<UVirtualSensorTransportComp>();
 	const FString CameraBefore=T->GetTransportProfile().CameraTopic;
 	TestFalse(TEXT("no section anywhere applies nothing"),T->ApplyRuntimeConfigFrom({Empty},false));
 	TestFalse(TEXT("nothing applied yet"),T->HasRuntimeConfigOverrides());

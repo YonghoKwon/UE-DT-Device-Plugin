@@ -3,19 +3,19 @@
 #include "CoreMinimal.h"
 #include "HttpResultCallback.h"
 #include "HttpRouteHandle.h"
-#include "Device/Sensor/LidarJsonLiveSourceComponent.h"
-#include "LidarHttpJsonLiveSourceComponent.generated.h"
+#include "Device/Sensor/LidarJsonLiveSourceComp.h"
+#include "LidarHttpJsonLiveSourceComp.generated.h"
 
 class IHttpRouter;
 struct FHttpServerRequest;
 
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API ULidarHttpJsonLiveSourceComponent : public ULidarJsonLiveSourceComponent
+class DEVICERUNTIME_API ULidarHttpJsonLiveSourceComp : public ULidarJsonLiveSourceComp
 {
     GENERATED_BODY()
 
 public:
-    ULidarHttpJsonLiveSourceComponent();
+    ULidarHttpJsonLiveSourceComp();
 
     virtual bool StartSource() override;
     virtual void StopSource() override;

@@ -6,7 +6,7 @@
 #include "VirtualSensorSchedulerSubsystem.generated.h"
 
 class UVirtualCameraCaptureComponent;
-class UVirtualLidarScanComponent;
+class UVirtualLidarScanComp;
 class AActor;
 class UActorComponent;
 
@@ -123,16 +123,16 @@ public:
 
     void RegisterCamera(UVirtualCameraCaptureComponent* Camera);
     void UnregisterCamera(UVirtualCameraCaptureComponent* Camera);
-    void RegisterLidar(UVirtualLidarScanComponent* Lidar);
-    void UnregisterLidar(UVirtualLidarScanComponent* Lidar);
+    void RegisterLidar(UVirtualLidarScanComp* Lidar);
+    void UnregisterLidar(UVirtualLidarScanComp* Lidar);
     void RefreshLidarCadencePhases(double WallSeconds);
 
     void RegisterTask(UActorComponent* TaskComponent);
     void UnregisterTask(UActorComponent* TaskComponent);
     void SetPreferredCamera(UVirtualCameraCaptureComponent* Camera);
-    void SetPreferredLidar(UVirtualLidarScanComponent* Lidar);
-    bool ShouldRefreshLidarPreview(const UVirtualLidarScanComponent* Lidar) const;
-    bool ConsumeLidarPreviewRefresh(UVirtualLidarScanComponent* Lidar, float MaximumRefreshHz = 10.0f);
+    void SetPreferredLidar(UVirtualLidarScanComp* Lidar);
+    bool ShouldRefreshLidarPreview(const UVirtualLidarScanComp* Lidar) const;
+    bool ConsumeLidarPreviewRefresh(UVirtualLidarScanComp* Lidar, float MaximumRefreshHz = 10.0f);
 
     UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorPerformance")
     const FVirtualSensorPerformanceTelemetry& GetTelemetry() const { return Telemetry; }
@@ -157,17 +157,17 @@ private:
     void ConfigureCommandLineBenchmarkIfRequested();
 
     TArray<TWeakObjectPtr<UVirtualCameraCaptureComponent>> Cameras;
-    TArray<TWeakObjectPtr<UVirtualLidarScanComponent>> Lidars;
-    TArray<UVirtualLidarScanComponent*> CadenceMembers;
+    TArray<TWeakObjectPtr<UVirtualLidarScanComp>> Lidars;
+    TArray<UVirtualLidarScanComp*> CadenceMembers;
     FVirtualLidarCadenceCohort CadenceCohort;
     std::vector<FVirtualLidarCadenceCohort::FMember> CadenceMembership;
     TMap<TWeakObjectPtr<UActorComponent>, double> RegistrationTimes;
     TWeakObjectPtr<UVirtualCameraCaptureComponent> PreferredCamera;
-    TWeakObjectPtr<UVirtualLidarScanComponent> PreferredLidar;
+    TWeakObjectPtr<UVirtualLidarScanComp> PreferredLidar;
     int32 NextCameraIndex = 0;
     int32 NextLidarIndex = 0;
-    TMap<TWeakObjectPtr<UVirtualLidarScanComponent>, int32> AdaptiveLidarChunkSizes;
-    TMap<TWeakObjectPtr<UVirtualLidarScanComponent>, double> LastLidarPreviewRefreshTimes;
+    TMap<TWeakObjectPtr<UVirtualLidarScanComp>, int32> AdaptiveLidarChunkSizes;
+    TMap<TWeakObjectPtr<UVirtualLidarScanComp>, double> LastLidarPreviewRefreshTimes;
     float EffectiveLidarBudgetMs = 5.0f;
     float EffectiveAggregateCameraCaptureHz = 12.0f;
     double LastCameraCaptureAdmissionTime = -1.0;

@@ -2,7 +2,7 @@
 #include "MA0T10MemoryTags.h"
 #include "Device/Core/VirtualSensorTextureReadback.h"
 #include "Device/Sensor/VirtualLidarSemanticScene.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Core/VirtualSensorCaptureRendering.h"
 
 #include "Engine/TextureRenderTarget2D.h"
@@ -144,7 +144,7 @@ bool UVirtualLidarGpuDepthProjectionComponent::BeginAcquisition(const FVirtualLi
 	PendingSemanticStatus = TEXT("GPU 의미 분류 비활성");
 	if (Request.bRequestSemantics)
 	{
-		if (auto* Scan = GetOwner() ? GetOwner()->FindComponentByClass<UVirtualLidarScanComponent>() : nullptr)
+		if (auto* Scan = GetOwner() ? GetOwner()->FindComponentByClass<UVirtualLidarScanComp>() : nullptr)
 		{
 			if (!SemanticScene) SemanticScene = MakeUnique<FVirtualLidarSemanticScene>();
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR

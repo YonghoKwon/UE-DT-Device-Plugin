@@ -11,12 +11,12 @@ class UActorComponent;
 class APlayerController;
 class AVirtualSensorActorBase;
 class UPrimitiveComponent;
-class URealSensorSourceComponent;
+class URealSensorSourceComp;
 class UVirtualCameraCaptureComponent;
-class UVirtualLidarScanComponent;
-class UVirtualSensorTransportComponent;
-class UVirtualSensorRecorderComponent;
-class UVirtualSensorStreamPublisherComponent;
+class UVirtualLidarScanComp;
+class UVirtualSensorTransportComp;
+class UVirtualSensorRecorderComp;
+class UVirtualSensorStreamPublisherComp;
 class IVirtualSensorMonitorView;
 
 struct FDeviceLidarPointCloudOnlyState
@@ -39,9 +39,9 @@ struct FDeviceSensorCoordinatorConfig
     float SynchronizedInterval=0.5f, StaleSensorSeconds=3.0f;
     bool bPointCloudOnlyHideWorld=true, bPointCloudOnlyAutoSelectLidarView=true;
     TConstArrayView<FName> PointCloudOnlyKeepActorTags;
-    UVirtualSensorTransportComponent* SharedTransportComponent=nullptr;
-    UVirtualSensorRecorderComponent* SharedRecorderComponent=nullptr;
-    UVirtualSensorStreamPublisherComponent* StreamPublisherComponent=nullptr;
+    UVirtualSensorTransportComp* SharedTransportComp=nullptr;
+    UVirtualSensorRecorderComp* SharedRecorderComp=nullptr;
+    UVirtualSensorStreamPublisherComp* StreamPublisherComp=nullptr;
 };
 UCLASS(Abstract)
 class DEVICERUNTIME_API ADeviceSensorCoordinator : public AActor
@@ -68,8 +68,8 @@ public:
     bool SelectSensorActor(AVirtualSensorActorBase* SensorActor);
     FSimpleMulticastDelegate OnSensorInventoryChanged;
     void RegisterCamera(UVirtualCameraCaptureComponent* CameraComp);
-    void RegisterLidar(UVirtualLidarScanComponent* LidarComp);
-    void RegisterRealSensorSource(URealSensorSourceComponent* RealSensorSourceComponent);
+    void RegisterLidar(UVirtualLidarScanComp* LidarComp);
+    void RegisterRealSensorSource(URealSensorSourceComp* RealSensorSourceComp);
     void SelectCameraByIndex(int32 Index);
     void SelectLidarByIndex(int32 Index);
     void SelectRealSensorSourceByIndex(int32 Index);
@@ -95,8 +95,8 @@ public:
     int32 GetCameraCount() const { return Cameras.Num(); }
     UVirtualCameraCaptureComponent* GetCameraByIndex(int32 Index) const;
     int32 FindCameraIndexBySensorId(const FString& SensorId) const;
-    UVirtualLidarScanComponent* GetSelectedLidar() const;
-    URealSensorSourceComponent* GetSelectedRealSensorSource() const;
+    UVirtualLidarScanComp* GetSelectedLidar() const;
+    URealSensorSourceComp* GetSelectedRealSensorSource() const;
     AVirtualSensorActorBase* GetSelectedSensorActor() const;
 
     /** Returns the selected actor for the requested sensor kind, independently of the monitor view mode. */
@@ -105,7 +105,7 @@ public:
     TArray<FVirtualSensorSummary> GetCameraSummaries() const;
     TArray<FVirtualSensorSummary> GetLidarSummaries() const;
 
-    const TArray<TObjectPtr<UVirtualLidarScanComponent>>& GetLidarComponents() const { return Lidars; }
+    const TArray<TObjectPtr<UVirtualLidarScanComp>>& GetLidarComponents() const { return Lidars; }
     TArray<FVirtualSensorSummary> GetRealSensorSourceSummaries() const;
     FVirtualSensorHealthSummary GetHealthSummary() const;
     EVirtualSensorViewMode GetViewMode() const { return CurrentViewMode; }
@@ -126,10 +126,10 @@ private:
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
     friend class FDeviceCoordinatorViewStateIsolation;
 #endif
-    void SaveLidarViewState(UVirtualLidarScanComponent* LidarComp);
-    void ApplyPointCloudOnlyToLidar(UVirtualLidarScanComponent* LidarComp,bool bSelected);
-    void RestoreLidarViewState(UVirtualLidarScanComponent* LidarComp);
-    TMap<TWeakObjectPtr<UVirtualLidarScanComponent>,FDeviceLidarPointCloudOnlyState> LidarPointCloudOnlyStates;
+    void SaveLidarViewState(UVirtualLidarScanComp* LidarComp);
+    void ApplyPointCloudOnlyToLidar(UVirtualLidarScanComp* LidarComp,bool bSelected);
+    void RestoreLidarViewState(UVirtualLidarScanComp* LidarComp);
+    TMap<TWeakObjectPtr<UVirtualLidarScanComp>,FDeviceLidarPointCloudOnlyState> LidarPointCloudOnlyStates;
     IVirtualSensorMonitorView* GetMonitorView() const;
     TWeakObjectPtr<UObject> MonitorOwner;
 
@@ -140,10 +140,10 @@ private:
     TArray<TObjectPtr<AVirtualSensorActorBase>> SensorActors;
 
     UPROPERTY(Transient)
-    TArray<TObjectPtr<UVirtualLidarScanComponent>> Lidars;
+    TArray<TObjectPtr<UVirtualLidarScanComp>> Lidars;
 
     UPROPERTY(Transient)
-    TArray<TObjectPtr<URealSensorSourceComponent>> RealSensorSources;
+    TArray<TObjectPtr<URealSensorSourceComp>> RealSensorSources;
 
 
     UPROPERTY(Transient)

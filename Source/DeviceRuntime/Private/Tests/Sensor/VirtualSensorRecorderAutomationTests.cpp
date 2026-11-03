@@ -4,14 +4,14 @@
 #include "Misc/AutomationTest.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVirtualSensorRecorderSaveLoadTest, "MA0T10.SensorRecorder.SaveLoadSession", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorRecorderSaveLoadTest::RunTest(const FString& Parameters)
 {
-    UVirtualSensorRecorderComponent* RecorderComp = NewObject<UVirtualSensorRecorderComponent>();
-    UVirtualSensorRecorderComponent* LoadedRecorderComp = NewObject<UVirtualSensorRecorderComponent>();
+    UVirtualSensorRecorderComp* RecorderComp = NewObject<UVirtualSensorRecorderComp>();
+    UVirtualSensorRecorderComp* LoadedRecorderComp = NewObject<UVirtualSensorRecorderComp>();
     TestNotNull(TEXT("recorder component"), RecorderComp);
     TestNotNull(TEXT("loaded recorder component"), LoadedRecorderComp);
     if (!RecorderComp || !LoadedRecorderComp)

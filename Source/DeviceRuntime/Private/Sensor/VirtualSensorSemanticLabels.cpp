@@ -1,6 +1,6 @@
 #include "Device/Sensor/VirtualSensorSemanticLabels.h"
 #include "Device/Sensor/DeviceSemanticPolicy.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Components/PrimitiveComponent.h"
 
 namespace VirtualSensorSemanticLabels

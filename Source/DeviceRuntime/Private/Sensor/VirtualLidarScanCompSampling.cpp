@@ -1,4 +1,4 @@
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "MA0T10MemoryTags.h"
 #include "HAL/IConsoleManager.h"
 #include "Device/Sensor/IndustrialLidarProfiles.h"
@@ -23,17 +23,17 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Serialization/BufferArchive.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
 #include "Device/Core/VirtualSensorSchedulerSubsystem.h"
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarPayloadCodec.h"
 #include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
-#include "Device/Sensor/VirtualLidarSurfaceResponseComponent.h"
-#include "Device/Sensor/VirtualLidarVisualizationComponent.h"
-#include "Device/Sensor/VirtualSensorOutputComponent.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Sensor/VirtualLidarSurfaceResponseComp.h"
+#include "Device/Sensor/VirtualLidarVisualizationComp.h"
+#include "Device/Sensor/VirtualSensorOutputComp.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Misc/Crc.h"
 #include <atomic>
 
@@ -45,13 +45,13 @@ TAutoConsoleVariable<int32> CVarLidarPhaseSpread(TEXT("ma0t10.LidarPhaseSpread")
 
 
 
-UVirtualLidarScanComponent::UVirtualLidarScanComponent()
+UVirtualLidarScanComp::UVirtualLidarScanComp()
 {
     PrimaryComponentTick.bCanEverTick = false;
     ResetDefaultSemanticClassRules();
 }
 
-FString UVirtualLidarScanComponent::BuildLastPhysicalJsonPayload(
+FString UVirtualLidarScanComp::BuildLastPhysicalJsonPayload(
     int32 PointStride,
     int32 MaxPoints,
     bool bIncludeInvalidPoints,
@@ -77,7 +77,7 @@ FString UVirtualLidarScanComponent::BuildLastPhysicalJsonPayload(
     return FVirtualLidarPayloadCodec::EncodeV2Json(*LastFrameSnapshot, Descriptor, Options);
 }
 
-bool UVirtualLidarScanComponent::BuildLastPhysicalCompactBinary(
+bool UVirtualLidarScanComp::BuildLastPhysicalCompactBinary(
     const FVirtualLidarV2EncodeOptions& Options,
     TArray64<uint8>& OutBytes,
     int32& OutEncodedPointCount) const
@@ -86,12 +86,12 @@ bool UVirtualLidarScanComponent::BuildLastPhysicalCompactBinary(
         && FVirtualLidarPayloadCodec::EncodeCompactBinary(*LastFrameSnapshot, Options, OutBytes, OutEncodedPointCount);
 }
 
-void UVirtualLidarScanComponent::InvalidateSurfaceResponseCache()
+void UVirtualLidarScanComp::InvalidateSurfaceResponseCache()
 {
     SurfaceResponseCache.Reset();
 }
 
-int64 UVirtualLidarScanComponent::CalculatePointTimeOffsetNanoseconds(int32 RayIndex, int32 RayCount) const
+int64 UVirtualLidarScanComp::CalculatePointTimeOffsetNanoseconds(int32 RayIndex, int32 RayCount) const
 {
     if (!bUseRollingPointTimestamps || RayCount <= 1)
     {
@@ -102,7 +102,7 @@ int64 UVirtualLidarScanComponent::CalculatePointTimeOffsetNanoseconds(int32 RayI
     return VirtualLidarFidelity::PointOffset(DeviceProfile, RayIndex, Width, Height, ScanInterval);
 }
 
-void UVirtualLidarScanComponent::InitializePhysicalPoint(
+void UVirtualLidarScanComp::InitializePhysicalPoint(
     FVirtualLidarPoint& Point,
     int32 Row,
     int32 Col,
@@ -131,7 +131,7 @@ void UVirtualLidarScanComponent::InitializePhysicalPoint(
     Point.bHasGridCoord = true;
 }
 
-UVirtualLidarScanComponent::FSurfaceResponseCacheEntry UVirtualLidarScanComponent::ResolveSurfaceResponse(
+UVirtualLidarScanComp::FSurfaceResponseCacheEntry UVirtualLidarScanComp::ResolveSurfaceResponse(
     const UPrimitiveComponent* Primitive) const
 {
     if(const auto* Frozen=HardwareSurfaceIdentities.Find(const_cast<UPrimitiveComponent*>(Primitive)))return Frozen->Surface;
@@ -160,7 +160,7 @@ UVirtualLidarScanComponent::FSurfaceResponseCacheEntry UVirtualLidarScanComponen
     }
     if (const AActor* OwnerActor = Primitive->GetOwner())
     {
-        if (const UVirtualLidarSurfaceResponseComponent* Response = OwnerActor->FindComponentByClass<UVirtualLidarSurfaceResponseComponent>())
+        if (const UVirtualLidarSurfaceResponseComp* Response = OwnerActor->FindComponentByClass<UVirtualLidarSurfaceResponseComp>())
         {
             Resolved.Reflectivity = FMath::Clamp(Response->Reflectivity940Nm, 0.001f, 1.0f);
             Resolved.IntensityGain = FMath::Max(0.0f, Response->IntensityGain);
@@ -173,7 +173,7 @@ UVirtualLidarScanComponent::FSurfaceResponseCacheEntry UVirtualLidarScanComponen
     return Resolved;
 }
 
-bool UVirtualLidarScanComponent::ApplyPhysicalHitModel(
+bool UVirtualLidarScanComp::ApplyPhysicalHitModel(
     FVirtualLidarPoint& Point,
     const FHitResult& Hit,
     const FVector& WorldDirection,
@@ -193,7 +193,7 @@ bool UVirtualLidarScanComponent::ApplyPhysicalHitModel(
     return CapturePointModel().Apply(Point,Surface,SafeDirection,AcquisitionTransform,ModelRange,ModelIncidence,RayIndex,ReturnIndex);
 }
 
-void UVirtualLidarScanComponent::RebuildPhysicalFrameStatistics(FVirtualLidarFrameSnapshot& Snapshot) const
+void UVirtualLidarScanComp::RebuildPhysicalFrameStatistics(FVirtualLidarFrameSnapshot& Snapshot) const
 {
     if (!Snapshot.Points.IsValid())
     {
@@ -237,7 +237,7 @@ void UVirtualLidarScanComponent::RebuildPhysicalFrameStatistics(FVirtualLidarFra
 	}
 }
 
-void UVirtualLidarScanComponent::StartScan()
+void UVirtualLidarScanComp::StartScan()
 {
     if (!GetWorld() || ScanInterval <= 0.0f) return;
     GetWorld()->GetTimerManager().ClearTimer(ScanTimerHandle);
@@ -255,7 +255,7 @@ void UVirtualLidarScanComponent::StartScan()
     RegisterWithPerformanceSubsystem();
 }
 
-void UVirtualLidarScanComponent::RequestImmediateScheduledScan()
+void UVirtualLidarScanComp::RequestImmediateScheduledScan()
 {
 	if (IsScanRunning() && GetWorld())
 	{
@@ -265,13 +265,13 @@ void UVirtualLidarScanComponent::RequestImmediateScheduledScan()
 	}
 }
 
-void UVirtualLidarScanComponent::BindGpuDepthProjectionComponent(
+void UVirtualLidarScanComp::BindGpuDepthProjectionComponent(
     UVirtualLidarGpuDepthProjectionComponent* InComponent)
 {
     GpuDepthProjectionComponent = InComponent;
 }
 
-void UVirtualLidarScanComponent::ConvertGpuDepthFrame(const FVirtualLidarDepthAcquisitionFrame& Frame)
+void UVirtualLidarScanComp::ConvertGpuDepthFrame(const FVirtualLidarDepthAcquisitionFrame& Frame)
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarPoints);
 	RuntimeStatus.AcquisitionBackendMessage = Frame.SemanticStatus;
@@ -446,7 +446,7 @@ void UVirtualLidarScanComponent::ConvertGpuDepthFrame(const FVirtualLidarDepthAc
     }
 }
 
-void UVirtualLidarScanComponent::EnsureGpuDepthBeamLookup(const FVirtualLidarDepthAcquisitionFrame& Frame)
+void UVirtualLidarScanComp::EnsureGpuDepthBeamLookup(const FVirtualLidarDepthAcquisitionFrame& Frame)
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
     const uint32 CalibrationHash = HashCombine(
@@ -519,13 +519,13 @@ void UVirtualLidarScanComponent::EnsureGpuDepthBeamLookup(const FVirtualLidarDep
     GpuDepthLookupVerticalCalibrationCount = VerticalCalibrationAnglesDegrees.Num();
 }
 
-bool UVirtualLidarScanComponent::UsesAutomaticCadencePhase() const
+bool UVirtualLidarScanComp::UsesAutomaticCadencePhase() const
 {
     return IsScanRunning() && bAutomaticCadencePhaseEnabled && !bSingleScheduledScanRequested
         && CVarLidarPhaseSpread.GetValueOnGameThread()!=0 && FMath::IsFinite(ScanInterval) && ScanInterval>0;
 }
 
-void UVirtualLidarScanComponent::ApplyAutomaticCadencePhase(double WallSeconds, double Phase, bool bInitial)
+void UVirtualLidarScanComp::ApplyAutomaticCadencePhase(double WallSeconds, double Phase, bool bInitial)
 {
     const double Interval=FMath::Max(.001,double(ScanInterval));
     if(bInitial) ScheduledCadence.StartAligned(AutomaticCadenceStartedAt,Interval,Phase);
@@ -533,7 +533,7 @@ void UVirtualLidarScanComponent::ApplyAutomaticCadencePhase(double WallSeconds, 
     bAutomaticCadencePhasePending=false;
 }
 
-void UVirtualLidarScanComponent::PrepareScheduledScan(double NowSeconds)
+void UVirtualLidarScanComp::PrepareScheduledScan(double NowSeconds)
 {
     TryStartPendingPayloadBuild();
 #if WITH_DEV_AUTOMATION_TESTS
@@ -603,7 +603,7 @@ void UVirtualLidarScanComponent::PrepareScheduledScan(double NowSeconds)
     }
 }
 
-int32 UVirtualLidarScanComponent::ProcessScheduledScanChunk(int32 MaxRays)
+int32 UVirtualLidarScanComp::ProcessScheduledScanChunk(int32 MaxRays)
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarPoints);
     if (bGpuDepthScanInProgress)
@@ -707,7 +707,7 @@ int32 UVirtualLidarScanComponent::ProcessScheduledScanChunk(int32 MaxRays)
     return Processed;
 }
 
-void UVirtualLidarScanComponent::ExecuteScan(TArray<FVirtualLidarPoint>& OutPoints, TArray<uint8>& OutHeatmapPixels)
+void UVirtualLidarScanComp::ExecuteScan(TArray<FVirtualLidarPoint>& OutPoints, TArray<uint8>& OutHeatmapPixels)
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarPoints);
     OutPoints.Reset();
@@ -802,7 +802,7 @@ void UVirtualLidarScanComponent::ExecuteScan(TArray<FVirtualLidarPoint>& OutPoin
     }
 }
 
-void UVirtualLidarScanComponent::WriteHeatmapPixel(TArray<uint8>& Pixels, int32 PixelIndex, const FVirtualLidarPoint& Point) const
+void UVirtualLidarScanComp::WriteHeatmapPixel(TArray<uint8>& Pixels, int32 PixelIndex, const FVirtualLidarPoint& Point) const
 {
     if (!Pixels.IsValidIndex(PixelIndex + 3)) return;
     const float N = FMath::Clamp(Point.Distance / FMath::Max(1.0f, MaxDistance), 0.0f, 1.0f); const uint8 I = Point.bHit ? (uint8)((1.0f - N) * 255.0f) : 0; FColor C;
@@ -812,9 +812,9 @@ void UVirtualLidarScanComponent::WriteHeatmapPixel(TArray<uint8>& Pixels, int32 
     else C = FColor(I, I, I, 255);
     Pixels[PixelIndex + 0] = C.B; Pixels[PixelIndex + 1] = C.G; Pixels[PixelIndex + 2] = C.R; Pixels[PixelIndex + 3] = 255;
 }
-int32 UVirtualLidarScanComponent::GetHeatmapPixelIndex(int32 H, int32 V, int32 W, int32 Ht) const { const int32 DH = bFlipLidarViewHorizontal ? W - 1 - H : H; const int32 DV = bFlipLidarViewVertical ? Ht - 1 - V : V; return (DV * W + DH) * 4; }
+int32 UVirtualLidarScanComp::GetHeatmapPixelIndex(int32 H, int32 V, int32 W, int32 Ht) const { const int32 DH = bFlipLidarViewHorizontal ? W - 1 - H : H; const int32 DV = bFlipLidarViewVertical ? Ht - 1 - V : V; return (DV * W + DH) * 4; }
 
-VirtualLidarPointModel::FConfig UVirtualLidarScanComponent::CapturePointModel() const
+VirtualLidarPointModel::FConfig UVirtualLidarScanComp::CapturePointModel() const
 {
     VirtualLidarPointModel::FConfig C;C.MaxDistance=MaxDistance;C.AmbientLightLux=AmbientLightLux;
     C.RangeNoiseStandardDeviationMillimeters=RangeNoiseStandardDeviationMillimeters;C.MaximumRangeErrorMillimeters=MaximumRangeErrorMillimeters;
