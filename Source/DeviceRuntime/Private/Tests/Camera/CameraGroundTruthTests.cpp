@@ -51,7 +51,7 @@ public:
         if(!Scene)
         {
             Started=Now;Scene=MakeUnique<FPreviewScene>(FPreviewScene::ConstructionValues().SetCreateDefaultLighting(true));auto* World=Scene->GetWorld();
-            auto* Mat=LoadObject<UMaterial>(nullptr,TEXT("/Game/MA0T10/Sensor/Materials/M_LidarSemanticId.M_LidarSemanticId"));
+            auto* Mat=LoadObject<UMaterial>(nullptr,TEXT("/DTDevice/Sensor/Materials/M_LidarSemanticId.M_LidarSemanticId"));
             if(!Mat){Test->AddError(TEXT("existing LiDAR ID material missing"));return Finish();}Mat->CacheShaders(EMaterialShaderPrecompileMode::Default);
             auto* Cube=LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube"));
             for(int32 N=0;N<2;++N)

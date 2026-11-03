@@ -22,7 +22,7 @@ public:
         {
             Scene = MakeUnique<FPreviewScene>(FPreviewScene::ConstructionValues().SetCreateDefaultLighting(false));
             auto* World = Scene->GetWorld();
-            auto* IdMaterial = LoadObject<UMaterial>(nullptr, TEXT("/Game/MA0T10/Sensor/Materials/M_LidarSemanticId.M_LidarSemanticId"));
+            auto* IdMaterial = LoadObject<UMaterial>(nullptr, TEXT("/DTDevice/Sensor/Materials/M_LidarSemanticId.M_LidarSemanticId"));
             if (IdMaterial) IdMaterial->CacheShaders(EMaterialShaderPrecompileMode::Default);
             auto* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
             auto MakeBox = [&](FName Tag, FVector Location, FVector Scale)
