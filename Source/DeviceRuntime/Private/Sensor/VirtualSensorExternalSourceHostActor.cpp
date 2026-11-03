@@ -26,30 +26,30 @@ AVirtualSensorExternalSourceHostActor::AVirtualSensorExternalSourceHostActor()
 	PrimaryActorTick.bCanEverTick = false;
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
-	LidarCsvReplay = CreateDefaultSubobject<ULidarCsvReplaySourceComp>(TEXT("LidarCsvReplay"));
-	LidarJsonLinesReplay = CreateDefaultSubobject<ULidarJsonLinesReplaySourceComp>(TEXT("LidarJsonLinesReplay"));
-	LidarBufferedJson = CreateDefaultSubobject<ULidarJsonLiveSourceComp>(TEXT("LidarBufferedJson"));
-	LidarHttpJson = CreateDefaultSubobject<ULidarHttpJsonLiveSourceComp>(TEXT("LidarHttpJson"));
-	LidarUdpJson = CreateDefaultSubobject<ULidarUdpJsonLiveSourceComp>(TEXT("LidarUdpJson"));
-	CameraBufferedJson = CreateDefaultSubobject<UCameraJsonLiveSourceComp>(TEXT("CameraBufferedJson"));
-	for (URealSensorSourceComp* Source : { static_cast<URealSensorSourceComp*>(LidarCsvReplay), static_cast<URealSensorSourceComp*>(LidarJsonLinesReplay), static_cast<URealSensorSourceComp*>(LidarBufferedJson), static_cast<URealSensorSourceComp*>(LidarHttpJson), static_cast<URealSensorSourceComp*>(LidarUdpJson), static_cast<URealSensorSourceComp*>(CameraBufferedJson) })
+	LidarCsvReplayComp = CreateDefaultSubobject<ULidarCsvReplaySourceComp>(TEXT("LidarCsvReplay"));
+	LidarJsonLinesReplayComp = CreateDefaultSubobject<ULidarJsonLinesReplaySourceComp>(TEXT("LidarJsonLinesReplay"));
+	LidarBufferedJsonComp = CreateDefaultSubobject<ULidarJsonLiveSourceComp>(TEXT("LidarBufferedJson"));
+	LidarHttpJsonComp = CreateDefaultSubobject<ULidarHttpJsonLiveSourceComp>(TEXT("LidarHttpJson"));
+	LidarUdpJsonComp = CreateDefaultSubobject<ULidarUdpJsonLiveSourceComp>(TEXT("LidarUdpJson"));
+	CameraBufferedJsonComp = CreateDefaultSubobject<UCameraJsonLiveSourceComp>(TEXT("CameraBufferedJson"));
+	for (URealSensorSourceComp* Source : { static_cast<URealSensorSourceComp*>(LidarCsvReplayComp), static_cast<URealSensorSourceComp*>(LidarJsonLinesReplayComp), static_cast<URealSensorSourceComp*>(LidarBufferedJsonComp), static_cast<URealSensorSourceComp*>(LidarHttpJsonComp), static_cast<URealSensorSourceComp*>(LidarUdpJsonComp), static_cast<URealSensorSourceComp*>(CameraBufferedJsonComp) })
 	{
 		Source->SetupAttachment(Root);
 		Source->bAutoStartSource = false;
 		Source->bSendTransportByDefault = false;
 	}
-	LidarCsvReplay->SourceId = TEXT("Demo-LiDAR-CSV");
-	LidarCsvReplay->CsvFilePath = TEXT("Samples/slab_replay_sample.csv");
-	LidarJsonLinesReplay->SourceId = TEXT("Demo-LiDAR-JSONL");
-	LidarBufferedJson->SourceId = TEXT("Live-LiDAR-Buffered");
-	LidarJsonLinesReplay->JsonLinesFilePath = TEXT("Samples/slab_replay_sample.jsonl");
-	LidarHttpJson->SourceId = TEXT("Live-LiDAR-HTTP");
-	LidarHttpJson->ListenPort = 8082;
-	LidarHttpJson->RoutePath = TEXT("/ma0t10/lidar/live");
-	LidarUdpJson->SourceId = TEXT("Live-LiDAR-UDP");
-	LidarUdpJson->BindAddress = TEXT("127.0.0.1");
-	LidarUdpJson->BindPort = 0;
-	CameraBufferedJson->SourceId = TEXT("Live-Camera-JSON");
+	LidarCsvReplayComp->SourceId = TEXT("Demo-LiDAR-CSV");
+	LidarCsvReplayComp->CsvFilePath = TEXT("Samples/slab_replay_sample.csv");
+	LidarJsonLinesReplayComp->SourceId = TEXT("Demo-LiDAR-JSONL");
+	LidarBufferedJsonComp->SourceId = TEXT("Live-LiDAR-Buffered");
+	LidarJsonLinesReplayComp->JsonLinesFilePath = TEXT("Samples/slab_replay_sample.jsonl");
+	LidarHttpJsonComp->SourceId = TEXT("Live-LiDAR-HTTP");
+	LidarHttpJsonComp->ListenPort = 8082;
+	LidarHttpJsonComp->RoutePath = TEXT("/ma0t10/lidar/live");
+	LidarUdpJsonComp->SourceId = TEXT("Live-LiDAR-UDP");
+	LidarUdpJsonComp->BindAddress = TEXT("127.0.0.1");
+	LidarUdpJsonComp->BindPort = 0;
+	CameraBufferedJsonComp->SourceId = TEXT("Live-Camera-JSON");
 }
 
 void AVirtualSensorExternalSourceHostActor::BeginPlay()
@@ -60,13 +60,13 @@ void AVirtualSensorExternalSourceHostActor::BeginPlay()
 	AVirtualCameraSensorActor* Camera = nullptr;
 	for (TActorIterator<AVirtualLidarSensorActor> It(GetWorld()); It; ++It) { Lidar = *It; break; }
 	for (TActorIterator<AVirtualCameraSensorActor> It(GetWorld()); It; ++It) { Camera = *It; break; }
-	for (URealSensorSourceComp* Source : { static_cast<URealSensorSourceComp*>(LidarCsvReplay), static_cast<URealSensorSourceComp*>(LidarJsonLinesReplay), static_cast<URealSensorSourceComp*>(LidarBufferedJson), static_cast<URealSensorSourceComp*>(LidarHttpJson), static_cast<URealSensorSourceComp*>(LidarUdpJson) })
+	for (URealSensorSourceComp* Source : { static_cast<URealSensorSourceComp*>(LidarCsvReplayComp), static_cast<URealSensorSourceComp*>(LidarJsonLinesReplayComp), static_cast<URealSensorSourceComp*>(LidarBufferedJsonComp), static_cast<URealSensorSourceComp*>(LidarHttpJsonComp), static_cast<URealSensorSourceComp*>(LidarUdpJsonComp) })
 	{
 		Source->TargetSensorActor = Lidar;
-		Source->TargetLidar = Lidar ? Lidar->ScanComp : nullptr;
+		Source->TargetLidarComp = Lidar ? Lidar->ScanComp : nullptr;
 	}
-	CameraBufferedJson->TargetSensorActor = Camera;
-	CameraBufferedJson->TargetCamera = Camera ? Camera->CaptureComp : nullptr;
+	CameraBufferedJsonComp->TargetSensorActor = Camera;
+	CameraBufferedJsonComp->TargetCamera = Camera ? Camera->CaptureComp : nullptr;
 
 	InitializeTopicReceiverRuntime();
 	if (bAutoStartTopicReceivers)

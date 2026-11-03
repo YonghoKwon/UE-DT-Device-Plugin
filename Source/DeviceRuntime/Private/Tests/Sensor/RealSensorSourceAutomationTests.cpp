@@ -105,16 +105,16 @@ public:
             DataSubsystem->Tick(0.0f);
         }
 
-        if (TargetLidar.IsValid() && JsonLiveSource.IsValid())
+        if (TargetLidarComp.IsValid() && JsonLiveSource.IsValid())
         {
-            const int32 TargetPointCount = TargetLidar->GetLastPoints().Num();
-            if (TargetPointCount == ExpectedPointCount && !TargetLidar->GetLastJsonPayload().IsEmpty())
+            const int32 TargetPointCount = TargetLidarComp->GetLastPoints().Num();
+            if (TargetPointCount == ExpectedPointCount && !TargetLidarComp->GetLastJsonPayload().IsEmpty())
             {
                 Test->TestEqual(TEXT("brokerless dispatch source frame id"), JsonLiveSource->LastSourceFrameId, static_cast<int64>(1));
                 Test->TestEqual(TEXT("brokerless dispatch source point count"), JsonLiveSource->LastSourcePointCount, ExpectedPointCount);
                 Test->TestEqual(TEXT("brokerless dispatch target point count"), TargetPointCount, ExpectedPointCount);
                 Test->TestEqual(TEXT("brokerless dispatch buffer clears after push"), JsonLiveSource->PendingLineCount, 0);
-                Test->TestFalse(TEXT("brokerless dispatch updates cached server payload"), TargetLidar->GetLastJsonPayload().IsEmpty());
+                Test->TestFalse(TEXT("brokerless dispatch updates cached server payload"), TargetLidarComp->GetLastJsonPayload().IsEmpty());
                 Cleanup();
                 return true;
             }
@@ -162,9 +162,9 @@ private:
 
         Target->SensorId = TEXT("TEST-LIDAR-BROKERLESS-DISPATCH");
         Source->SourceId = TEXT("JsonLiveLidarBridge");
-        Source->TargetLidar = Target;
+        Source->TargetLidarComp = Target;
 
-        TargetLidar = Target;
+        TargetLidarComp = Target;
         JsonLiveSource = Source;
 
         FString SamplePayload;
@@ -202,7 +202,7 @@ private:
             Owner->Destroy();
         }
         Owner.Reset();
-        TargetLidar.Reset();
+        TargetLidarComp.Reset();
         JsonLiveSource.Reset();
         DataSubsystem.Reset();
     }
@@ -214,7 +214,7 @@ private:
     static constexpr double TimeoutSeconds = 8.0;
     static constexpr int32 ExpectedPointCount = 3;
     TWeakObjectPtr<AActor> Owner;
-    TWeakObjectPtr<UVirtualLidarScanComp> TargetLidar;
+    TWeakObjectPtr<UVirtualLidarScanComp> TargetLidarComp;
     TWeakObjectPtr<ULidarJsonLiveSourceComp> JsonLiveSource;
     TWeakObjectPtr<UDxDataSubsystem> DataSubsystem;
 };
@@ -246,9 +246,9 @@ public:
             return SendPost();
         }
 
-        if (bRequestComplete && TargetLidar.IsValid() && HttpSource.IsValid())
+        if (bRequestComplete && TargetLidarComp.IsValid() && HttpSource.IsValid())
         {
-            const int32 TargetPointCount = TargetLidar->GetLastPoints().Num();
+            const int32 TargetPointCount = TargetLidarComp->GetLastPoints().Num();
             if (bRequestSucceeded && ResponseCode == 202 && TargetPointCount == ExpectedPointCount)
             {
                 Test->TestEqual(TEXT("HTTP loopback POST response code"), ResponseCode, 202);
@@ -330,7 +330,7 @@ private:
 
         const FGuid HttpRouteGuid = FGuid::NewGuid();
         Target->SensorId = TEXT("TEST-LIDAR-HTTP-LOOPBACK");
-        Source->TargetLidar = Target;
+        Source->TargetLidarComp = Target;
         Source->ListenPort = FreePort;
         Source->RoutePath = FString::Printf(TEXT("/ma0t10/loopback/%s"), *HttpRouteGuid.ToString(EGuidFormats::Digits));
         Source->bAutoPushReceivedFrame = true;
@@ -344,7 +344,7 @@ private:
             return true;
         }
 
-        TargetLidar = Target;
+        TargetLidarComp = Target;
         HttpSource = Source;
         RequestUrl = FString::Printf(TEXT("http://127.0.0.1:%d%s"), Source->ListenPort, *Source->RoutePath);
         return false;
@@ -420,7 +420,7 @@ private:
             Owner->Destroy();
         }
         HttpSource.Reset();
-        TargetLidar.Reset();
+        TargetLidarComp.Reset();
         Owner.Reset();
     }
 
@@ -439,7 +439,7 @@ private:
     static constexpr float TimeoutSeconds = 8.0f;
     static constexpr int32 ExpectedPointCount = 2;
     TWeakObjectPtr<AActor> Owner;
-    TWeakObjectPtr<UVirtualLidarScanComp> TargetLidar;
+    TWeakObjectPtr<UVirtualLidarScanComp> TargetLidarComp;
     TWeakObjectPtr<ULidarHttpJsonLiveSourceComp> HttpSource;
     TSharedPtr<IHttpRequest, ESPMode::ThreadSafe> HttpRequest;
 };
@@ -465,7 +465,7 @@ public:
             return SetupAndSend();
         }
 
-        if (TargetLidar.IsValid() && UdpSource.IsValid() && TargetLidar->GetLastPoints().Num() == 2)
+        if (TargetLidarComp.IsValid() && UdpSource.IsValid() && TargetLidarComp->GetLastPoints().Num() == 2)
         {
             Test->TestEqual(TEXT("UDP datagram source frame id"), UdpSource->LastSourceFrameId, static_cast<int64>(1));
             Test->TestEqual(TEXT("UDP datagram source point count"), UdpSource->LastSourcePointCount, 2);
@@ -520,7 +520,7 @@ private:
         Source->RegisterComponent();
 
         Target->SensorId = TEXT("TEST-LIDAR-UDP-DATAGRAM");
-        Source->TargetLidar = Target;
+        Source->TargetLidarComp = Target;
         Source->BindAddress = TEXT("127.0.0.1");
         Source->BindPort = 0;
         Source->bAutoPushReceivedFrame = true;
@@ -533,7 +533,7 @@ private:
             return true;
         }
 
-        TargetLidar = Target;
+        TargetLidarComp = Target;
         UdpSource = Source;
 
         FSocket* Sender = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(NAME_DGram, TEXT("MA0T10_UdpJsonLiveSmokeSender"), false);
@@ -568,7 +568,7 @@ private:
             Owner->Destroy();
         }
         UdpSource.Reset();
-        TargetLidar.Reset();
+        TargetLidarComp.Reset();
         Owner.Reset();
     }
 
@@ -577,7 +577,7 @@ private:
     double StartTimeSeconds = 0.0;
     static constexpr double TimeoutSeconds = 5.0;
     TWeakObjectPtr<AActor> Owner;
-    TWeakObjectPtr<UVirtualLidarScanComp> TargetLidar;
+    TWeakObjectPtr<UVirtualLidarScanComp> TargetLidarComp;
     TWeakObjectPtr<ULidarUdpJsonLiveSourceComp> UdpSource;
 };
 
@@ -643,7 +643,7 @@ bool FRealSensorSourcePushFrameToTargetTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    CsvReplay->TargetLidar = CsvTargetLidar;
+    CsvReplay->TargetLidarComp = CsvTargetLidar;
     CsvReplay->CsvFilePath = FPaths::Combine(FPaths::ProjectDir(), TEXT("Samples/slab_replay_sample.csv"));
     CsvReplay->ReplaySemanticLabel = TEXT("Slab");
     CsvReplay->bUpdateLidarDimensionsFromCsv = true;
@@ -666,7 +666,7 @@ bool FRealSensorSourcePushFrameToTargetTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    JsonReplay->TargetLidar = JsonTargetLidar;
+    JsonReplay->TargetLidarComp = JsonTargetLidar;
     JsonReplay->JsonLinesFilePath = FPaths::Combine(FPaths::ProjectDir(), TEXT("Samples/slab_replay_sample.jsonl"));
 
     TestTrue(TEXT("JSONL replay pushes frame through base source helper"), JsonReplay->PushFrameOnce(false));
@@ -682,19 +682,19 @@ bool FRealSensorSourcePushFrameToTargetTest::RunTest(const FString& Parameters)
 
 bool FRealSensorSourceJsonLiveBridgeTest::RunTest(const FString& Parameters)
 {
-    UVirtualLidarScanComp* TargetLidar = NewObject<UVirtualLidarScanComp>();
+    UVirtualLidarScanComp* TargetLidarComp = NewObject<UVirtualLidarScanComp>();
     ULidarJsonLiveSourceComp* JsonLive = NewObject<ULidarJsonLiveSourceComp>();
-    TestNotNull(TEXT("JSON live target lidar"), TargetLidar);
+    TestNotNull(TEXT("JSON live target lidar"), TargetLidarComp);
     TestNotNull(TEXT("JSON live source"), JsonLive);
-    if (!TargetLidar || !JsonLive)
+    if (!TargetLidarComp || !JsonLive)
     {
         return false;
     }
 
-    TargetLidar->SensorId = TEXT("TEST-LIDAR-JSON-LIVE");
-    TargetLidar->HorizontalSamples = 2;
-    TargetLidar->VerticalChannels = 1;
-    JsonLive->TargetLidar = TargetLidar;
+    TargetLidarComp->SensorId = TEXT("TEST-LIDAR-JSON-LIVE");
+    TargetLidarComp->HorizontalSamples = 2;
+    TargetLidarComp->VerticalChannels = 1;
+    JsonLive->TargetLidarComp = TargetLidarComp;
     JsonLive->DefaultSemanticLabel = TEXT("Unknown");
 
     TestTrue(TEXT("JSON live source starts"), JsonLive->StartSource());
@@ -720,12 +720,12 @@ bool FRealSensorSourceJsonLiveBridgeTest::RunTest(const FString& Parameters)
     TestEqual(TEXT("JSON live source frame id increments"), JsonLive->LastSourceFrameId, static_cast<int64>(1));
     TestEqual(TEXT("JSON live source point count"), JsonLive->LastSourcePointCount, 2);
     TestEqual(TEXT("JSON live source state running"), JsonLive->GetConnectionState(), ERealSensorSourceConnectionState::Running);
-    TestEqual(TEXT("JSON live target received points"), TargetLidar->GetLastPoints().Num(), 2);
+    TestEqual(TEXT("JSON live target received points"), TargetLidarComp->GetLastPoints().Num(), 2);
     TestEqual(TEXT("JSON live buffer clears after push"), JsonLive->PendingLineCount, 0);
-    TestFalse(TEXT("JSON live target has cached payload"), TargetLidar->GetLastJsonPayload().IsEmpty());
-    TestTrue(TEXT("payload includes grid coord source field"), TargetLidar->GetLastJsonPayload().Contains(TEXT("gridCoordSource")));
-    TestTrue(TEXT("payload includes preserved grid coord source"), TargetLidar->GetLastJsonPayload().Contains(TEXT("point_metadata")));
-    TestTrue(TEXT("payload includes fallback grid coord source"), TargetLidar->GetLastJsonPayload().Contains(TEXT("derived_from_point_index")));
+    TestFalse(TEXT("JSON live target has cached payload"), TargetLidarComp->GetLastJsonPayload().IsEmpty());
+    TestTrue(TEXT("payload includes grid coord source field"), TargetLidarComp->GetLastJsonPayload().Contains(TEXT("gridCoordSource")));
+    TestTrue(TEXT("payload includes preserved grid coord source"), TargetLidarComp->GetLastJsonPayload().Contains(TEXT("point_metadata")));
+    TestTrue(TEXT("payload includes fallback grid coord source"), TargetLidarComp->GetLastJsonPayload().Contains(TEXT("derived_from_point_index")));
 
     const FString WebSocketPayload = TEXT("{\"MESSAGE_ID\":\"LIDAR_JSON_LIVE_FRAME\",\"DATA_MAP\":{\"SOURCE_ID\":\"JsonLiveLidarBridge\",\"SEND_TRANSPORT\":false,\"PUSH_FRAME\":false,\"POINTS\":[{\"row\":3,\"col\":4,\"returnIndex\":0,\"x\":140,\"y\":30,\"z\":0,\"hit\":true,\"semanticLabel\":\"Slab\"},{\"row\":3,\"col\":5,\"returnIndex\":0,\"x\":150,\"y\":35,\"z\":0,\"hit\":true,\"semanticLabel\":\"Slab\"}]}}");
     TestTrue(TEXT("JSON live appends WebSocket-shaped payload"), JsonLive->AppendWebSocketPayload(WebSocketPayload));
@@ -739,14 +739,14 @@ bool FRealSensorSourceJsonLiveBridgeTest::RunTest(const FString& Parameters)
         TestEqual(TEXT("JSON live WebSocket payload first col"), WebSocketPoints[0].Col, 4);
     }
     TestTrue(TEXT("JSON live pushes WebSocket payload without transport"), JsonLive->PushFrameOnce(false));
-    TestEqual(TEXT("JSON live WebSocket payload target count"), TargetLidar->GetLastPoints().Num(), 2);
+    TestEqual(TEXT("JSON live WebSocket payload target count"), TargetLidarComp->GetLastPoints().Num(), 2);
     TestEqual(TEXT("JSON live WebSocket payload buffer clears after push"), JsonLive->PendingLineCount, 0);
-    TestFalse(TEXT("JSON live WebSocket payload caches target payload"), TargetLidar->GetLastJsonPayload().IsEmpty());
+    TestFalse(TEXT("JSON live WebSocket payload caches target payload"), TargetLidarComp->GetLastJsonPayload().IsEmpty());
 
     TestTrue(TEXT("JSON live appends generic live payload alias"), JsonLive->AppendLivePayloadJson(WebSocketPayload));
     TestEqual(TEXT("JSON live generic live payload pending line count"), JsonLive->PendingLineCount, 2);
     TestTrue(TEXT("JSON live pushes generic live payload without transport"), JsonLive->PushFrameOnce(false));
-    TestEqual(TEXT("JSON live generic live payload target count"), TargetLidar->GetLastPoints().Num(), 2);
+    TestEqual(TEXT("JSON live generic live payload target count"), TargetLidarComp->GetLastPoints().Num(), 2);
 
     ULidarJsonLiveSourceComp* EmptyLive = NewObject<ULidarJsonLiveSourceComp>();
     TestNotNull(TEXT("empty JSON live source"), EmptyLive);
@@ -790,25 +790,25 @@ bool FRealSensorSourceUdpJsonLiveBridgeTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    UVirtualLidarScanComp* TargetLidar = NewObject<UVirtualLidarScanComp>(SourceOwner);
+    UVirtualLidarScanComp* TargetLidarComp = NewObject<UVirtualLidarScanComp>(SourceOwner);
     ULidarUdpJsonLiveSourceComp* UdpSource = NewObject<ULidarUdpJsonLiveSourceComp>(SourceOwner);
-    TestNotNull(TEXT("UDP JSON live target LiDAR"), TargetLidar);
+    TestNotNull(TEXT("UDP JSON live target LiDAR"), TargetLidarComp);
     TestNotNull(TEXT("UDP JSON live source"), UdpSource);
-    if (!TargetLidar || !UdpSource)
+    if (!TargetLidarComp || !UdpSource)
     {
         SourceOwner->Destroy();
         return false;
     }
 
-    SourceOwner->AddInstanceComponent(TargetLidar);
+    SourceOwner->AddInstanceComponent(TargetLidarComp);
     SourceOwner->AddInstanceComponent(UdpSource);
-    TargetLidar->bAutoStartScan = false;
-    TargetLidar->bAutoRegisterToManager = false;
-    TargetLidar->RegisterComponent();
+    TargetLidarComp->bAutoStartScan = false;
+    TargetLidarComp->bAutoRegisterToManager = false;
+    TargetLidarComp->RegisterComponent();
     UdpSource->RegisterComponent();
 
-    TargetLidar->SensorId = TEXT("TEST-LIDAR-UDP-JSON-LIVE");
-    UdpSource->TargetLidar = TargetLidar;
+    TargetLidarComp->SensorId = TEXT("TEST-LIDAR-UDP-JSON-LIVE");
+    UdpSource->TargetLidarComp = TargetLidarComp;
     UdpSource->bAutoPushReceivedFrame = true;
     UdpSource->bSendTransportForReceivedFrames = false;
 
@@ -816,7 +816,7 @@ bool FRealSensorSourceUdpJsonLiveBridgeTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("UDP JSON live source processes shared payload"), UdpSource->ProcessUdpPayloadJson(Payload));
     TestEqual(TEXT("UDP JSON live source frame id"), UdpSource->LastSourceFrameId, static_cast<int64>(1));
     TestEqual(TEXT("UDP JSON live source point count"), UdpSource->LastSourcePointCount, 2);
-    TestEqual(TEXT("UDP JSON live target point count"), TargetLidar->GetLastPoints().Num(), 2);
+    TestEqual(TEXT("UDP JSON live target point count"), TargetLidarComp->GetLastPoints().Num(), 2);
     TestEqual(TEXT("UDP JSON live buffer clears after push"), UdpSource->PendingLineCount, 0);
 
     TestFalse(TEXT("UDP JSON live source rejects invalid payload"), UdpSource->ProcessUdpPayloadJson(TEXT("{\"MESSAGE_ID\":\"LIDAR_JSON_LIVE_FRAME\",\"DATA_MAP\":{\"POINTS\":[]}}")));
@@ -841,25 +841,25 @@ bool FRealSensorSourceHttpJsonLiveBridgeTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    UVirtualLidarScanComp* TargetLidar = NewObject<UVirtualLidarScanComp>(SourceOwner);
+    UVirtualLidarScanComp* TargetLidarComp = NewObject<UVirtualLidarScanComp>(SourceOwner);
     ULidarHttpJsonLiveSourceComp* HttpSource = NewObject<ULidarHttpJsonLiveSourceComp>(SourceOwner);
-    TestNotNull(TEXT("HTTP JSON live target LiDAR"), TargetLidar);
+    TestNotNull(TEXT("HTTP JSON live target LiDAR"), TargetLidarComp);
     TestNotNull(TEXT("HTTP JSON live source"), HttpSource);
-    if (!TargetLidar || !HttpSource)
+    if (!TargetLidarComp || !HttpSource)
     {
         SourceOwner->Destroy();
         return false;
     }
 
-    SourceOwner->AddInstanceComponent(TargetLidar);
+    SourceOwner->AddInstanceComponent(TargetLidarComp);
     SourceOwner->AddInstanceComponent(HttpSource);
-    TargetLidar->bAutoStartScan = false;
-    TargetLidar->bAutoRegisterToManager = false;
-    TargetLidar->RegisterComponent();
+    TargetLidarComp->bAutoStartScan = false;
+    TargetLidarComp->bAutoRegisterToManager = false;
+    TargetLidarComp->RegisterComponent();
     HttpSource->RegisterComponent();
 
-    TargetLidar->SensorId = TEXT("TEST-LIDAR-HTTP-JSON-LIVE");
-    HttpSource->TargetLidar = TargetLidar;
+    TargetLidarComp->SensorId = TEXT("TEST-LIDAR-HTTP-JSON-LIVE");
+    HttpSource->TargetLidarComp = TargetLidarComp;
     HttpSource->bAutoPushReceivedFrame = true;
     HttpSource->bSendTransportForReceivedFrames = false;
 
@@ -867,7 +867,7 @@ bool FRealSensorSourceHttpJsonLiveBridgeTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("HTTP JSON live source processes shared payload"), HttpSource->ProcessHttpPayloadJson(Payload));
     TestEqual(TEXT("HTTP JSON live source frame id"), HttpSource->LastSourceFrameId, static_cast<int64>(1));
     TestEqual(TEXT("HTTP JSON live source point count"), HttpSource->LastSourcePointCount, 2);
-    TestEqual(TEXT("HTTP JSON live target point count"), TargetLidar->GetLastPoints().Num(), 2);
+    TestEqual(TEXT("HTTP JSON live target point count"), TargetLidarComp->GetLastPoints().Num(), 2);
     TestEqual(TEXT("HTTP JSON live response code accepted"), HttpSource->LastResponseCode, 202);
     TestTrue(TEXT("HTTP JSON live payload processed on game thread"), HttpSource->bLastRequestProcessedOnGameThread);
     TestEqual(TEXT("HTTP JSON live buffer clears after push"), HttpSource->PendingLineCount, 0);
@@ -1214,8 +1214,8 @@ bool FRealSensorSourceJsonLiveTransactionRoutingTest::RunTest(const FString& Par
     const FString BridgeBId = FString::Printf(TEXT("Automation_ProcessRoute_B_%s"), *RouteSuffix);
     SourceA->SourceId = BridgeAId;
     SourceB->SourceId = BridgeBId;
-    SourceA->TargetLidar = TargetA;
-    SourceB->TargetLidar = TargetB;
+    SourceA->TargetLidarComp = TargetA;
+    SourceB->TargetLidarComp = TargetB;
     TargetA->SensorId = TEXT("TEST-LIDAR-ROUTE-A");
     TargetB->SensorId = TEXT("TEST-LIDAR-ROUTE-B");
 
@@ -1361,24 +1361,24 @@ bool FRealSensorSourceJsonLiveTransactionDataTableRegistrationTest::RunTest(cons
         return false;
     }
 
-    UVirtualLidarScanComp* TargetLidar = NewObject<UVirtualLidarScanComp>(SourceOwner);
+    UVirtualLidarScanComp* TargetLidarComp = NewObject<UVirtualLidarScanComp>(SourceOwner);
     ULidarJsonLiveSourceComp* JsonLiveSource = NewObject<ULidarJsonLiveSourceComp>(SourceOwner);
-    TestNotNull(TEXT("registered route target lidar"), TargetLidar);
+    TestNotNull(TEXT("registered route target lidar"), TargetLidarComp);
     TestNotNull(TEXT("registered route JSON live source"), JsonLiveSource);
-    if (!TargetLidar || !JsonLiveSource)
+    if (!TargetLidarComp || !JsonLiveSource)
     {
         SourceOwner->Destroy();
         return false;
     }
 
-    SourceOwner->AddInstanceComponent(TargetLidar);
+    SourceOwner->AddInstanceComponent(TargetLidarComp);
     SourceOwner->AddInstanceComponent(JsonLiveSource);
-    TargetLidar->RegisterComponent();
+    TargetLidarComp->RegisterComponent();
     JsonLiveSource->RegisterComponent();
 
     JsonLiveSource->SourceId = TEXT("JsonLiveLidarBridge");
-    JsonLiveSource->TargetLidar = TargetLidar;
-    TargetLidar->SensorId = TEXT("TEST-LIDAR-DATATABLE-DISPATCH");
+    JsonLiveSource->TargetLidarComp = TargetLidarComp;
+    TargetLidarComp->SensorId = TEXT("TEST-LIDAR-DATATABLE-DISPATCH");
 
     const FString Payload = TEXT("{\"MESSAGE_ID\":\"LIDAR_JSON_LIVE_FRAME\",\"DATA_MAP\":{\"SOURCE_ID\":\"JsonLiveLidarBridge\",\"SEND_TRANSPORT\":false,\"PUSH_FRAME\":true,\"POINTS\":[{\"row\":0,\"col\":0,\"returnIndex\":0,\"x\":900,\"y\":-260,\"z\":0,\"hit\":true,\"semanticLabel\":\"Slab\"},{\"row\":0,\"col\":1,\"returnIndex\":0,\"x\":940,\"y\":-120,\"z\":0,\"hit\":true,\"semanticLabel\":\"Slab\"}]}}");
     const TSharedPtr<FTransactionCodeDataBase> ParsedData = Handler->ParseToStruct(Payload);
@@ -1409,8 +1409,8 @@ bool FRealSensorSourceJsonLiveTransactionDataTableRegistrationTest::RunTest(cons
         }
     }
 
-    TestEqual(TEXT("registered data-table handler pushes target LiDAR points"), TargetLidar->GetLastPoints().Num(), 2);
-    TestFalse(TEXT("registered data-table handler updates cached server payload"), TargetLidar->GetLastJsonPayload().IsEmpty());
+    TestEqual(TEXT("registered data-table handler pushes target LiDAR points"), TargetLidarComp->GetLastPoints().Num(), 2);
+    TestFalse(TEXT("registered data-table handler updates cached server payload"), TargetLidarComp->GetLastJsonPayload().IsEmpty());
 
     SourceOwner->Destroy();
     return true;

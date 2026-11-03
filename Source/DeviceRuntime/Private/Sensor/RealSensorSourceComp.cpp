@@ -129,18 +129,18 @@ AVirtualSensorActorBase* URealSensorSourceComp::ResolveTargetSensorActor() const
     {
         return TargetSensorActor;
     }
-    if (TargetLidar)
+    if (TargetLidarComp)
     {
-        return Cast<AVirtualSensorActorBase>(TargetLidar->GetOwner());
+        return Cast<AVirtualSensorActorBase>(TargetLidarComp->GetOwner());
     }
     return Cast<AVirtualSensorActorBase>(GetOwner());
 }
 
 UVirtualLidarScanComp* URealSensorSourceComp::ResolveTargetLidar() const
 {
-    if (TargetLidar)
+    if (TargetLidarComp)
     {
-        return TargetLidar;
+        return TargetLidarComp;
     }
     return GetOwner() ? GetOwner()->FindComponentByClass<UVirtualLidarScanComp>() : nullptr;
 }

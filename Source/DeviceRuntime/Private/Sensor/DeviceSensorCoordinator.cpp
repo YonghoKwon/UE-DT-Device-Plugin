@@ -564,7 +564,7 @@ URealSensorSourceComp* ADeviceSensorCoordinator::GetSelectedRealSensorSource() c
     {
         for (URealSensorSourceComp* RealSensorSourceComp : RealSensorSources)
         {
-            if (RealSensorSourceComp && RealSensorSourceComp->TargetLidar == SelectedLidar)
+            if (RealSensorSourceComp && RealSensorSourceComp->TargetLidarComp == SelectedLidar)
             {
                 return RealSensorSourceComp;
             }

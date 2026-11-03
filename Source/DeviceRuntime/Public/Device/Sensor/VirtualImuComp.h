@@ -34,8 +34,8 @@ public:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type Reason) override;
     virtual void TickComponent(float Delta,ELevelTick Type,FActorComponentTickFunction* Function) override;
-    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="DigitalTwin|IMU") TObjectPtr<UVirtualSensorRecorderComp> Recorder;
-    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="DigitalTwin|IMU") TObjectPtr<UVirtualSensorStreamPublisherComp> Publisher;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="DigitalTwin|IMU") TObjectPtr<UVirtualSensorRecorderComp> RecorderComp;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="DigitalTwin|IMU") TObjectPtr<UVirtualSensorStreamPublisherComp> PublisherComp;
     int32 Generation=0;
     int64 SampleCount=0;
     int64 BatchCount=0;

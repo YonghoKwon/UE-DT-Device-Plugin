@@ -64,12 +64,12 @@ public:
 	FString GetReceiverBrokerUrl() const;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<USceneComponent> Root;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarCsvReplaySourceComp> LidarCsvReplay;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarJsonLinesReplaySourceComp> LidarJsonLinesReplay;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarJsonLiveSourceComp> LidarBufferedJson;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarHttpJsonLiveSourceComp> LidarHttpJson;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarUdpJsonLiveSourceComp> LidarUdpJson;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<UCameraJsonLiveSourceComp> CameraBufferedJson;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarCsvReplaySourceComp> LidarCsvReplayComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarJsonLinesReplaySourceComp> LidarJsonLinesReplayComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarJsonLiveSourceComp> LidarBufferedJsonComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarHttpJsonLiveSourceComp> LidarHttpJsonComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarUdpJsonLiveSourceComp> LidarUdpJsonComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<UCameraJsonLiveSourceComp> CameraBufferedJsonComp;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource|TopicReceiver")
 	TObjectPtr<UVirtualLidarStreamReceiverTC> LidarTopicHandler;

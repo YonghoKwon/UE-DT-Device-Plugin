@@ -71,7 +71,7 @@ public:
     void CancelGroundTruthSave();
     bool IsGroundTruthSavePending() const;
     void SetGroundTruthPreviewDemand(bool bEnabled);
-    UVirtualCameraGroundTruthComp* GetGroundTruth() const { return GroundTruth; }
+    UVirtualCameraGroundTruthComp* GetGroundTruth() const { return GroundTruthComp; }
     /** Explicit dataset session, stopped camera only. Asynchronous RGB + CAM-GT readback. */
     bool CaptureDatasetFrame(UVirtualCameraGroundTruthComp& Destination,bool IncludeTruth=true);
 
@@ -230,7 +230,7 @@ public:
     TObjectPtr<UVirtualSensorRecorderComp> RecorderComp;
 
 private:
-    UPROPERTY(Transient) TObjectPtr<UVirtualCameraGroundTruthComp> GroundTruth;
+    UPROPERTY(Transient) TObjectPtr<UVirtualCameraGroundTruthComp> GroundTruthComp;
     bool bGroundTruthSaveRequested=false;
     FVirtualCameraTruthSaveCompletion GroundTruthSaveCompletion;
     double GroundTruthPreviewDemandUntil=0, NextGroundTruthPreview=0;

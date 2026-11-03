@@ -22,25 +22,25 @@ bool UVirtualImuComp::Configure(const FVirtualImuConfig& V,FString& Error)
 void UVirtualImuComp::ResolveServices()
 {
     if(auto* A=Cast<AVirtualSensorActorBase>(GetOwner()))if(A->OutputComp)
-    {Recorder=A->OutputComp->RecorderComp;Publisher=A->OutputComp->StreamPublisherComp;}
+    {RecorderComp=A->OutputComp->RecorderComp;PublisherComp=A->OutputComp->StreamPublisherComp;}
 }
 void UVirtualImuComp::BeginPlay(){Super::BeginPlay();ResolveServices();}
 FString UVirtualImuComp::GetImuId() const
 {const auto* A=Cast<AVirtualSensorActorBase>(GetOwner());return (A?A->GetSensorId():GetOwner()?GetOwner()->GetName():TEXT("sensor"))+TEXT(".imu");}
 void UVirtualImuComp::SetRecording(bool E)
-{ResolveServices();Recording=E&&!Detaching&&IsValid(Recorder);}
+{ResolveServices();Recording=E&&!Detaching&&IsValid(RecorderComp);}
 void UVirtualImuComp::SetPublishing(bool E)
-{ResolveServices();if(Publisher){if(E&&!Detaching)Publisher->StartStream(EVirtualSensorStreamKind::Imu,GetImuId());else Publisher->StopStream(EVirtualSensorStreamKind::Imu,GetImuId());}}
+{ResolveServices();if(PublisherComp){if(E&&!Detaching)PublisherComp->StartStream(EVirtualSensorStreamKind::Imu,GetImuId());else PublisherComp->StopStream(EVirtualSensorStreamKind::Imu,GetImuId());}}
 bool UVirtualImuComp::IsPublishing() const
-{return IsValid(Publisher)&&Publisher->IsStreamEnabled(EVirtualSensorStreamKind::Imu,GetImuId());}
+{return IsValid(PublisherComp)&&PublisherComp->IsStreamEnabled(EVirtualSensorStreamKind::Imu,GetImuId());}
 FString UVirtualImuComp::SaveCsv()
-{ResolveServices();return Recorder&&GetWorld()?GetWorld()->GetSubsystem<UVirtualSensorFileSaveSubsystem>()->RequestImuCsv(this,GetImuId(),Recorder->GetImuSamples(GetImuId())):FString();}
+{ResolveServices();return RecorderComp&&GetWorld()?GetWorld()->GetSubsystem<UVirtualSensorFileSaveSubsystem>()->RequestImuCsv(this,GetImuId(),RecorderComp->GetImuSamples(GetImuId())):FString();}
 bool UVirtualImuComp::RequestDetach(FString& Message)
 {
     if(Detaching){Message=DetachStatus;return false;}
     ResolveServices();
     SetRecording(false);SetPublishing(false);
-    if(!IsValid(Recorder)||Recorder->GetImuSamples(GetImuId()).IsEmpty())
+    if(!IsValid(RecorderComp)||RecorderComp->GetImuSamples(GetImuId()).IsEmpty())
     {Message=TEXT("IMU 해제 완료 · 기록된 표본 없음");FinishDetach();return true;}
     DetachCsvRequest=SaveCsv();
     const auto Status=GetWorld()->GetSubsystem<UVirtualSensorFileSaveSubsystem>()->GetRequestStatus(DetachCsvRequest);
@@ -50,7 +50,7 @@ bool UVirtualImuComp::RequestDetach(FString& Message)
 }
 void UVirtualImuComp::FinishDetach()
 {
-    if(IsValid(Recorder))Recorder->ClearImuSamples(GetImuId());
+    if(IsValid(RecorderComp))RecorderComp->ClearImuSamples(GetImuId());
     DestroyComponent();
 }
 void UVirtualImuComp::EndPlay(const EEndPlayReason::Type R)
@@ -95,7 +95,7 @@ void UVirtualImuComp::TickComponent(float D,ELevelTick T,FActorComponentTickFunc
     auto& Samples=TickSamples;Samples.Reset();Samples.Reserve(8);Model.Observe(O,GetWorld()->GetGravityZ(),Samples);if(Samples.IsEmpty())return;
     for(auto& S:Samples)S.ConfigurationRevision=Generation;
     Latest=Samples.Last();HasLatest=true;SampleCount+=Samples.Num();
-    if(Recording&&IsValid(Recorder))Recorder->RecordImuSamples(GetImuId(),Samples);
+    if(Recording&&IsValid(RecorderComp))RecorderComp->RecordImuSamples(GetImuId(),Samples);
     if(IsPublishing())
-    {FString Json;FJsonSerializer::Serialize(BatchJson(GetImuId(),Config,Samples),TJsonWriterFactory<>::Create(&Json));Publisher->SubmitImuBatch(GetImuId(),++BatchCount,Latest.TimestampUtc,Json);}
+    {FString Json;FJsonSerializer::Serialize(BatchJson(GetImuId(),Config,Samples),TJsonWriterFactory<>::Create(&Json));PublisherComp->SubmitImuBatch(GetImuId(),++BatchCount,Latest.TimestampUtc,Json);}
 }

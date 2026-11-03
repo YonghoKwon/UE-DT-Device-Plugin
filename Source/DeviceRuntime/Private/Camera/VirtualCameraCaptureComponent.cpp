@@ -177,7 +177,7 @@ void UVirtualCameraCaptureComponent::StartCapture()
 void UVirtualCameraCaptureComponent::StopCapture()
 {
     CancelGroundTruthSave();
-    if(GroundTruth)GroundTruth->Cancel();
+    if(GroundTruthComp)GroundTruthComp->Cancel();
     bGroundTruthSaveRequested=false;GroundTruthPreviewDemandUntil=0;
     CancelPlacementPreviewProof();
 	CancelLocalFileFrame();
@@ -1138,7 +1138,7 @@ void UVirtualCameraCaptureComponent::TryAutoRegisterToManager()
 void UVirtualCameraCaptureComponent::SetGroundTruthEnabled(bool Enabled)
 {
     bGroundTruthEnabled=Enabled;
-    if(!Enabled){CancelGroundTruthSave();if(GroundTruth)GroundTruth->Cancel();GroundTruthPreviewDemandUntil=0;}
+    if(!Enabled){CancelGroundTruthSave();if(GroundTruthComp)GroundTruthComp->Cancel();GroundTruthPreviewDemandUntil=0;}
 }
 bool UVirtualCameraCaptureComponent::CaptureDatasetFrame(UVirtualCameraGroundTruthComp& Destination,bool IncludeTruth)
 {
@@ -1154,7 +1154,7 @@ bool UVirtualCameraCaptureComponent::RequestGroundTruthSave()
 {return RequestTrackedGroundTruthSave({});}
 bool UVirtualCameraCaptureComponent::RequestTrackedGroundTruthSave(FVirtualCameraTruthSaveCompletion Completion)
 {
-    if(!bGroundTruthEnabled||!IsCaptureRunning()||bGroundTruthSaveRequested||(GroundTruth&&GroundTruth->IsBusy()))return false;
+    if(!bGroundTruthEnabled||!IsCaptureRunning()||bGroundTruthSaveRequested||(GroundTruthComp&&GroundTruthComp->IsBusy()))return false;
     GroundTruthSaveCompletion=MoveTemp(Completion);bGroundTruthSaveRequested=true;RequestImmediateScheduledCapture();return true;
 }
 void UVirtualCameraCaptureComponent::CancelGroundTruthSave()
@@ -1162,7 +1162,7 @@ void UVirtualCameraCaptureComponent::CancelGroundTruthSave()
     bGroundTruthSaveRequested=false;
     auto Completion=MoveTemp(GroundTruthSaveCompletion);
     if(Completion)Completion(nullptr,FString(),TEXT("센서 변경 또는 종료로 정답 데이터 저장을 취소했습니다."),{});
-    if(GroundTruth&&GroundTruth->IsSaving())GroundTruth->Cancel();
+    if(GroundTruthComp&&GroundTruthComp->IsSaving())GroundTruthComp->Cancel();
 }
 void UVirtualCameraCaptureComponent::SetGroundTruthPreviewDemand(bool Enabled)
 {
@@ -1172,13 +1172,13 @@ void UVirtualCameraCaptureComponent::CaptureGroundTruth(const FVirtualCameraPayl
 {
     const double Now=FPlatformTime::Seconds();
     if(!bGroundTruthEnabled||(!bGroundTruthSaveRequested&&(Now>=GroundTruthPreviewDemandUntil||Now<NextGroundTruthPreview)))return;
-    if(!GroundTruth){GroundTruth=NewObject<UVirtualCameraGroundTruthComp>(GetOwner());GroundTruth->RegisterComponentWithWorld(GetWorld());}
-    if(GroundTruth->IsBusy())return;
+    if(!GroundTruthComp){GroundTruthComp=NewObject<UVirtualCameraGroundTruthComp>(GetOwner());GroundTruthComp->RegisterComponentWithWorld(GetWorld());}
+    if(GroundTruthComp->IsBusy())return;
     const bool Save=bGroundTruthSaveRequested;bGroundTruthSaveRequested=false;
-    GroundTruth->Capture(*this,Snapshot,Save,false,true,Save?MoveTemp(GroundTruthSaveCompletion):FVirtualCameraTruthSaveCompletion());NextGroundTruthPreview=Now+.2;
+    GroundTruthComp->Capture(*this,Snapshot,Save,false,true,Save?MoveTemp(GroundTruthSaveCompletion):FVirtualCameraTruthSaveCompletion());NextGroundTruthPreview=Now+.2;
 }
 
 bool UVirtualCameraCaptureComponent::IsGroundTruthSavePending() const
 {
-    return bGroundTruthSaveRequested||(GroundTruth&&GroundTruth->IsSaving());
+    return bGroundTruthSaveRequested||(GroundTruthComp&&GroundTruthComp->IsSaving());
 }

@@ -73,7 +73,7 @@ public:
     FString SourceId = TEXT("RealSensorSource");
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|RealSensorSource")
-    TObjectPtr<UVirtualLidarScanComp> TargetLidar;
+    TObjectPtr<UVirtualLidarScanComp> TargetLidarComp;
 
     /** Preferred V2 target. TargetLidar remains as a component-level compatibility fallback. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|RealSensorSource")

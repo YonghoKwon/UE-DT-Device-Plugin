@@ -457,7 +457,7 @@ bool FVirtualSensorBinaryPcdReceiverTest::RunTest(const FString& Parameters)
 struct FVirtualSensorArtemisSmokeState
 {
 	TObjectPtr<UVirtualSensorTransportComp> Transport;
-	TObjectPtr<UVirtualSensorStreamPublisherComp> Publisher;
+	TObjectPtr<UVirtualSensorStreamPublisherComp> PublisherComp;
 	double StartedSeconds = 0.0;
 	bool bFramesSubmitted = false;
 };
@@ -469,13 +469,13 @@ DEFINE_LATENT_AUTOMATION_COMMAND_TWO_PARAMETER(
 
 bool FVirtualSensorArtemisSmokeCommand::Update()
 {
-	if (!State.IsValid() || !State->Transport || !State->Publisher) return true;
+	if (!State.IsValid() || !State->Transport || !State->PublisherComp) return true;
 	const double Now = FPlatformTime::Seconds();
 	if (Now - State->StartedSeconds > 20.0)
 	{
 		Test->AddError(TEXT("Artemis smoke timed out before all three streams were submitted."));
 		State->Transport->RemoveFromRoot();
-		State->Publisher->RemoveFromRoot();
+		State->PublisherComp->RemoveFromRoot();
 		return true;
 	}
 	if (!State->Transport->IsStompConnected())
@@ -500,7 +500,7 @@ bool FVirtualSensorArtemisSmokeCommand::Update()
 		Point.Row = 0;
 		Point.Col = 0;
 		Lidar.PointSnapshot = MakeShared<const TArray<FVirtualLidarPoint>, ESPMode::ThreadSafe>(MoveTemp(Points));
-		State->Publisher->SubmitFrame(Lidar);
+		State->PublisherComp->SubmitFrame(Lidar);
 
 		FVirtualSensorFrameEnvelope Camera;
 		Camera.SensorId = TEXT("CAMERA-ARTEMIS-SMOKE");
@@ -509,13 +509,13 @@ bool FVirtualSensorArtemisSmokeCommand::Update()
 		Camera.TimestampUtc = FDateTime::UtcNow();
 		Camera.SchemaVersion = TEXT("virtual-camera.v1");
 		Camera.JsonPayload = MakeShared<const FString, ESPMode::ThreadSafe>(TEXT("{\"schema\":\"virtual-camera.v1\",\"frameId\":202,\"imageBase64\":\"/9j/2Q==\",\"smoke\":true}"));
-		State->Publisher->SubmitFrame(Camera);
+		State->PublisherComp->SubmitFrame(Camera);
 		State->bFramesSubmitted = true;
 	}
-	State->Publisher->PumpPublisherOnce(Now);
+	State->PublisherComp->PumpPublisherOnce(Now);
 	int32 SubmittedStreams = 0;
 	int32 ReceiptStreams = 0;
-	for (const FVirtualSensorStreamStatus& Status : State->Publisher->GetStreamStatuses())
+	for (const FVirtualSensorStreamStatus& Status : State->PublisherComp->GetStreamStatuses())
 	{
 		if (Status.SubmittedFrameCount > 0) ++SubmittedStreams;
 		if (Status.ReceiptReceivedCount > 0) ++ReceiptStreams;
@@ -524,7 +524,7 @@ bool FVirtualSensorArtemisSmokeCommand::Update()
 	Test->TestEqual(TEXT("Artemis smoke submitted LiDAR, Camera, and Point Cloud streams"), SubmittedStreams, 3);
 	Test->TestEqual(TEXT("Artemis smoke received a broker receipt for every stream"), ReceiptStreams, 3);
 	State->Transport->RemoveFromRoot();
-	State->Publisher->RemoveFromRoot();
+	State->PublisherComp->RemoveFromRoot();
 	return true;
 }
 
@@ -542,9 +542,9 @@ bool FVirtualSensorArtemisIntegrationSmokeTest::RunTest(const FString& Parameter
 	}
 	TSharedPtr<FVirtualSensorArtemisSmokeState> State = MakeShared<FVirtualSensorArtemisSmokeState>();
 	State->Transport = NewObject<UVirtualSensorTransportComp>();
-	State->Publisher = NewObject<UVirtualSensorStreamPublisherComp>();
+	State->PublisherComp = NewObject<UVirtualSensorStreamPublisherComp>();
 	State->Transport->AddToRoot();
-	State->Publisher->AddToRoot();
+	State->PublisherComp->AddToRoot();
 	FVirtualSensorTransportProfile Profile;
 	const FString Url = FPlatformMisc::GetEnvironmentVariable(TEXT("MA0T10_ARTEMIS_URL"));
 	const FString User = FPlatformMisc::GetEnvironmentVariable(TEXT("MA0T10_ARTEMIS_USER"));
@@ -555,7 +555,7 @@ bool FVirtualSensorArtemisIntegrationSmokeTest::RunTest(const FString& Parameter
 	State->Transport->ConfigureTransportProfile(Profile);
 	State->Transport->SetSessionCredentials(Password, FString());
 	State->Transport->TransportMode = EVirtualSensorTransportMode::StompWebSocket;
-	State->Publisher->SetTransportComponent(State->Transport);
+	State->PublisherComp->SetTransportComponent(State->Transport);
 	for (EVirtualSensorStreamKind Kind : {EVirtualSensorStreamKind::LidarPayload, EVirtualSensorStreamKind::CameraImage, EVirtualSensorStreamKind::PointCloud})
 	{
 		FVirtualSensorStreamConfig Config;
@@ -570,7 +570,7 @@ bool FVirtualSensorArtemisIntegrationSmokeTest::RunTest(const FString& Parameter
 			? EVirtualPointCloudDeliveryMode::ConnectedNoLoss
 			: EVirtualPointCloudDeliveryMode::LatestFrame;
 		Config.MaxBufferedFrames = 20;
-		State->Publisher->ConfigureStream(Config);
+		State->PublisherComp->ConfigureStream(Config);
 	}
 	State->StartedSeconds = FPlatformTime::Seconds();
 	State->Transport->TestConnection();
