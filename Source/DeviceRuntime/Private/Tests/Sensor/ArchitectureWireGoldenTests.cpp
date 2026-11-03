@@ -3,6 +3,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Misc/SecureHash.h"
+#include "Interfaces/IPluginManager.h"
 #include "Device/Core/VirtualSensorStreamPublisherComponent.h"
 #include "Device/Core/VirtualSensorWireHeaders.h"
 #include "Device/Core/VirtualSensorStompProtocol.h"
@@ -37,7 +38,10 @@ TArray<uint8> WireHeader(const TMap<FString,FString>& Headers)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArchitectureWireGoldenTest, "MA0T10.Architecture.WireGolden", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FArchitectureWireGoldenTest::RunTest(const FString&)
 {
-    const FString Directory = FPaths::ProjectDir() / TEXT("Plugins/DTDevice/Source/DeviceRuntime/Private/Tests/Sensor/Fixtures/ArchitectureWire");
+    // Resolve through the plugin so hosts that install DTDevice outside Plugins/DTDevice still find the fixtures.
+    const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("DTDevice"));
+    if (!TestTrue(TEXT("DTDevice plugin is loaded"), Plugin.IsValid())) return false;
+    const FString Directory = Plugin->GetBaseDir() / TEXT("Source/DeviceRuntime/Private/Tests/Sensor/Fixtures/ArchitectureWire");
     auto Compare = [this, &Directory](const FString& Name, const TArray<uint8>& Actual)
     {
         const FString Path = Directory / Name;
