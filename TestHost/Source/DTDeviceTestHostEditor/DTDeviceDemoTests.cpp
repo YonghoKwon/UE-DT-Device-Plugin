@@ -34,9 +34,11 @@ public:
         Test->TestEqual(TEXT("selected sensor"),Panel->GetSelectedSensor(),static_cast<AVirtualSensorActorBase*>(Lidar));
         Test->TestTrue(TEXT("status refreshed"),Panel->GetStatusText().Contains(Lidar->GetSensorId()));
         const int32 Payload=Scan->GetLastServerPayloadPointCount(); const int32 Samples=Scan->HorizontalSamples;
+        const FString PayloadBefore=Scan->GetLastJsonPayload();
         Test->TestTrue(TEXT("preview adjustment accepted"),Panel->AdjustPreview(1));
         Test->TestEqual(TEXT("preview preserves measured resolution"),Scan->HorizontalSamples,Samples);
         Test->TestEqual(TEXT("preview preserves server payload"),Scan->GetLastServerPayloadPointCount(),Payload);
+        Test->TestEqual(TEXT("preview preserves serialized server payload"),Scan->GetLastJsonPayload(),PayloadBefore);
         Panel->SelectSensor(Camera); const int64 Before=Camera->GetSensorRuntimeStatus().FrameId;
         Panel->CaptureOnce();
         Test->TestTrue(TEXT("one camera capture requested"),Camera->GetSensorRuntimeStatus().FrameId>Before);
