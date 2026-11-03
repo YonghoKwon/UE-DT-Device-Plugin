@@ -31,3 +31,18 @@ git submodule add https://github.com/YonghoKwon/UE-DT-Device-Plugin.git Plugins/
 ## 라이선스
 
 저작권 고지는 [LICENSE](LICENSE)를 따릅니다. 저작권자의 사전 서면 허가 없이 사용·복제·수정·배포할 수 없습니다.
+
+## TestHost (플러그인만으로 확인)
+
+`TestHost/`는 DTCore와 DTDevice만으로 장치 기능을 빌드하고 측정해 보는 최소 프로젝트입니다. UE-DT-Project 없이도 플러그인이 동작하는지 확인할 때 씁니다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File TestHost\Scripts\setup_testhost.ps1     # DTCore 고정 커밋 받기, Plugins\DTDevice 연결, Editor 빌드
+powershell -ExecutionPolicy Bypass -File TestHost\Scripts\run_measurements.ps1   # 최소 측정 자동화(D3D12), Saved\Measurements\<UTC>\summary.json
+```
+
+- DTCore는 `TestHost/Plugins/DTCore`에 고정 커밋으로 받습니다. 이 저장소에는 넣지 않습니다(git 제외).
+- 이 저장소 자체는 `TestHost/Plugins/DTDevice` junction으로 연결되므로, 플러그인 코드를 고치면 TestHost에 바로 반영됩니다.
+- `DTDeviceTestHost.uproject`를 열면 Unreal Editor에서 직접 확인할 수 있습니다.
+- 기본 측정 항목: 전송 데이터 golden, LiDAR 형상, 획득 주기와 backpressure, GPU readback 재사용, PCD 20 Hz 진단, 주기 캡처, 카메라 내부 파라미터, native/RHI startup oracle, native 안전 정책, 셰이더 경로.
+- 공통 에셋(semantic 재질, 점군 Niagara)과 일부 테스트 fixture는 아직 UE-DT-Project에 있습니다. 그래서 semantic PSO 회귀와 SensorReplay 테스트는 UE-DT-Project에서 실행합니다.

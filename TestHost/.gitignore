@@ -1,0 +1,8 @@
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+Plugins/DTCore/
+Plugins/DTDevice
+*.sln
+.vs/

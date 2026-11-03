@@ -1,0 +1,13 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.3",
+	"Category": "",
+	"Description": "Minimal host for DTDevice: loads this repository as Plugins/DTDevice (junction) and DTCore from Plugins/DTCore.",
+	"Modules": [
+		{ "Name": "DTDeviceTestHost", "Type": "Runtime", "LoadingPhase": "Default" }
+	],
+	"Plugins": [
+		{ "Name": "DTCore", "Enabled": true },
+		{ "Name": "DTDevice", "Enabled": true }
+	]
+}
