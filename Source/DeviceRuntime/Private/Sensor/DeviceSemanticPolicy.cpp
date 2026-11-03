@@ -1,5 +1,5 @@
 #include "Device/Sensor/DeviceSemanticPolicy.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 namespace { TArray<FVirtualLidarSemanticClassRule> GDeviceSemanticHostRules; TMap<FName,float> GDeviceSemanticHostReflectances; FName GDeviceSemanticDiagnosticLabel,GDeviceSemanticDiagnosticTag; }
 void DeviceSemanticPolicy::Configure(TArray<FVirtualLidarSemanticClassRule> Rules,TMap<FName,float> Reflectances,FName DiagnosticLabel,FName DiagnosticTag)
 { check(IsInGameThread()); GDeviceSemanticHostRules=MoveTemp(Rules); GDeviceSemanticHostReflectances=MoveTemp(Reflectances);GDeviceSemanticDiagnosticLabel=DiagnosticLabel;GDeviceSemanticDiagnosticTag=DiagnosticTag; }

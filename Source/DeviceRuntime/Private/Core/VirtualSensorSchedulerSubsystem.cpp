@@ -9,9 +9,9 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarVisualizationComponent.h"
+#include "Device/Sensor/VirtualLidarVisualizationComp.h"
 
 // Periodic telemetry is opt-in: -LogCmds="LogVirtualSensorTelemetry Verbose"
 // or `log LogVirtualSensorTelemetry Verbose` at runtime. State/warning logs
@@ -98,7 +98,7 @@ void UVirtualSensorSchedulerSubsystem::RegisterTask(UActorComponent* TaskCompone
     {
         RegisterCamera(Camera);
     }
-    else if (UVirtualLidarScanComponent* Lidar = Cast<UVirtualLidarScanComponent>(TaskComponent))
+    else if (UVirtualLidarScanComp* Lidar = Cast<UVirtualLidarScanComp>(TaskComponent))
     {
         RegisterLidar(Lidar);
     }
@@ -110,7 +110,7 @@ void UVirtualSensorSchedulerSubsystem::UnregisterTask(UActorComponent* TaskCompo
     {
         UnregisterCamera(Camera);
     }
-    else if (UVirtualLidarScanComponent* Lidar = Cast<UVirtualLidarScanComponent>(TaskComponent))
+    else if (UVirtualLidarScanComp* Lidar = Cast<UVirtualLidarScanComp>(TaskComponent))
     {
         UnregisterLidar(Lidar);
     }
@@ -124,7 +124,7 @@ void UVirtualSensorSchedulerSubsystem::UnregisterCamera(UVirtualCameraCaptureCom
     NextCameraIndex = Cameras.Num() > 0 ? NextCameraIndex % Cameras.Num() : 0;
 }
 
-void UVirtualSensorSchedulerSubsystem::RegisterLidar(UVirtualLidarScanComponent* Lidar)
+void UVirtualSensorSchedulerSubsystem::RegisterLidar(UVirtualLidarScanComp* Lidar)
 {
     if (Lidar && !Lidars.Contains(Lidar))
     {
@@ -134,11 +134,11 @@ void UVirtualSensorSchedulerSubsystem::RegisterLidar(UVirtualLidarScanComponent*
     }
 }
 
-void UVirtualSensorSchedulerSubsystem::UnregisterLidar(UVirtualLidarScanComponent* Lidar)
+void UVirtualSensorSchedulerSubsystem::UnregisterLidar(UVirtualLidarScanComp* Lidar)
 {
     RegistrationTimes.Remove(Lidar);
     if (PreferredLidar.Get() == Lidar) PreferredLidar.Reset();
-    Lidars.RemoveAll([Lidar](const TWeakObjectPtr<UVirtualLidarScanComponent>& Item) { return !Item.IsValid() || Item.Get() == Lidar; });
+    Lidars.RemoveAll([Lidar](const TWeakObjectPtr<UVirtualLidarScanComp>& Item) { return !Item.IsValid() || Item.Get() == Lidar; });
     AdaptiveLidarChunkSizes.Remove(Lidar);
     LastLidarPreviewRefreshTimes.Remove(Lidar);
     NextLidarIndex = Lidars.Num() > 0 ? NextLidarIndex % Lidars.Num() : 0;
@@ -149,7 +149,7 @@ void UVirtualSensorSchedulerSubsystem::RefreshLidarCadencePhases(double WallSeco
     CadenceMembers.Reset();
     for(const auto& Entry:Lidars)
         if(auto* Lidar=Entry.Get(); Lidar && Lidar->UsesAutomaticCadencePhase()) CadenceMembers.Add(Lidar);
-    CadenceMembers.Sort([](const UVirtualLidarScanComponent& A,const UVirtualLidarScanComponent& B)
+    CadenceMembers.Sort([](const UVirtualLidarScanComp& A,const UVirtualLidarScanComp& B)
     {
         const int32 Order=A.SensorId.Compare(B.SensorId,ESearchCase::CaseSensitive);
         return Order<0 || (Order==0 && A.GetUniqueID()<B.GetUniqueID());
@@ -170,18 +170,18 @@ void UVirtualSensorSchedulerSubsystem::SetPreferredCamera(UVirtualCameraCaptureC
     PreferredCamera = Camera;
 }
 
-void UVirtualSensorSchedulerSubsystem::SetPreferredLidar(UVirtualLidarScanComponent* Lidar)
+void UVirtualSensorSchedulerSubsystem::SetPreferredLidar(UVirtualLidarScanComp* Lidar)
 {
     PreferredLidar = Lidar;
 }
 
-bool UVirtualSensorSchedulerSubsystem::ShouldRefreshLidarPreview(const UVirtualLidarScanComponent* Lidar) const
+bool UVirtualSensorSchedulerSubsystem::ShouldRefreshLidarPreview(const UVirtualLidarScanComp* Lidar) const
 {
     return !PreferredLidar.IsValid() || PreferredLidar.Get() == Lidar;
 }
 
 bool UVirtualSensorSchedulerSubsystem::ConsumeLidarPreviewRefresh(
-    UVirtualLidarScanComponent* Lidar,
+    UVirtualLidarScanComp* Lidar,
     float MaximumRefreshHz)
 {
     if (!Lidar || !ShouldRefreshLidarPreview(Lidar)) return false;
@@ -198,7 +198,7 @@ void UVirtualSensorSchedulerSubsystem::CompactRegistrations()
     for (auto It = RegistrationTimes.CreateIterator(); It; ++It)
         if (!It.Key().IsValid()) It.RemoveCurrent();
     Cameras.RemoveAll([](const TWeakObjectPtr<UVirtualCameraCaptureComponent>& Item) { return !Item.IsValid(); });
-    Lidars.RemoveAll([](const TWeakObjectPtr<UVirtualLidarScanComponent>& Item) { return !Item.IsValid(); });
+    Lidars.RemoveAll([](const TWeakObjectPtr<UVirtualLidarScanComp>& Item) { return !Item.IsValid(); });
     for (auto It = AdaptiveLidarChunkSizes.CreateIterator(); It; ++It)
     {
         if (!It.Key().IsValid()) It.RemoveCurrent();
@@ -293,7 +293,7 @@ void UVirtualSensorSchedulerSubsystem::Tick(float DeltaTime)
     }
 
     RefreshLidarCadencePhases(FPlatformTime::Seconds());
-    for (const TWeakObjectPtr<UVirtualLidarScanComponent>& Lidar : Lidars)
+    for (const TWeakObjectPtr<UVirtualLidarScanComp>& Lidar : Lidars)
     {
         if (Lidar.IsValid()) Lidar->PrepareScheduledScan(NowSeconds);
     }
@@ -314,7 +314,7 @@ void UVirtualSensorSchedulerSubsystem::Tick(float DeltaTime)
     {
         const int32 Index = NextLidarIndex % Lidars.Num();
         NextLidarIndex = (Index + 1) % Lidars.Num();
-        UVirtualLidarScanComponent* Lidar = Lidars[Index].Get();
+        UVirtualLidarScanComp* Lidar = Lidars[Index].Get();
         int32& AdaptiveChunkSize = AdaptiveLidarChunkSizes.FindOrAdd(Lidars[Index], 256);
         const double ChunkStart = FPlatformTime::Seconds();
         const int32 Processed = Lidar ? Lidar->ProcessScheduledScanChunk(AdaptiveChunkSize) : 0;
@@ -336,7 +336,7 @@ void UVirtualSensorSchedulerSubsystem::Tick(float DeltaTime)
     // admission step so a due frame starts in this Tick. The component keeps
     // one acquisition in flight and admits at most once per engine frame,
     // including across these two passes. Expired wall-clock slots are counted.
-    for (const TWeakObjectPtr<UVirtualLidarScanComponent>& Lidar : Lidars)
+    for (const TWeakObjectPtr<UVirtualLidarScanComp>& Lidar : Lidars)
     {
         if (Lidar.IsValid()) Lidar->PrepareScheduledScan(NowSeconds);
     }
@@ -404,7 +404,7 @@ void UVirtualSensorSchedulerSubsystem::Tick(float DeltaTime)
                 Status.QueueOverflowCount,
                 *Status.ActiveAcquisitionBackend);
         }
-        for (const TWeakObjectPtr<UVirtualLidarScanComponent>& Lidar : Lidars)
+        for (const TWeakObjectPtr<UVirtualLidarScanComp>& Lidar : Lidars)
         {
             if (!Lidar.IsValid()) continue;
             const FVirtualSensorRuntimeStatus& Status = Lidar->GetRuntimeStatus();
@@ -471,7 +471,7 @@ void UVirtualSensorSchedulerSubsystem::ConfigureCommandLineBenchmarkIfRequested(
                 : EVirtualLidarAcquisitionBackend::Auto;
 
     const TArray<TWeakObjectPtr<UVirtualCameraCaptureComponent>> ExistingCameras = Cameras;
-    const TArray<TWeakObjectPtr<UVirtualLidarScanComponent>> ExistingLidars = Lidars;
+    const TArray<TWeakObjectPtr<UVirtualLidarScanComp>> ExistingLidars = Lidars;
     for (int32 Index = 0; Index < ExistingCameras.Num(); ++Index)
     {
         const TWeakObjectPtr<UVirtualCameraCaptureComponent>& Camera = ExistingCameras[Index];
@@ -487,7 +487,7 @@ void UVirtualSensorSchedulerSubsystem::ConfigureCommandLineBenchmarkIfRequested(
     }
     for (int32 Index = 0; Index < ExistingLidars.Num(); ++Index)
     {
-        const TWeakObjectPtr<UVirtualLidarScanComponent>& Lidar = ExistingLidars[Index];
+        const TWeakObjectPtr<UVirtualLidarScanComp>& Lidar = ExistingLidars[Index];
         if (!Lidar.IsValid()) continue;
         if (Index >= RequestedLidars)
         {
@@ -535,8 +535,8 @@ void UVirtualSensorSchedulerSubsystem::ConfigureCommandLineBenchmarkIfRequested(
     for (int32 Index = Lidars.Num(); Index < RequestedLidars; ++Index)
     {
         AVirtualLidarSensorActor* Owner = World->SpawnActor<AVirtualLidarSensorActor>(AVirtualLidarSensorActor::StaticClass(), FTransform(FVector(0.0, Index * 50.0, 150.0)));
-        if (!Owner || !Owner->ScanComponent) continue;
-        UVirtualLidarScanComponent* Lidar = Owner->ScanComponent;
+        if (!Owner || !Owner->ScanComp) continue;
+        UVirtualLidarScanComp* Lidar = Owner->ScanComp;
         Lidar->StopScan();
         Lidar->SensorId = FString::Printf(TEXT("BENCH-LIDAR-%02d"), Index + 1);
         Lidar->bAutoRegisterToManager = false;
@@ -553,8 +553,8 @@ void UVirtualSensorSchedulerSubsystem::ConfigureCommandLineBenchmarkIfRequested(
     }
 
     CompactRegistrations();
-    UVirtualLidarScanComponent* PreviewLidar = nullptr;
-    for (const TWeakObjectPtr<UVirtualLidarScanComponent>& Lidar : Lidars)
+    UVirtualLidarScanComp* PreviewLidar = nullptr;
+    for (const TWeakObjectPtr<UVirtualLidarScanComp>& Lidar : Lidars)
     {
         if (Lidar.IsValid() && Lidar->IsScanRunning())
         {
@@ -563,11 +563,11 @@ void UVirtualSensorSchedulerSubsystem::ConfigureCommandLineBenchmarkIfRequested(
         }
     }
     SetPreferredLidar(PreviewLidar);
-    for (const TWeakObjectPtr<UVirtualLidarScanComponent>& Lidar : Lidars)
+    for (const TWeakObjectPtr<UVirtualLidarScanComp>& Lidar : Lidars)
     {
         if (!Lidar.IsValid()) continue;
         AVirtualLidarSensorActor* LidarOwner = Cast<AVirtualLidarSensorActor>(Lidar->GetOwner());
-        UVirtualLidarVisualizationComponent* Visualization = LidarOwner ? LidarOwner->VisualizationComponent : nullptr;
+        UVirtualLidarVisualizationComp* Visualization = LidarOwner ? LidarOwner->VisualizationComp : nullptr;
         const bool bSelected = Lidar.Get() == PreviewLidar;
         const bool bCpu = RequestedLidarRenderer.Equals(TEXT("Cpu"), ESearchCase::IgnoreCase);
         const bool bOff = RequestedLidarRenderer.Equals(TEXT("Off"), ESearchCase::IgnoreCase);
@@ -721,7 +721,7 @@ void UVirtualSensorSchedulerSubsystem::RefreshTelemetry(float WorkMs)
         Accumulate(Status);
         AddRate(Camera.Get(), Status, Camera->SensorId, TEXT("Camera"), Camera->CaptureInterval, Camera->IsCaptureRunning());
     }
-    for (const TWeakObjectPtr<UVirtualLidarScanComponent>& Lidar : Lidars)
+    for (const TWeakObjectPtr<UVirtualLidarScanComp>& Lidar : Lidars)
     {
         if (!Lidar.IsValid()) continue;
         const FVirtualSensorRuntimeStatus& Status = Lidar->GetRuntimeStatus();

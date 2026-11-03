@@ -3,7 +3,7 @@
 #include "Device/Contracts/VirtualSensorDefaults.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
 #include "EngineUtils.h"
@@ -158,23 +158,23 @@ void UVirtualSensorPlacementSubsystem::Tick(float)
         if(!S->IsSensorRunning()){R.Status.State=EVirtualSensorPlacementPreviewState::Stopped;R.Status.Message=TEXT("센서 정지 · 새 측정 없이 위치 유지");continue;}
         if(auto* L=Cast<AVirtualLidarSensorActor>(S))
         {
-            if(L->ScanComponent->GetFileCaptureRevision()!=R.Generation){R.Status.State=EVirtualSensorPlacementPreviewState::Cancelled;R.Status.Message=TEXT("미리보기 확인 취소 · 측정 재시작");continue;}
-            if(const auto F=L->ScanComponent->GetLastFrameSnapshot())ObservePreviewFrame(S,F->FrameId,F->AcquisitionTransform,F->AcquisitionStartedMonotonic,F->PipelineGeneration,F->HorizontalSamples,F->VerticalChannels);
+            if(L->ScanComp->GetFileCaptureRevision()!=R.Generation){R.Status.State=EVirtualSensorPlacementPreviewState::Cancelled;R.Status.Message=TEXT("미리보기 확인 취소 · 측정 재시작");continue;}
+            if(const auto F=L->ScanComp->GetLastFrameSnapshot())ObservePreviewFrame(S,F->FrameId,F->AcquisitionTransform,F->AcquisitionStartedMonotonic,F->PipelineGeneration,F->HorizontalSamples,F->VerticalChannels);
         }
         if(auto* C=Cast<AVirtualCameraSensorActor>(S))
         {
-            if(C->CaptureComponent->GetFileCaptureRevision()!=R.Generation){R.Status.State=EVirtualSensorPlacementPreviewState::Cancelled;R.Status.Message=TEXT("미리보기 확인 취소 · 측정 재시작");continue;}
-            FVirtualCameraPreviewCompletion F;if(C->CaptureComponent->GetPlacementPreviewCompletion(F))ObservePreviewFrame(S,F.Acquisition.FrameId,F.AcquisitionPose,F.StartedMonotonic,F.Generation,F.Acquisition.Width,F.Acquisition.Height);
+            if(C->CaptureComp->GetFileCaptureRevision()!=R.Generation){R.Status.State=EVirtualSensorPlacementPreviewState::Cancelled;R.Status.Message=TEXT("미리보기 확인 취소 · 측정 재시작");continue;}
+            FVirtualCameraPreviewCompletion F;if(C->CaptureComp->GetPlacementPreviewCompletion(F))ObservePreviewFrame(S,F.Acquisition.FrameId,F.AcquisitionPose,F.StartedMonotonic,F.Generation,F.Acquisition.Width,F.Acquisition.Height);
         }
         if(R.Status.State==EVirtualSensorPlacementPreviewState::Waiting&&R.Status.ElapsedSeconds>R.Timeout)
-        {R.Status.State=EVirtualSensorPlacementPreviewState::Delayed;R.Status.Message=TEXT("새 위치 미리보기 지연 · 측정 상태를 확인하세요");if(auto* C=Cast<AVirtualCameraSensorActor>(S))C->CaptureComponent->CancelPlacementPreviewProof();}
+        {R.Status.State=EVirtualSensorPlacementPreviewState::Delayed;R.Status.Message=TEXT("새 위치 미리보기 지연 · 측정 상태를 확인하세요");if(auto* C=Cast<AVirtualCameraSensorActor>(S))C->CaptureComp->CancelPlacementPreviewProof();}
     }
 }
 TStatId UVirtualSensorPlacementSubsystem::GetStatId() const {RETURN_QUICK_DECLARE_CYCLE_STAT(UVirtualSensorPlacementSubsystem,STATGROUP_Tickables);}
 void UVirtualSensorPlacementSubsystem::Deinitialize()
 {
     bEnding=true;if(PendingWrite)FinishWrite(PendingWrite->Future.Get(),false);Histories.Reset();AppliedBookmarks.Reset();
-    for(const auto& P:PreviewRequests)if(auto* C=Cast<AVirtualCameraSensorActor>(P.Key.Get()))C->CaptureComponent->CancelPlacementPreviewProof();
+    for(const auto& P:PreviewRequests)if(auto* C=Cast<AVirtualCameraSensorActor>(P.Key.Get()))C->CaptureComp->CancelPlacementPreviewProof();
     PreviewRequests.Reset();Super::Deinitialize();
 }
 bool UVirtualSensorPlacementSubsystem::CanEditSensorPlacement(AVirtualSensorActorBase* S,FString& Reason) const
@@ -193,7 +193,7 @@ bool UVirtualSensorPlacementSubsystem::IsPreviewRefreshPending(AVirtualSensorAct
 FVirtualSensorPlacementPreviewStatus UVirtualSensorPlacementSubsystem::GetPlacementPreviewStatus(AVirtualSensorActorBase* S) const
 {if(IsValid(S))if(const auto* R=PreviewRequests.Find(S))return R->Status;return FVirtualSensorPlacementPreviewStatus();}
 void UVirtualSensorPlacementSubsystem::CancelPlacementPreviewRefresh(AVirtualSensorActorBase* S)
-{if(auto* C=Cast<AVirtualCameraSensorActor>(S))C->CaptureComponent->CancelPlacementPreviewProof();PreviewRequests.Remove(S);}
+{if(auto* C=Cast<AVirtualCameraSensorActor>(S))C->CaptureComp->CancelPlacementPreviewProof();PreviewRequests.Remove(S);}
 void UVirtualSensorPlacementSubsystem::BeginPlacementPreviewRefresh(AVirtualSensorActorBase* S)
 {
     FString Reason;if(!CheckSensor(S,Reason))return;CancelPlacementPreviewRefresh(S);
@@ -202,9 +202,9 @@ void UVirtualSensorPlacementSubsystem::BeginPlacementPreviewRefresh(AVirtualSens
     if(!S->IsSensorRunning()){R.Status.State=EVirtualSensorPlacementPreviewState::Stopped;R.Status.Message=TEXT("센서 정지 · 새 측정 없이 위치 유지");return;}
     R.Status.State=EVirtualSensorPlacementPreviewState::Waiting;R.Status.Message=TEXT("새 위치 미리보기 갱신 중");
     if(auto* C=Cast<AVirtualCameraSensorActor>(S))
-    {auto* Comp=C->CaptureComponent.Get();R.AcquisitionPose=Comp->GetComponentTransform();R.Width=Comp->CaptureResolution.X;R.Height=Comp->CaptureResolution.Y;R.Generation=Comp->GetFileCaptureRevision();R.Timeout=FMath::Max(1.5,double(Comp->CaptureInterval)*3);Comp->RequestPlacementPreviewProof();Comp->RequestImmediateScheduledCapture();}
+    {auto* Comp=C->CaptureComp.Get();R.AcquisitionPose=Comp->GetComponentTransform();R.Width=Comp->CaptureResolution.X;R.Height=Comp->CaptureResolution.Y;R.Generation=Comp->GetFileCaptureRevision();R.Timeout=FMath::Max(1.5,double(Comp->CaptureInterval)*3);Comp->RequestPlacementPreviewProof();Comp->RequestImmediateScheduledCapture();}
     if(auto* L=Cast<AVirtualLidarSensorActor>(S))
-    {auto* Comp=L->ScanComponent.Get();R.AcquisitionPose=Comp->GetComponentTransform();R.Width=Comp->HorizontalSamples;R.Height=Comp->VerticalChannels;R.Generation=Comp->GetFileCaptureRevision();R.Timeout=FMath::Max(1.5,double(Comp->ScanInterval)*3);Comp->RequestImmediateScheduledScan();}
+    {auto* Comp=L->ScanComp.Get();R.AcquisitionPose=Comp->GetComponentTransform();R.Width=Comp->HorizontalSamples;R.Height=Comp->VerticalChannels;R.Generation=Comp->GetFileCaptureRevision();R.Timeout=FMath::Max(1.5,double(Comp->ScanInterval)*3);Comp->RequestImmediateScheduledScan();}
 }
 void UVirtualSensorPlacementSubsystem::ObservePreviewFrame(AVirtualSensorActorBase* S,int64 Frame,const FTransform& Pose,double Started,int32 Generation,int32 Width,int32 Height)
 {

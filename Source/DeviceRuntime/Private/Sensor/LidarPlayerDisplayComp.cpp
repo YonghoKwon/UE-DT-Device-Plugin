@@ -1,4 +1,4 @@
-#include "Device/Sensor/LidarPlayerDisplayComponent.h"
+#include "Device/Sensor/LidarPlayerDisplayComp.h"
 #include "MA0T10MemoryTags.h"
 #include "Memory26Diagnostics.h"
 #include "SensorUploadDiagnostics.h"
@@ -20,12 +20,12 @@
 #include "RHIGPUReadback.h"
 #endif
 
-ULidarPlayerDisplayComponent::ULidarPlayerDisplayComponent()
+ULidarPlayerDisplayComp::ULidarPlayerDisplayComp()
 {
     static ConstructorHelpers::FObjectFinder<UMaterial> PointMaterial(TEXT("/Engine/EngineDebugMaterials/VertexColorMaterial.VertexColorMaterial"));
     FixedPointFallbackMaterial=PointMaterial.Object;
 }
-UMaterialInterface* ULidarPlayerDisplayComponent::ResolveFixedPointMaterial() const
+UMaterialInterface* ULidarPlayerDisplayComp::ResolveFixedPointMaterial() const
 {
     if(Memory26::Enabled(Memory26::ECase::Preview))return FixedPointFallbackMaterial;
     // Standalone disables engine debug view materials. Keep the same fixed
@@ -34,10 +34,10 @@ UMaterialInterface* ULidarPlayerDisplayComponent::ResolveFixedPointMaterial() co
     return GEngine&&GEngine->VertexColorMaterial?GEngine->VertexColorMaterial.Get():FixedPointFallbackMaterial.Get();
 }
 
-void ULidarPlayerDisplayComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials,bool bGetDebugMaterials) const
+void ULidarPlayerDisplayComp::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials,bool bGetDebugMaterials) const
 {Super::GetUsedMaterials(OutMaterials,bGetDebugMaterials);if(bFixedPointSubmission)if(auto* Material=ResolveFixedPointMaterial())OutMaterials.AddUnique(Material);}
 
-void ULidarPlayerDisplayComponent::RefreshPointView()
+void ULidarPlayerDisplayComp::RefreshPointView()
 {
     if(!bFixedPointSubmission||!GetWorld())return;
     const double Now=FPlatformTime::Seconds();if(Now-LastPointViewUpdate<.2)return;LastPointViewUpdate=Now;
@@ -92,7 +92,7 @@ class FPlayerDisplayProxy final:public FPrimitiveSceneProxy
     FLocalVertexFactory Factory;
     const FMaterialRenderProxy* Material=nullptr;
 public:
-    explicit FPlayerDisplayProxy(const ULidarPlayerDisplayComponent* C)
+    explicit FPlayerDisplayProxy(const ULidarPlayerDisplayComp* C)
         :FPrimitiveSceneProxy(C),Points(CopyPreviewPoints(C->BatchedPoints)),Lines(C->BatchedLines),bFixedPoints(C->bFixedPointSubmission&&C->ResolveFixedPointMaterial()&&Points.Num()>0),Factory(GetScene().GetFeatureLevel(),"OwnedLidarPoints")
     {
         Memory26::Count(bFixedPoints?Memory26::ECounter::PreviewFixedProxy:Memory26::ECounter::PreviewLegacyProxy);
@@ -203,16 +203,16 @@ public:
     }
 };
 }
-FPrimitiveSceneProxy* ULidarPlayerDisplayComponent::CreateSceneProxy()
+FPrimitiveSceneProxy* ULidarPlayerDisplayComp::CreateSceneProxy()
 {MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarPreview);FixedProxyPointCount=bFixedPointSubmission&&ResolveFixedPointMaterial()?BatchedPoints.Num():0;if(FixedProxyPointCount>0)++FixedPointProxyCreations;return new FPlayerDisplayProxy(this);}
-void ULidarPlayerDisplayComponent::CommitPointData()
+void ULidarPlayerDisplayComp::CommitPointData()
 {
     UpdateBounds();
     if(FixedProxyPointCount!=BatchedPoints.Num())SensorUploadDiagnostics::RecordAllocation(SensorUploadDiagnostics::ESite::PreviewProxy,uint64(FixedProxyPointCount)*sizeof(FBatchedPoint),uint64(BatchedPoints.Num())*sizeof(FBatchedPoint));
     if(bFixedPointSubmission&&SceneProxy&&FixedProxyPointCount>0&&FixedProxyPointCount==BatchedPoints.Num()){MarkRenderTransformDirty();MarkRenderDynamicDataDirty();}
     else MarkRenderStateDirty();
 }
-void ULidarPlayerDisplayComponent::SendRenderDynamicData_Concurrent()
+void ULidarPlayerDisplayComp::SendRenderDynamicData_Concurrent()
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarPreview);
     Super::SendRenderDynamicData_Concurrent();
@@ -230,15 +230,15 @@ void ULidarPlayerDisplayComponent::SendRenderDynamicData_Concurrent()
     ENQUEUE_RENDER_COMMAND(HatchUpdateFixedPoints)([Proxy,Data=MoveTemp(Data)](FRHICommandListImmediate& Cmd) mutable {Proxy->UpdatePoints(Cmd,MoveTemp(Data));});
 }
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
-FIntVector ULidarPlayerDisplayComponent::GetFixedPointRhiResources() const
+FIntVector ULidarPlayerDisplayComp::GetFixedPointRhiResources() const
 {
     check(IsInGameThread());FIntVector Result(0,0,0);
     if(bFixedPointSubmission&&SceneProxy&&FixedProxyPointCount>0){const auto* Proxy=static_cast<const FPlayerDisplayProxy*>(SceneProxy);ENQUEUE_RENDER_COMMAND(HatchAuditPointResources)([Proxy,&Result](FRHICommandListImmediate&){Result=Proxy->RhiResources();});FlushRenderingCommands();}
     return Result;
 }
-FIntPoint ULidarPlayerDisplayComponent::GetPreviewScratchPoolForTests()
+FIntPoint ULidarPlayerDisplayComp::GetPreviewScratchPoolForTests()
 {return FIntPoint(PreviewPool.RetainedCount(),int32(PreviewPool.RetainedBytes()));}
-bool ULidarPlayerDisplayComponent::ReadFixedPointStreamsForTests(TArray<uint8>& Positions,TArray<uint8>& Colors) const
+bool ULidarPlayerDisplayComp::ReadFixedPointStreamsForTests(TArray<uint8>& Positions,TArray<uint8>& Colors) const
 {
     check(IsInGameThread());bool Ready=false;
     if(bFixedPointSubmission&&SceneProxy&&FixedProxyPointCount>0)

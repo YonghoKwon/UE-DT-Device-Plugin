@@ -1,4 +1,4 @@
-#include "Device/Sensor/LidarHttpJsonLiveSourceComponent.h"
+#include "Device/Sensor/LidarHttpJsonLiveSourceComp.h"
 
 #include "Async/Async.h"
 #include "Containers/StringConv.h"
@@ -8,7 +8,7 @@
 #include "HttpServerResponse.h"
 #include "IHttpRouter.h"
 
-ULidarHttpJsonLiveSourceComponent::ULidarHttpJsonLiveSourceComponent()
+ULidarHttpJsonLiveSourceComp::ULidarHttpJsonLiveSourceComp()
 {
     SourceId = TEXT("HttpJsonLiveLidarBridge");
     SourceKind = ERealSensorSourceKind::JsonLiveBridge;
@@ -17,7 +17,7 @@ ULidarHttpJsonLiveSourceComponent::ULidarHttpJsonLiveSourceComponent()
     LastHttpMessage = TEXT("HTTP JSON live source is stopped.");
 }
 
-bool ULidarHttpJsonLiveSourceComponent::StartSource()
+bool ULidarHttpJsonLiveSourceComp::StartSource()
 {
     if (RouteHandle.IsValid())
     {
@@ -35,7 +35,7 @@ bool ULidarHttpJsonLiveSourceComponent::StartSource()
         return false;
     }
 
-    TWeakObjectPtr<ULidarHttpJsonLiveSourceComponent> WeakThis(this);
+    TWeakObjectPtr<ULidarHttpJsonLiveSourceComp> WeakThis(this);
     FHttpRouteHandle NewRouteHandle = Router->BindRoute(
         FHttpPath(NormalizedPath),
         EHttpServerRequestVerbs::VERB_POST,
@@ -67,13 +67,13 @@ bool ULidarHttpJsonLiveSourceComponent::StartSource()
     return true;
 }
 
-void ULidarHttpJsonLiveSourceComponent::StopSource()
+void ULidarHttpJsonLiveSourceComp::StopSource()
 {
     CloseHttpRoute();
     SetSourceState(ERealSensorSourceConnectionState::Stopped, TEXT("HTTP JSON live source stopped."));
 }
 
-bool ULidarHttpJsonLiveSourceComponent::ProcessHttpPayloadJson(const FString& PayloadJson)
+bool ULidarHttpJsonLiveSourceComp::ProcessHttpPayloadJson(const FString& PayloadJson)
 {
     if (!IsInGameThread())
     {
@@ -104,7 +104,7 @@ bool ULidarHttpJsonLiveSourceComponent::ProcessHttpPayloadJson(const FString& Pa
     return true;
 }
 
-bool ULidarHttpJsonLiveSourceComponent::HandleHttpRequest(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete)
+bool ULidarHttpJsonLiveSourceComp::HandleHttpRequest(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete)
 {
     const int32 RequestBytes = Request.Body.Num();
     const int32 RequestGeneration = ActiveRequestGeneration;
@@ -116,7 +116,7 @@ bool ULidarHttpJsonLiveSourceComponent::HandleHttpRequest(const FHttpServerReque
 
     if (RequestBytes <= 0)
     {
-        AsyncTask(ENamedThreads::GameThread, [WeakThis = TWeakObjectPtr<ULidarHttpJsonLiveSourceComponent>(this), RequestBytes]()
+        AsyncTask(ENamedThreads::GameThread, [WeakThis = TWeakObjectPtr<ULidarHttpJsonLiveSourceComp>(this), RequestBytes]()
         {
             if (WeakThis.IsValid())
             {
@@ -133,7 +133,7 @@ bool ULidarHttpJsonLiveSourceComponent::HandleHttpRequest(const FHttpServerReque
     if (RequestBytes > MaxAllowedBytes)
     {
         const FString Message = FString::Printf(TEXT("HTTP JSON live request exceeded MaxRequestBytes. bytes=%d max=%d"), RequestBytes, MaxAllowedBytes);
-        AsyncTask(ENamedThreads::GameThread, [WeakThis = TWeakObjectPtr<ULidarHttpJsonLiveSourceComponent>(this), RequestBytes, Message]()
+        AsyncTask(ENamedThreads::GameThread, [WeakThis = TWeakObjectPtr<ULidarHttpJsonLiveSourceComp>(this), RequestBytes, Message]()
         {
             if (WeakThis.IsValid())
             {
@@ -150,7 +150,7 @@ bool ULidarHttpJsonLiveSourceComponent::HandleHttpRequest(const FHttpServerReque
     FString PayloadJson(Converter.Length(), Converter.Get());
     PayloadJson.TrimStartAndEndInline();
 
-    TWeakObjectPtr<ULidarHttpJsonLiveSourceComponent> WeakThis(this);
+    TWeakObjectPtr<ULidarHttpJsonLiveSourceComp> WeakThis(this);
     AsyncTask(ENamedThreads::GameThread, [WeakThis, PayloadJson, RequestBytes, RequestGeneration, OnComplete]()
     {
         if (!WeakThis.IsValid())
@@ -182,7 +182,7 @@ bool ULidarHttpJsonLiveSourceComponent::HandleHttpRequest(const FHttpServerReque
     return true;
 }
 
-void ULidarHttpJsonLiveSourceComponent::CloseHttpRoute()
+void ULidarHttpJsonLiveSourceComp::CloseHttpRoute()
 {
     bAcceptingHttpRequests = false;
     ++ActiveRequestGeneration;
@@ -195,7 +195,7 @@ void ULidarHttpJsonLiveSourceComponent::CloseHttpRoute()
     HttpRouter.Reset();
 }
 
-FString ULidarHttpJsonLiveSourceComponent::NormalizeRoutePath() const
+FString ULidarHttpJsonLiveSourceComp::NormalizeRoutePath() const
 {
     FString Path = RoutePath;
     Path.TrimStartAndEndInline();

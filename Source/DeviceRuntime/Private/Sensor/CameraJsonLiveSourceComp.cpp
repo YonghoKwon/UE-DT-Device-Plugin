@@ -1,10 +1,10 @@
-#include "Device/Sensor/CameraJsonLiveSourceComponent.h"
+#include "Device/Sensor/CameraJsonLiveSourceComp.h"
 
 #include "GameFramework/Actor.h"
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
 
-UCameraJsonLiveSourceComponent::UCameraJsonLiveSourceComponent()
+UCameraJsonLiveSourceComp::UCameraJsonLiveSourceComp()
 {
     PrimaryComponentTick.bCanEverTick = false;
     SourceKind = ERealSensorSourceKind::JsonLiveBridge;
@@ -12,18 +12,18 @@ UCameraJsonLiveSourceComponent::UCameraJsonLiveSourceComponent()
     LastSourceMessage = TEXT("Camera JSON live bridge is ready for virtual-camera.v1 payloads.");
 }
 
-bool UCameraJsonLiveSourceComponent::StartSource()
+bool UCameraJsonLiveSourceComp::StartSource()
 {
     SetSourceState(ERealSensorSourceConnectionState::Running, TEXT("Camera JSON live bridge ready."));
     return true;
 }
 
-void UCameraJsonLiveSourceComponent::StopSource()
+void UCameraJsonLiveSourceComp::StopSource()
 {
     SetSourceState(ERealSensorSourceConnectionState::Stopped, TEXT("Camera JSON live bridge stopped."));
 }
 
-bool UCameraJsonLiveSourceComponent::AppendLivePayloadJson(const FString& PayloadJson)
+bool UCameraJsonLiveSourceComp::AppendLivePayloadJson(const FString& PayloadJson)
 {
     FString Trimmed = PayloadJson;
     Trimmed.TrimStartAndEndInline();
@@ -40,7 +40,7 @@ bool UCameraJsonLiveSourceComponent::AppendLivePayloadJson(const FString& Payloa
     return true;
 }
 
-void UCameraJsonLiveSourceComponent::ClearBufferedFrame()
+void UCameraJsonLiveSourceComp::ClearBufferedFrame()
 {
     BufferedPayloadJson.Reset();
     bHasBufferedPayload = false;
@@ -48,7 +48,7 @@ void UCameraJsonLiveSourceComponent::ClearBufferedFrame()
     LastSourceMessage = TEXT("Camera JSON live buffer cleared.");
 }
 
-bool UCameraJsonLiveSourceComponent::PushFrameOnce(bool bSendTransport)
+bool UCameraJsonLiveSourceComp::PushFrameOnce(bool bSendTransport)
 {
     UVirtualCameraCaptureComponent* CameraComp = ResolveTargetCamera();
     AVirtualSensorActorBase* SensorActor = ResolveTargetSensorActor();
@@ -96,7 +96,7 @@ bool UCameraJsonLiveSourceComponent::PushFrameOnce(bool bSendTransport)
     return true;
 }
 
-AVirtualSensorActorBase* UCameraJsonLiveSourceComponent::ResolveTargetSensorActor() const
+AVirtualSensorActorBase* UCameraJsonLiveSourceComp::ResolveTargetSensorActor() const
 {
     if (TargetSensorActor)
     {
@@ -109,7 +109,7 @@ AVirtualSensorActorBase* UCameraJsonLiveSourceComponent::ResolveTargetSensorActo
     return Cast<AVirtualSensorActorBase>(GetOwner());
 }
 
-UVirtualCameraCaptureComponent* UCameraJsonLiveSourceComponent::ResolveTargetCamera() const
+UVirtualCameraCaptureComponent* UCameraJsonLiveSourceComp::ResolveTargetCamera() const
 {
     if (TargetCamera)
     {

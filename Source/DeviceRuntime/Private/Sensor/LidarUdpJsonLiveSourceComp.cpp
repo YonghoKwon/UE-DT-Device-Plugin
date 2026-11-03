@@ -1,4 +1,4 @@
-#include "Device/Sensor/LidarUdpJsonLiveSourceComponent.h"
+#include "Device/Sensor/LidarUdpJsonLiveSourceComp.h"
 
 #include "Async/Async.h"
 #include "Containers/StringConv.h"
@@ -10,7 +10,7 @@
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 
-ULidarUdpJsonLiveSourceComponent::ULidarUdpJsonLiveSourceComponent()
+ULidarUdpJsonLiveSourceComp::ULidarUdpJsonLiveSourceComp()
 {
     SourceId = TEXT("UdpJsonLiveLidarBridge");
     SourceKind = ERealSensorSourceKind::JsonLiveBridge;
@@ -18,7 +18,7 @@ ULidarUdpJsonLiveSourceComponent::ULidarUdpJsonLiveSourceComponent()
     bSendTransportByDefault = false;
 }
 
-bool ULidarUdpJsonLiveSourceComponent::StartSource()
+bool ULidarUdpJsonLiveSourceComp::StartSource()
 {
     if (ListenSocket)
     {
@@ -56,7 +56,7 @@ bool ULidarUdpJsonLiveSourceComponent::StartSource()
     BoundPort = BoundAddress->GetPort();
 
     SocketReceiver = MakeUnique<FUdpSocketReceiver>(ListenSocket, FTimespan::FromMilliseconds(20), *SocketName);
-    SocketReceiver->OnDataReceived().BindUObject(this, &ULidarUdpJsonLiveSourceComponent::HandleReceivedData);
+    SocketReceiver->OnDataReceived().BindUObject(this, &ULidarUdpJsonLiveSourceComp::HandleReceivedData);
     SocketReceiver->Start();
 
     LastUdpMessage = FString::Printf(TEXT("UDP JSON live source listening on %s:%d"), *BindAddress, BoundPort);
@@ -64,13 +64,13 @@ bool ULidarUdpJsonLiveSourceComponent::StartSource()
     return true;
 }
 
-void ULidarUdpJsonLiveSourceComponent::StopSource()
+void ULidarUdpJsonLiveSourceComp::StopSource()
 {
     CloseUdpSocket();
     SetSourceState(ERealSensorSourceConnectionState::Stopped, TEXT("UDP JSON live source stopped."));
 }
 
-bool ULidarUdpJsonLiveSourceComponent::ProcessUdpPayloadJson(const FString& PayloadJson)
+bool ULidarUdpJsonLiveSourceComp::ProcessUdpPayloadJson(const FString& PayloadJson)
 {
     const bool bAppended = AppendLivePayloadJson(PayloadJson);
     if (!bAppended)
@@ -88,7 +88,7 @@ bool ULidarUdpJsonLiveSourceComponent::ProcessUdpPayloadJson(const FString& Payl
     return true;
 }
 
-void ULidarUdpJsonLiveSourceComponent::HandleReceivedData(const FArrayReaderPtr& Data, const FIPv4Endpoint& Endpoint)
+void ULidarUdpJsonLiveSourceComp::HandleReceivedData(const FArrayReaderPtr& Data, const FIPv4Endpoint& Endpoint)
 {
     if (!Data.IsValid() || Data->Num() <= 0)
     {
@@ -99,7 +99,7 @@ void ULidarUdpJsonLiveSourceComponent::HandleReceivedData(const FArrayReaderPtr&
     FString PayloadJson(Converter.Length(), Converter.Get());
     PayloadJson.TrimStartAndEndInline();
 
-    TWeakObjectPtr<ULidarUdpJsonLiveSourceComponent> WeakThis(this);
+    TWeakObjectPtr<ULidarUdpJsonLiveSourceComp> WeakThis(this);
     const FString EndpointText = Endpoint.ToString();
     const int32 ByteCount = Data->Num();
     AsyncTask(ENamedThreads::GameThread, [WeakThis, PayloadJson, EndpointText, ByteCount]()
@@ -115,7 +115,7 @@ void ULidarUdpJsonLiveSourceComponent::HandleReceivedData(const FArrayReaderPtr&
     });
 }
 
-void ULidarUdpJsonLiveSourceComponent::CloseUdpSocket()
+void ULidarUdpJsonLiveSourceComp::CloseUdpSocket()
 {
     if (SocketReceiver)
     {

@@ -6,7 +6,7 @@
 #include "Device/Sensor/VirtualSensorActorBase.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Camera/PlayerCameraManager.h"
 #include "EngineUtils.h"
 #include "UObject/Package.h"
@@ -61,7 +61,7 @@ bool UVirtualSensorLayoutSubsystem::CanCreateSensor(EVirtualSensorKind Kind,FStr
     if(bEnding||!GetWorld()||!C){Reason=TEXT("센서 Coordinator가 정확히 하나 필요합니다.");return false;}
     if(Kind!=EVirtualSensorKind::Camera&&Kind!=EVirtualSensorKind::Lidar){Reason=TEXT("지원하지 않는 장비 종류입니다.");return false;}
     if(C->GetSensorActors().Num()>=32){Reason=TEXT("현재 배치 도구의 장비 상한은 32대입니다. 성능 지원 범위와는 별개입니다.");return false;}
-    if(C->GetDeviceCoordinatorConfig().StreamPublisherComponent)for(const auto& S:C->GetDeviceCoordinatorConfig().StreamPublisherComponent->GetStreamStatuses())
+    if(C->GetDeviceCoordinatorConfig().StreamPublisherComp)for(const auto& S:C->GetDeviceCoordinatorConfig().StreamPublisherComp->GetStreamStatuses())
         if(S.SensorId.IsEmpty()&&(S.bEnabled||S.InputQueueDepth||S.PreparedQueueDepth||S.ReceiptQueueDepth)&&
             ((S.StreamKind==EVirtualSensorStreamKind::CameraImage)==(Kind==EVirtualSensorKind::Camera)))
         {Reason=TEXT("전체 센서 송신을 중지하고 정리가 끝난 뒤 추가하세요. 새 장비의 자동 송신을 방지합니다.");return false;}
@@ -80,13 +80,13 @@ AVirtualSensorActorBase* UVirtualSensorLayoutSubsystem::SpawnStopped(EVirtualSen
     if(Kind==EVirtualSensorKind::Camera)
     {
         auto* A=GetWorld()->SpawnActorDeferred<AVirtualCameraSensorActor>(AVirtualCameraSensorActor::StaticClass(),Pose,nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
-        if(!A)return nullptr;auto* C=A->CaptureComponent.Get();C->bAutoStartCapture=false;C->bAutoRegisterToManager=false;C->bApplyDeviceProfileOnBeginPlay=false;
+        if(!A)return nullptr;auto* C=A->CaptureComp.Get();C->bAutoStartCapture=false;C->bAutoRegisterToManager=false;C->bApplyDeviceProfileOnBeginPlay=false;
         C->ApplyDeviceProfile(EVirtualCameraDeviceProfile::IntelRealSenseD455);C->ApplySimulationQuality(EVirtualSensorSimulationQuality::FullSpec);C->CaptureMode=EVirtualCameraCaptureMode::PreviewOnly;S=A;
     }
     else
     {
         auto* A=GetWorld()->SpawnActorDeferred<AVirtualLidarSensorActor>(AVirtualLidarSensorActor::StaticClass(),Pose,nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
-        if(!A)return nullptr;auto* C=A->ScanComponent.Get();C->bAutoStartScan=false;C->bAutoRegisterToManager=false;C->bApplyDeviceProfileOnBeginPlay=false;
+        if(!A)return nullptr;auto* C=A->ScanComp.Get();C->bAutoStartScan=false;C->bAutoRegisterToManager=false;C->bApplyDeviceProfileOnBeginPlay=false;
         C->ApplyDeviceProfile(EVirtualLidarDeviceProfile::IYOBOT_MLX80_NATIVE);C->ApplySimulationQuality(EVirtualSensorSimulationQuality::FullSpec);S=A;
     }
     S->FinishSpawning(Pose);S->StopSensor();return S;
@@ -114,7 +114,7 @@ AVirtualSensorActorBase* UVirtualSensorLayoutSubsystem::DuplicateSensor(AVirtual
     State.OriginalSensorId=Copy->GetSensorId();State.SensorId=Copy->GetSensorId();State.ActorTransform=Pose;
     State.bExportCsvOnScan=State.bExportJsonLinesOnScan=State.bExportPcdOnScan=false;State.CameraCaptureMode=EVirtualCameraCaptureMode::PreviewOnly;
     if(!Copy->ApplyEditableState(State,Reason)){FString Ignored;DeleteSensor(Copy,Ignored);return nullptr;}
-    if(auto* L=Cast<AVirtualLidarSensorActor>(Copy))if(auto* From=Cast<AVirtualLidarSensorActor>(Source))L->ScanComponent->AcquisitionBackend=From->ScanComponent->AcquisitionBackend;
+    if(auto* L=Cast<AVirtualLidarSensorActor>(Copy))if(auto* From=Cast<AVirtualLidarSensorActor>(Source))L->ScanComp->AcquisitionBackend=From->ScanComp->AcquisitionBackend;
     Copy->StartSensor();Changed();return Copy;
 }
 bool UVirtualSensorLayoutSubsystem::CanDeleteSensor(AVirtualSensorActorBase* S,FString& Reason) const
@@ -166,7 +166,7 @@ bool UVirtualSensorLayoutSubsystem::BuildLayoutSnapshot(FVirtualSensorLayoutDocu
         auto& E=D.Sensors.AddDefaulted_GetRef();if(!S->ReadCollectionState(E.State,E.bPreviewEnabled)){Reason=TEXT("저장할 수 없는 센서 설정입니다.");return false;}
         E.State.bExportCsvOnScan=E.State.bExportJsonLinesOnScan=E.State.bExportPcdOnScan=false;
         if(const auto* G=Owned.Find(S)){E.bToolCreated=true;E.LayoutGuid=*G;}else E.ActorPath=CanonicalActorPath(S);
-        if(auto* L=Cast<AVirtualLidarSensorActor>(S))E.LidarBackend=L->ScanComponent->AcquisitionBackend;
+        if(auto* L=Cast<AVirtualLidarSensorActor>(S))E.LidarBackend=L->ScanComp->AcquisitionBackend;
     }
     if(D.Sensors.Num()>32){Reason=TEXT("배치 파일은 최대 32대를 지원합니다.");return false;}return true;
 }
@@ -270,12 +270,12 @@ bool UVirtualSensorLayoutSubsystem::ApplyLayoutRestore(const FString& Id,FString
     TMap<AVirtualSensorActorBase*,FVirtualSensorEditableState> OriginalStates;
     for(auto* S:Coordinator()->GetSensorActors())if(IsValid(S)){FVirtualSensorEditableState State;bool P=false;S->ReadCollectionState(State,P);OriginalStates.Add(S,State);}
     TArray<AVirtualSensorActorBase*> Created,Modified;
-    auto Rollback=[&](){for(auto* S:Created){S->StopSensor();S->Destroy();}for(const auto& E:Before.Sensors)for(auto* S:Modified)if((E.bToolCreated&&Owned.Find(S)&&*Owned.Find(S)==E.LayoutGuid)||(!E.bToolCreated&&CanonicalActorPath(S)==E.ActorPath)){FString Ignored;S->StopSensor();S->ApplyEditableState(OriginalStates.FindChecked(S),Ignored);if(auto* L=Cast<AVirtualLidarSensorActor>(S))L->ScanComponent->AcquisitionBackend=E.LidarBackend;if(E.bPreviewEnabled)S->StartSensor();}};
+    auto Rollback=[&](){for(auto* S:Created){S->StopSensor();S->Destroy();}for(const auto& E:Before.Sensors)for(auto* S:Modified)if((E.bToolCreated&&Owned.Find(S)&&*Owned.Find(S)==E.LayoutGuid)||(!E.bToolCreated&&CanonicalActorPath(S)==E.ActorPath)){FString Ignored;S->StopSensor();S->ApplyEditableState(OriginalStates.FindChecked(S),Ignored);if(auto* L=Cast<AVirtualLidarSensorActor>(S))L->ScanComp->AcquisitionBackend=E.LidarBackend;if(E.bPreviewEnabled)S->StartSensor();}};
     for(int32 I=0;I<Matches.Num();++I)if(!Matches[I]){const auto& E=RestoreDocument.Sensors[I];auto* S=SpawnStopped(E.State.TargetKind==EVirtualSensorTargetKind::Camera?EVirtualSensorKind::Camera:EVirtualSensorKind::Lidar,E.State.ActorTransform,Reason);if(!S){Rollback();return false;}Matches[I]=S;Created.Add(S);}
     for(int32 I=0;I<Matches.Num();++I)
     {
         auto* S=Matches[I];const auto& E=RestoreDocument.Sensors[I];if(!Created.Contains(S))Modified.Add(S);S->OnDataCollectionStarting.Broadcast();S->EndInteractiveManipulation();S->StopSensor();
-        if(!S->ApplyEditableState(E.State,Reason)){Rollback();return false;}if(auto* L=Cast<AVirtualLidarSensorActor>(S))L->ScanComponent->AcquisitionBackend=E.LidarBackend;
+        if(!S->ApplyEditableState(E.State,Reason)){Rollback();return false;}if(auto* L=Cast<AVirtualLidarSensorActor>(S))L->ScanComp->AcquisitionBackend=E.LidarBackend;
     }
     for(int32 I=0;I<Matches.Num();++I){auto* S=Matches[I];const auto& E=RestoreDocument.Sensors[I];if(Created.Contains(S)){Owned.Add(S,E.LayoutGuid);Coordinator()->RegisterSensorActor(S);}if(E.bPreviewEnabled)S->StartSensor();GetWorld()->GetSubsystem<UVirtualSensorPlacementSubsystem>()->BeginPlacementPreviewRefresh(S);}
     for(auto* S:Excess){FString Ignored;DeleteSensor(S,Ignored);}

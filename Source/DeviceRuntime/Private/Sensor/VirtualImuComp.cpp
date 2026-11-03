@@ -1,41 +1,41 @@
-#include "Device/Sensor/VirtualImuComponent.h"
+#include "Device/Sensor/VirtualImuComp.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
-#include "Device/Sensor/VirtualSensorOutputComponent.h"
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
+#include "Device/Sensor/VirtualSensorOutputComp.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include "Device/Contracts/VirtualSensorMotionProvider.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Device/Core/VirtualSensorFileSaveSubsystem.h"
 #include "Engine/World.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonSerializer.h"
 
-UVirtualImuComponent::UVirtualImuComponent()
+UVirtualImuComp::UVirtualImuComp()
 {PrimaryComponentTick.bCanEverTick=true;PrimaryComponentTick.TickGroup=TG_PostUpdateWork;}
-UVirtualImuComponent* UVirtualImuComponent::Attach(AActor* A)
+UVirtualImuComp* UVirtualImuComp::Attach(AActor* A)
 {
     if(!IsValid(A)||!A->GetRootComponent())return nullptr;
-    if(auto* Existing=A->FindComponentByClass<UVirtualImuComponent>())return Existing;
-    auto* C=NewObject<UVirtualImuComponent>(A);C->SetupAttachment(A->GetRootComponent());A->AddInstanceComponent(C);C->RegisterComponent();return C;
+    if(auto* Existing=A->FindComponentByClass<UVirtualImuComp>())return Existing;
+    auto* C=NewObject<UVirtualImuComp>(A);C->SetupAttachment(A->GetRootComponent());A->AddInstanceComponent(C);C->RegisterComponent();return C;
 }
-bool UVirtualImuComponent::Configure(const FVirtualImuConfig& V,FString& Error)
+bool UVirtualImuComp::Configure(const FVirtualImuConfig& V,FString& Error)
 {if(Detaching){Error=TEXT("IMU CSV 저장을 마친 뒤 해제합니다.");return false;}if(!V.Validate(Error))return false;Config=V;++Generation;Initialized=false;HasLatest=false;return true;}
-void UVirtualImuComponent::ResolveServices()
+void UVirtualImuComp::ResolveServices()
 {
-    if(auto* A=Cast<AVirtualSensorActorBase>(GetOwner()))if(A->OutputComponent)
-    {Recorder=A->OutputComponent->RecorderComponent;Publisher=A->OutputComponent->StreamPublisherComponent;}
+    if(auto* A=Cast<AVirtualSensorActorBase>(GetOwner()))if(A->OutputComp)
+    {Recorder=A->OutputComp->RecorderComp;Publisher=A->OutputComp->StreamPublisherComp;}
 }
-void UVirtualImuComponent::BeginPlay(){Super::BeginPlay();ResolveServices();}
-FString UVirtualImuComponent::GetImuId() const
+void UVirtualImuComp::BeginPlay(){Super::BeginPlay();ResolveServices();}
+FString UVirtualImuComp::GetImuId() const
 {const auto* A=Cast<AVirtualSensorActorBase>(GetOwner());return (A?A->GetSensorId():GetOwner()?GetOwner()->GetName():TEXT("sensor"))+TEXT(".imu");}
-void UVirtualImuComponent::SetRecording(bool E)
+void UVirtualImuComp::SetRecording(bool E)
 {ResolveServices();Recording=E&&!Detaching&&IsValid(Recorder);}
-void UVirtualImuComponent::SetPublishing(bool E)
+void UVirtualImuComp::SetPublishing(bool E)
 {ResolveServices();if(Publisher){if(E&&!Detaching)Publisher->StartStream(EVirtualSensorStreamKind::Imu,GetImuId());else Publisher->StopStream(EVirtualSensorStreamKind::Imu,GetImuId());}}
-bool UVirtualImuComponent::IsPublishing() const
+bool UVirtualImuComp::IsPublishing() const
 {return IsValid(Publisher)&&Publisher->IsStreamEnabled(EVirtualSensorStreamKind::Imu,GetImuId());}
-FString UVirtualImuComponent::SaveCsv()
+FString UVirtualImuComp::SaveCsv()
 {ResolveServices();return Recorder&&GetWorld()?GetWorld()->GetSubsystem<UVirtualSensorFileSaveSubsystem>()->RequestImuCsv(this,GetImuId(),Recorder->GetImuSamples(GetImuId())):FString();}
-bool UVirtualImuComponent::RequestDetach(FString& Message)
+bool UVirtualImuComp::RequestDetach(FString& Message)
 {
     if(Detaching){Message=DetachStatus;return false;}
     ResolveServices();
@@ -48,14 +48,14 @@ bool UVirtualImuComponent::RequestDetach(FString& Message)
     {DetachStatus=Message=TEXT("CSV 저장을 시작할 수 없습니다 · IMU는 유지됩니다. 저장 상태를 확인한 뒤 다시 해제하세요.");return false;}
     Detaching=true;DetachStatus=Message=TEXT("기록·전송 중지 · CSV 저장을 마친 뒤 IMU를 해제합니다.");return true;
 }
-void UVirtualImuComponent::FinishDetach()
+void UVirtualImuComp::FinishDetach()
 {
     if(IsValid(Recorder))Recorder->ClearImuSamples(GetImuId());
     DestroyComponent();
 }
-void UVirtualImuComponent::EndPlay(const EEndPlayReason::Type R)
+void UVirtualImuComp::EndPlay(const EEndPlayReason::Type R)
 {SetPublishing(false);Recording=false;Super::EndPlay(R);}
-TSharedRef<FJsonObject> UVirtualImuComponent::BatchJson(const FString& Id,const FVirtualImuConfig& C,const TArray<FVirtualImuSample>& Samples)
+TSharedRef<FJsonObject> UVirtualImuComp::BatchJson(const FString& Id,const FVirtualImuConfig& C,const TArray<FVirtualImuSample>& Samples)
 {
     auto R=MakeShared<FJsonObject>();R->SetStringField(TEXT("schemaVersion"),TEXT("virtual-imu.v1"));R->SetStringField(TEXT("sensorId"),Id);
     R->SetStringField(TEXT("coordinates"),TEXT("sensor FLU; world FLU (UE Y reflected); specific force=R^-1(a-g); m/s^2; rad/s"));
@@ -64,14 +64,14 @@ TSharedRef<FJsonObject> UVirtualImuComponent::BatchJson(const FString& Id,const 
     R->SetNumberField(TEXT("seed"),C.Seed);R->SetBoolField(TEXT("noiseEnabled"),C.Noise&&C.Profile!=EVirtualImuProfile::Ideal);
     TArray<TSharedPtr<FJsonValue>> Values;for(const auto& S:Samples)Values.Add(MakeShared<FJsonValueObject>(S.ToJson()));R->SetArrayField(TEXT("samples"),Values);return R;
 }
-TSharedRef<FJsonObject> UVirtualImuComponent::StatusJson() const
+TSharedRef<FJsonObject> UVirtualImuComp::StatusJson() const
 {
     auto R=MakeShared<FJsonObject>();R->SetStringField(TEXT("sensor_id"),GetImuId());R->SetNumberField(TEXT("rate_hz"),Config.RateHz);
     R->SetBoolField(TEXT("recording"),Recording);R->SetBoolField(TEXT("publishing"),IsPublishing());R->SetBoolField(TEXT("has_sample"),HasLatest);
     R->SetNumberField(TEXT("samples"),SampleCount);R->SetNumberField(TEXT("discontinuities"),Model.Discontinuities);R->SetNumberField(TEXT("skipped_samples"),Model.SkippedSamples);
     if(HasLatest)R->SetObjectField(TEXT("latest"),Latest.ToJson());return R;
 }
-void UVirtualImuComponent::TickComponent(float D,ELevelTick T,FActorComponentTickFunction* F)
+void UVirtualImuComp::TickComponent(float D,ELevelTick T,FActorComponentTickFunction* F)
 {
     Super::TickComponent(D,T,F);if(!GetWorld()||!GetOwner())return;
     if(Detaching)

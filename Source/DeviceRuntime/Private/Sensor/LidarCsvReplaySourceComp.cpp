@@ -1,48 +1,48 @@
-#include "Device/Sensor/LidarCsvReplaySourceComponent.h"
+#include "Device/Sensor/LidarCsvReplaySourceComp.h"
 
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "TimerManager.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 
-ULidarCsvReplaySourceComponent::ULidarCsvReplaySourceComponent()
+ULidarCsvReplaySourceComp::ULidarCsvReplaySourceComp()
 {
     PrimaryComponentTick.bCanEverTick = false;
     SourceKind = ERealSensorSourceKind::FileReplay;
     SourceId = TEXT("CsvLidarReplay");
 }
 
-void ULidarCsvReplaySourceComponent::BeginPlay()
+void ULidarCsvReplaySourceComp::BeginPlay()
 {
     Super::BeginPlay();
 }
 
-void ULidarCsvReplaySourceComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void ULidarCsvReplaySourceComp::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     StopReplay();
     Super::EndPlay(EndPlayReason);
 }
 
-bool ULidarCsvReplaySourceComponent::LoadCsvFrame(TArray<FVirtualLidarPoint>& OutPoints, int32& OutRows, int32& OutCols) const
+bool ULidarCsvReplaySourceComp::LoadCsvFrame(TArray<FVirtualLidarPoint>& OutPoints, int32& OutRows, int32& OutCols) const
 {
     OutPoints.Reset();
     OutRows = 0;
     OutCols = 0;
 
     const FString ResolvedPath = ResolveCsvFilePath();
-    const_cast<ULidarCsvReplaySourceComponent*>(this)->LastResolvedCsvPath = ResolvedPath;
+    const_cast<ULidarCsvReplaySourceComp*>(this)->LastResolvedCsvPath = ResolvedPath;
     if (ResolvedPath.IsEmpty() || !FPaths::FileExists(ResolvedPath))
     {
-        const_cast<ULidarCsvReplaySourceComponent*>(this)->LastReplayMessage = FString::Printf(TEXT("CSV file not found: %s"), *ResolvedPath);
+        const_cast<ULidarCsvReplaySourceComp*>(this)->LastReplayMessage = FString::Printf(TEXT("CSV file not found: %s"), *ResolvedPath);
         return false;
     }
 
     TArray<FString> Lines;
     if (!FFileHelper::LoadFileToStringArray(Lines, *ResolvedPath))
     {
-        const_cast<ULidarCsvReplaySourceComponent*>(this)->LastReplayMessage = FString::Printf(TEXT("Failed to read CSV: %s"), *ResolvedPath);
+        const_cast<ULidarCsvReplaySourceComp*>(this)->LastReplayMessage = FString::Printf(TEXT("Failed to read CSV: %s"), *ResolvedPath);
         return false;
     }
 
@@ -107,14 +107,14 @@ bool ULidarCsvReplaySourceComponent::LoadCsvFrame(TArray<FVirtualLidarPoint>& Ou
 
     OutRows = MaxRow >= 0 ? MaxRow + 1 : 0;
     OutCols = MaxCol >= 0 ? MaxCol + 1 : OutPoints.Num();
-    const_cast<ULidarCsvReplaySourceComponent*>(this)->LastLoadedPointCount = OutPoints.Num();
-    const_cast<ULidarCsvReplaySourceComponent*>(this)->LastReplayMessage = FString::Printf(TEXT("Loaded %d points from %s"), OutPoints.Num(), *ResolvedPath);
+    const_cast<ULidarCsvReplaySourceComp*>(this)->LastLoadedPointCount = OutPoints.Num();
+    const_cast<ULidarCsvReplaySourceComp*>(this)->LastReplayMessage = FString::Printf(TEXT("Loaded %d points from %s"), OutPoints.Num(), *ResolvedPath);
     return OutPoints.Num() > 0;
 }
 
-bool ULidarCsvReplaySourceComponent::PushFrameOnce(bool bSendTransport)
+bool ULidarCsvReplaySourceComp::PushFrameOnce(bool bSendTransport)
 {
-    UVirtualLidarScanComponent* LidarComp = ResolveTargetLidar();
+    UVirtualLidarScanComp* LidarComp = ResolveTargetLidar();
     if (!LidarComp)
     {
         LastReplayMessage = TEXT("Target LiDAR is not set.");
@@ -138,22 +138,22 @@ bool ULidarCsvReplaySourceComponent::PushFrameOnce(bool bSendTransport)
     return PushPointFrameToTarget(Points, bSendTransport, LastReplayMessage, Rows, Cols, bUpdateLidarDimensionsFromCsv);
 }
 
-void ULidarCsvReplaySourceComponent::PushFrameOnceInEditor()
+void ULidarCsvReplaySourceComp::PushFrameOnceInEditor()
 {
     PushFrameOnce(bSendTransportByDefault);
 }
 
-void ULidarCsvReplaySourceComponent::PushFrameOnceNoTransportInEditor()
+void ULidarCsvReplaySourceComp::PushFrameOnceNoTransportInEditor()
 {
     PushFrameOnce(false);
 }
 
-void ULidarCsvReplaySourceComponent::StartReplay()
+void ULidarCsvReplaySourceComp::StartReplay()
 {
     StartSource();
 }
 
-bool ULidarCsvReplaySourceComponent::StartSource()
+bool ULidarCsvReplaySourceComp::StartSource()
 {
     UWorld* World = GetWorld();
     if (!World)
@@ -165,22 +165,22 @@ bool ULidarCsvReplaySourceComponent::StartSource()
     SetSourceState(ERealSensorSourceConnectionState::Starting, TEXT("CSV replay starting."));
     bReplayActive = true;
     PushFrameOnce(bSendTransportByDefault);
-    World->GetTimerManager().SetTimer(ReplayTimerHandle, this, &ULidarCsvReplaySourceComponent::PushFrameFromTimer, FMath::Max(0.033f, ReplayInterval), true);
+    World->GetTimerManager().SetTimer(ReplayTimerHandle, this, &ULidarCsvReplaySourceComp::PushFrameFromTimer, FMath::Max(0.033f, ReplayInterval), true);
     SetSourceState(ERealSensorSourceConnectionState::Running, TEXT("CSV replay running."));
     return true;
 }
 
-void ULidarCsvReplaySourceComponent::StartReplayInEditor()
+void ULidarCsvReplaySourceComp::StartReplayInEditor()
 {
     StartReplay();
 }
 
-void ULidarCsvReplaySourceComponent::StopReplay()
+void ULidarCsvReplaySourceComp::StopReplay()
 {
     StopSource();
 }
 
-void ULidarCsvReplaySourceComponent::StopSource()
+void ULidarCsvReplaySourceComp::StopSource()
 {
     if (UWorld* World = GetWorld())
     {
@@ -190,12 +190,12 @@ void ULidarCsvReplaySourceComponent::StopSource()
     SetSourceState(ERealSensorSourceConnectionState::Stopped, TEXT("CSV replay stopped."));
 }
 
-void ULidarCsvReplaySourceComponent::StopReplayInEditor()
+void ULidarCsvReplaySourceComp::StopReplayInEditor()
 {
     StopReplay();
 }
 
-FString ULidarCsvReplaySourceComponent::ResolveCsvFilePath() const
+FString ULidarCsvReplaySourceComp::ResolveCsvFilePath() const
 {
     FString Path = CsvFilePath;
     Path.TrimStartAndEndInline();
@@ -223,7 +223,7 @@ FString ULidarCsvReplaySourceComponent::ResolveCsvFilePath() const
     return Path;
 }
 
-bool ULidarCsvReplaySourceComponent::ParseCsvPointLine(const FString& Line, int32 LineIndex, int32& OutRow, int32& OutCol, bool& bOutHasGridCoord, FVector& OutPoint) const
+bool ULidarCsvReplaySourceComp::ParseCsvPointLine(const FString& Line, int32 LineIndex, int32& OutRow, int32& OutCol, bool& bOutHasGridCoord, FVector& OutPoint) const
 {
     FString Trimmed = Line;
     Trimmed.TrimStartAndEndInline();
@@ -265,7 +265,7 @@ bool ULidarCsvReplaySourceComponent::ParseCsvPointLine(const FString& Line, int3
     return false;
 }
 
-void ULidarCsvReplaySourceComponent::PushFrameFromTimer()
+void ULidarCsvReplaySourceComp::PushFrameFromTimer()
 {
     PushFrameOnce(bSendTransportByDefault);
 }

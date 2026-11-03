@@ -5,11 +5,11 @@
 #else
 #include <cstdio>
 #endif
-#include "Device/Sensor/VirtualImuComponent.h"
+#include "Device/Sensor/VirtualImuComp.h"
 #include "Device/Contracts/VirtualSensorDefaults.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarExportComponent.h"
+#include "Device/Sensor/VirtualLidarExportComp.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
 #include "Device/Camera/VirtualCameraPayloadCodec.h"
 #include "Async/Async.h"
@@ -28,7 +28,7 @@ struct FVirtualSensorFileSaveRequest
     TWeakObjectPtr<UObject> AnalysisOwner;
     TSharedPtr<const FString,ESPMode::ThreadSafe> AnalysisJson;
     bool AnalysisRequest=false;
-    TWeakObjectPtr<UVirtualImuComponent> ImuSource;
+    TWeakObjectPtr<UVirtualImuComp> ImuSource;
     TSharedPtr<const TArray<FVirtualImuSample>,ESPMode::ThreadSafe> Imu;
     int32 ImuGeneration=0;
     bool ImuRequest=false;
@@ -137,7 +137,7 @@ TArray<FVirtualSensorExportResult> WriteFiles(const FFileWriteInput& Input,FStri
 		if(Error.IsEmpty()&&Input.Selection.bPointCloud)
 		{
 			FString Extension;TArray<uint8> Bytes;int32 Count=0;
-			if(UVirtualLidarExportComponent::SerializeImmutableFrame(Input.Lidar,Input.ExportConfig,Extension,Bytes,Count,Error))
+			if(UVirtualLidarExportComp::SerializeImmutableFrame(Input.Lidar,Input.ExportConfig,Extension,Bytes,Count,Error))
 				Save(Bytes.GetData(),Bytes.Num(),Extension,Timed?TEXT("Lidar"):VirtualSensorDefaults::PointCloudSubdirectory,Input.Selection.PointCloudFormat);
 		}
 	}
@@ -160,8 +160,8 @@ uint64 UVirtualSensorFileSaveSubsystem::GetSensorSaveRevision(AVirtualSensorActo
 	State.CameraCaptureMode=EVirtualCameraCaptureMode::PreviewOnly;
 	TArray<uint8> Bytes;FMemoryWriter Writer(Bytes);FVirtualSensorEditableState::StaticStruct()->SerializeItem(Writer,&State,nullptr);
 	uint32 Generation=0;
-	if(const auto* Camera=Cast<AVirtualCameraSensorActor>(Sensor)) {if(Camera->CaptureComponent)Generation=Camera->CaptureComponent->GetFileCaptureRevision();}
-	if(const auto* Lidar=Cast<AVirtualLidarSensorActor>(Sensor)) {if(Lidar->ScanComponent)Generation=Lidar->ScanComponent->GetFileCaptureRevision();}
+	if(const auto* Camera=Cast<AVirtualCameraSensorActor>(Sensor)) {if(Camera->CaptureComp)Generation=Camera->CaptureComp->GetFileCaptureRevision();}
+	if(const auto* Lidar=Cast<AVirtualLidarSensorActor>(Sensor)) {if(Lidar->ScanComp)Generation=Lidar->ScanComp->GetFileCaptureRevision();}
 	return(uint64(Generation)<<32)|FCrc::MemCrc32(Bytes.GetData(),Bytes.Num());
 }
 
@@ -180,8 +180,8 @@ FString UVirtualSensorFileSaveSubsystem::RequestAnalysisJson(UObject* Owner,cons
 int64 UVirtualSensorFileSaveSubsystem::GetAvailableFrameId(AVirtualSensorActorBase* Sensor)
 {
 	if(const auto* Camera=Cast<AVirtualCameraSensorActor>(Sensor))
-	{if(!Camera->CaptureComponent)return-1;const int64 Local=Camera->CaptureComponent->GetAvailableLocalFrameId();const auto External=Camera->CaptureComponent->GetExternalFileFrame();return Local>=0?Local:External&&External->HasJsonPayload()?External->FrameId:-1;}
-	if(const auto* Lidar=Cast<AVirtualLidarSensorActor>(Sensor)) {const auto Frame=Lidar->ScanComponent?Lidar->ScanComponent->GetLastFrameSnapshot():nullptr;return Frame&&Frame->Points?Frame->FrameId:-1;}
+	{if(!Camera->CaptureComp)return-1;const int64 Local=Camera->CaptureComp->GetAvailableLocalFrameId();const auto External=Camera->CaptureComp->GetExternalFileFrame();return Local>=0?Local:External&&External->HasJsonPayload()?External->FrameId:-1;}
+	if(const auto* Lidar=Cast<AVirtualLidarSensorActor>(Sensor)) {const auto Frame=Lidar->ScanComp?Lidar->ScanComp->GetLastFrameSnapshot():nullptr;return Frame&&Frame->Points?Frame->FrameId:-1;}
 	return -1;
 }
 bool UVirtualSensorFileSaveSubsystem::CanSaveCurrent(AVirtualSensorActorBase* Sensor,const FVirtualSensorCaptureSelection& Selection)
@@ -189,16 +189,16 @@ bool UVirtualSensorFileSaveSubsystem::CanSaveCurrent(AVirtualSensorActorBase* Se
 	if(!IsValid(Sensor))return false;
 	if(const auto* Camera=Cast<AVirtualCameraSensorActor>(Sensor))
 	{
-		if(!Camera->CaptureComponent||(!Selection.bCameraImage&&!Selection.bCameraPayload))return false;
-		if(Camera->CaptureComponent->GetAvailableLocalFrameId()>=0)return true;
-		const auto External=Camera->CaptureComponent->GetExternalFileFrame();return!Selection.bCameraImage&&Selection.bCameraPayload&&External&&External->HasJsonPayload();
+		if(!Camera->CaptureComp||(!Selection.bCameraImage&&!Selection.bCameraPayload))return false;
+		if(Camera->CaptureComp->GetAvailableLocalFrameId()>=0)return true;
+		const auto External=Camera->CaptureComp->GetExternalFileFrame();return!Selection.bCameraImage&&Selection.bCameraPayload&&External&&External->HasJsonPayload();
 	}
 	return (Selection.bLidarPayload||Selection.bPointCloud)&&GetAvailableFrameId(Sensor)>=0;
 }
 bool UVirtualSensorFileSaveSubsystem::HasPendingSave(AVirtualSensorActorBase* Sensor) const
 {
 	if(!IsValid(Sensor))return false;
-    if(auto* C=Cast<AVirtualCameraSensorActor>(Sensor);C&&C->CaptureComponent&&C->CaptureComponent->IsGroundTruthSavePending())return true;
+    if(auto* C=Cast<AVirtualCameraSensorActor>(Sensor);C&&C->CaptureComp&&C->CaptureComp->IsGroundTruthSavePending())return true;
 	for(const auto& P:Requests)if(!P.Value->Status.IsTerminal()&&(P.Value->Actor==Sensor||P.Value->Status.SensorId==Sensor->GetSensorId()))return true;
 	return false;
 }
@@ -245,18 +245,18 @@ FString UVirtualSensorFileSaveSubsystem::RequestSaveInternal(EVirtualSensorFileS
 	if(Camera)
 	{
 		auto* Actor=Cast<AVirtualCameraSensorActor>(Sensor);FString Error;TWeakObjectPtr<UVirtualSensorFileSaveSubsystem> Weak(this);
-		const auto External=Actor&&Actor->CaptureComponent?Actor->CaptureComponent->GetExternalFileFrame():nullptr;
+		const auto External=Actor&&Actor->CaptureComp?Actor->CaptureComp->GetExternalFileFrame():nullptr;
 		if(Mode==EVirtualSensorFileSaveMode::CurrentFrame&&!Selection.bCameraImage&&Selection.bCameraPayload&&External&&External->HasJsonPayload())
 		{
 			R->CameraJson=External->JsonPayload;R->Status.FrameId=External->FrameId;R->Status.AcquisitionUtc=External->TimestampUtc;R->ReadyToWrite=true;
 			SetState(R,EVirtualSensorFileSaveState::Saving,TEXT("검증된 외부 Camera JSON 원문을 저장 중"));QueueWrite(R);return Id;
 		}
-		if(!Actor||!Actor->CaptureComponent||!Actor->CaptureComponent->RequestLocalFileFrame(Mode==EVirtualSensorFileSaveMode::NewFrame,
+		if(!Actor||!Actor->CaptureComp||!Actor->CaptureComp->RequestLocalFileFrame(Mode==EVirtualSensorFileSaveMode::NewFrame,
 			[Weak,Id](auto Frame,const FString& Failure){if(Weak.IsValid())if(const auto* Entry=Weak->Requests.Find(Id))Weak->StartCameraSave(*Entry,Frame,Failure);},Error))
 			SetState(R,EVirtualSensorFileSaveState::Failed,Error.IsEmpty()?TEXT("Camera 파일 프레임을 요청할 수 없습니다."):Error);
 	}
 	else if(Mode==EVirtualSensorFileSaveMode::CurrentFrame)StartLidarSave(R);
-	else if(auto* Lidar=Cast<AVirtualLidarSensorActor>(Sensor))Lidar->ScanComponent->RequestImmediateScheduledScan();
+	else if(auto* Lidar=Cast<AVirtualLidarSensorActor>(Sensor))Lidar->ScanComp->RequestImmediateScheduledScan();
 	return Id;
 }
 bool UVirtualSensorFileSaveSubsystem::IsRequestCurrent(const TSharedPtr<FVirtualSensorFileSaveRequest,ESPMode::ThreadSafe>& R,FString& Why) const
@@ -266,8 +266,8 @@ bool UVirtualSensorFileSaveSubsystem::IsRequestCurrent(const TSharedPtr<FVirtual
     if(R->ImuRequest)
     {const bool Current=!bShuttingDown&&R->ImuSource.IsValid()&&R->ImuSource->IsRegistered()&&R->ImuSource->Generation==R->ImuGeneration&&R->ImuSource->GetWorld()==GetWorld();if(!Current)Why=TEXT("IMU removed, reconfigured or world ended");return Current;}
 	if(bShuttingDown||!R->Actor.IsValid()||R->Actor->IsActorBeingDestroyed()||R->Actor->GetWorld()!=GetWorld()) {Why=TEXT("센서 삭제 또는 실행 종료로 저장을 취소했습니다.");return false;}
-	if(const auto* Camera=Cast<AVirtualCameraSensorActor>(R->Actor.Get())) if(!IsValid(Camera->CaptureComponent)||!Camera->CaptureComponent->IsRegistered()) {Why=TEXT("Camera 캡처 컴포넌트가 종료되었습니다.");return false;}
-	if(const auto* Lidar=Cast<AVirtualLidarSensorActor>(R->Actor.Get())) if(!IsValid(Lidar->ScanComponent)||!Lidar->ScanComponent->IsRegistered()) {Why=TEXT("LiDAR 측정 컴포넌트가 종료되었습니다.");return false;}
+	if(const auto* Camera=Cast<AVirtualCameraSensorActor>(R->Actor.Get())) if(!IsValid(Camera->CaptureComp)||!Camera->CaptureComp->IsRegistered()) {Why=TEXT("Camera 캡처 컴포넌트가 종료되었습니다.");return false;}
+	if(const auto* Lidar=Cast<AVirtualLidarSensorActor>(R->Actor.Get())) if(!IsValid(Lidar->ScanComp)||!Lidar->ScanComp->IsRegistered()) {Why=TEXT("LiDAR 측정 컴포넌트가 종료되었습니다.");return false;}
 	if(R->Actor->GetSensorId()!=R->Status.SensorId||GetSensorSaveRevision(R->Actor.Get())!=R->Revision) {Why=TEXT("센서 측정 설정 변경으로 이전 저장 요청을 취소했습니다.");return false;}
 	return true;
 }
@@ -290,13 +290,13 @@ void UVirtualSensorFileSaveSubsystem::SetState(const TSharedPtr<FVirtualSensorFi
 }
 void UVirtualSensorFileSaveSubsystem::StartLidarSave(const TSharedPtr<FVirtualSensorFileSaveRequest,ESPMode::ThreadSafe>& R)
 {
-	auto* Lidar=Cast<AVirtualLidarSensorActor>(R->Actor.Get());if(!Lidar||!Lidar->ScanComponent)return;
-	const auto Frame=Lidar->ScanComponent->GetLastFrameSnapshot();if(!Frame||!Frame->Points)return;
+	auto* Lidar=Cast<AVirtualLidarSensorActor>(R->Actor.Get());if(!Lidar||!Lidar->ScanComp)return;
+	const auto Frame=Lidar->ScanComp->GetLastFrameSnapshot();if(!Frame||!Frame->Points)return;
 	if(R->Status.Mode==EVirtualSensorFileSaveMode::NewFrame&&(Frame->FrameId<=R->BaselineFrame||Frame->AcquisitionStartUnixNanoseconds<R->RequestedUnixNs))return;
 	R->Lidar.SensorId=R->Status.SensorId;R->Lidar.SensorKind=EVirtualSensorKind::Lidar;R->Lidar.FrameId=Frame->FrameId;R->Lidar.TimestampUtc=UnixNsDate(Frame->AcquisitionStartUnixNanoseconds);R->Lidar.PointSnapshot=Frame->Points;R->Lidar.LidarFrameSnapshot=Frame;R->Lidar.SlabContext=Frame->SlabContext;
-	R->LidarJsonEncoder=Lidar->ScanComponent->CreateLocalFilePayloadEncoder(Frame);
+	R->LidarJsonEncoder=Lidar->ScanComp->CreateLocalFilePayloadEncoder(Frame);
 	R->ExportConfig.StreamKind=EVirtualSensorStreamKind::PointCloud;R->ExportConfig.PcdDataMode=EVirtualPcdDataMode::Binary;
-	R->ExportConfig.LazCompressorPath=Lidar->ScanComponent->bUseExternalLazCompressor?Lidar->ScanComponent->ExternalLazCompressorPath:FString();R->ExportConfig.LazCompressorArguments=Lidar->ScanComponent->ExternalLazCompressorArguments;
+	R->ExportConfig.LazCompressorPath=Lidar->ScanComp->bUseExternalLazCompressor?Lidar->ScanComp->ExternalLazCompressorPath:FString();R->ExportConfig.LazCompressorArguments=Lidar->ScanComp->ExternalLazCompressorArguments;
 	R->Status.FrameId=Frame->FrameId;R->Status.AcquisitionUtc=R->Lidar.TimestampUtc;R->ReadyToWrite=true;SetState(R,EVirtualSensorFileSaveState::Saving,TEXT("고정된 LiDAR 프레임을 파일로 저장 중"));QueueWrite(R);
 }
 void UVirtualSensorFileSaveSubsystem::StartCameraSave(const TSharedPtr<FVirtualSensorFileSaveRequest,ESPMode::ThreadSafe>& R,TSharedPtr<const FVirtualCameraLocalSaveFrame,ESPMode::ThreadSafe> Frame,const FString& Error)
@@ -342,17 +342,17 @@ void UVirtualSensorFileSaveSubsystem::Tick(float)
             if(!IsRequestCurrent(R,Why))
             {
                 SetState(R,EVirtualSensorFileSaveState::Cancelled,Why);
-                if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))if(C->CaptureComponent)C->CaptureComponent->CancelGroundTruthSave();
+                if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))if(C->CaptureComp)C->CaptureComp->CancelGroundTruthSave();
             }
             continue;
         }
 		if(!IsRequestCurrent(R,Why))
-		{if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))if(C->CaptureComponent)C->CaptureComponent->CancelLocalFileFrame();SetState(R,EVirtualSensorFileSaveState::Cancelled,Why);continue;}
+		{if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))if(C->CaptureComp)C->CaptureComp->CancelLocalFileFrame();SetState(R,EVirtualSensorFileSaveState::Cancelled,Why);continue;}
 		if(R->Status.State==EVirtualSensorFileSaveState::Waiting)
 		{
 			const bool Fresh=R->Status.Mode==EVirtualSensorFileSaveMode::NewFrame;
-			if(FPlatformTime::Seconds()-R->StartedSeconds>=(Fresh?2.0:10.0)){if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))if(C->CaptureComponent)C->CaptureComponent->CancelLocalFileFrame();SetState(R,EVirtualSensorFileSaveState::Failed,Fresh?TEXT("2초 안에 저장 가능한 새 프레임을 얻지 못했습니다. 이전 프레임은 저장하지 않았습니다."):TEXT("현재 프레임 읽기가 10초 안에 완료되지 않았습니다."));continue;}
-			if(R->Status.SensorKind==EVirtualSensorKind::Camera){if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))C->CaptureComponent->PollLocalFileFrame();}
+			if(FPlatformTime::Seconds()-R->StartedSeconds>=(Fresh?2.0:10.0)){if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))if(C->CaptureComp)C->CaptureComp->CancelLocalFileFrame();SetState(R,EVirtualSensorFileSaveState::Failed,Fresh?TEXT("2초 안에 저장 가능한 새 프레임을 얻지 못했습니다. 이전 프레임은 저장하지 않았습니다."):TEXT("현재 프레임 읽기가 10초 안에 완료되지 않았습니다."));continue;}
+			if(R->Status.SensorKind==EVirtualSensorKind::Camera){if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))C->CaptureComp->PollLocalFileFrame();}
 			else StartLidarSave(R);
 		}
 		QueueWrite(R);
@@ -364,10 +364,10 @@ bool UVirtualSensorFileSaveSubsystem::CancelRequest(const FString& Id)
 	if(R->GroundTruthRequest)
     {
         SetState(R,EVirtualSensorFileSaveState::Cancelled,TEXT("정답 데이터 저장 요청이 취소되었습니다."));
-        if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))if(C->CaptureComponent)C->CaptureComponent->CancelGroundTruthSave();
+        if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))if(C->CaptureComp)C->CaptureComp->CancelGroundTruthSave();
         return true;
     }
-	if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))if(C->CaptureComponent)C->CaptureComponent->CancelLocalFileFrame();
+	if(auto* C=Cast<AVirtualCameraSensorActor>(R->Actor.Get()))if(C->CaptureComp)C->CaptureComp->CancelLocalFileFrame();
 	SetState(R,EVirtualSensorFileSaveState::Cancelled,TEXT("파일 저장 요청이 취소되었습니다."));return true;
 }
 FVirtualSensorFileSaveStatus UVirtualSensorFileSaveSubsystem::GetRequestStatus(const FString& Id) const
@@ -388,7 +388,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSensorFileSaveStateTest,"MA0T10.SensorFiles.Re
 bool FSensorFileSaveStateTest::RunTest(const FString&)
 {
 	auto* World=FAutomationEditorCommonUtils::CreateNewMap();auto* A=World->SpawnActor<AVirtualLidarSensorActor>();auto* B=World->SpawnActor<AVirtualLidarSensorActor>();
-	A->ScanComponent->SensorId=TEXT("File-A");B->ScanComponent->SensorId=TEXT("File-B");auto* Service=World->GetSubsystem<UVirtualSensorFileSaveSubsystem>();
+	A->ScanComp->SensorId=TEXT("File-A");B->ScanComp->SensorId=TEXT("File-B");auto* Service=World->GetSubsystem<UVirtualSensorFileSaveSubsystem>();
 	FVirtualSensorCaptureSelection Selection;Selection.bLidarPayload=false;Selection.PointCloudFormat=EVirtualSensorExportKind::PointCloudPcd;
 	const FString Stopped=Service->RequestSave(EVirtualSensorFileSaveMode::NewFrame,A,Selection);
 	TestFalse(TEXT("rejected request still has identity"),Stopped.IsEmpty());TestEqual(TEXT("stopped NewFrame fails explicitly"),Service->GetRequestStatus(Stopped).State,EVirtualSensorFileSaveState::Failed);TestFalse(TEXT("request does not start sensor"),A->IsSensorRunning());
@@ -407,7 +407,7 @@ bool FSensorFileSaveStateTest::RunTest(const FString&)
 	Waiting->StartedSeconds-=2.01;Service->Tick(0);TestEqual(TEXT("2s timeout is failure, never stale fallback"),Waiting->Status.State,EVirtualSensorFileSaveState::Failed);TestTrue(TEXT("timeout produces no files"),Waiting->Status.FileResults.IsEmpty());
 	Selection.bPointCloud=true;auto Changed=MakeWaiting(A);A->SetActorLocation(FVector(10,0,0));Service->Tick(0);
 	TestEqual(TEXT("natural sensor motion does not cancel immutable save"),Changed->Status.State,EVirtualSensorFileSaveState::Waiting);
-	A->ScanComponent->MaxDistance+=10;Service->Tick(0);
+	A->ScanComp->MaxDistance+=10;Service->Tick(0);
 	TestEqual(TEXT("revision change cancels old request"),Changed->Status.State,EVirtualSensorFileSaveState::Cancelled);TestTrue(TEXT("worker cancellation is visible"),Changed->Cancellation->Cancelled.load());
 	auto Deleted=MakeWaiting(B);B->Destroy();Service->Tick(0);TestEqual(TEXT("actor deletion cancels"),Deleted->Status.State,EVirtualSensorFileSaveState::Cancelled);
 	auto Hidden=MakeWaiting(A);A->SetActorHiddenInGame(true);Service->Tick(0);TestEqual(TEXT("visibility is not request ownership"),Hidden->Status.State,EVirtualSensorFileSaveState::Waiting);
@@ -449,12 +449,12 @@ bool FSensorExternalCameraFileTest::RunTest(const FString&)
 	FVirtualCameraPayloadSnapshot Descriptor;Descriptor.SensorId=TEXT("EXTERNAL-CAM");Descriptor.Manufacturer=TEXT("Fixture");Descriptor.Model=TEXT("JSONOnly");Descriptor.SimulationQuality=TEXT("Debug");Descriptor.FrameId=301;Descriptor.TimestampUtc=FDateTime(2026,9,21,1,2,3);Descriptor.Width=2;Descriptor.Height=2;Descriptor.HorizontalFov=87;Descriptor.VerticalFov=58;
 	const TArray<uint8> Signature={0xff,0xd8,0xff,0xd9};
 	const FString Original=FVirtualCameraPayloadCodec::EncodeJpegBase64(Descriptor,FBase64::Encode(Signature),Signature.Num());
-	TestTrue(TEXT("existing external JSON validation accepts fixture"),Camera->CaptureComponent->InjectExternalJsonPayload(Original,false));
+	TestTrue(TEXT("existing external JSON validation accepts fixture"),Camera->CaptureComp->InjectExternalJsonPayload(Original,false));
 	FVirtualSensorCaptureSelection Selection;Selection.bCameraImage=false;Selection.bCameraPayload=true;
 	TestTrue(TEXT("JSON-only current file is available without a render target"),UVirtualSensorFileSaveSubsystem::CanSaveCurrent(Camera,Selection));
 	TestEqual(TEXT("external source frame identity preserved"),UVirtualSensorFileSaveSubsystem::GetAvailableFrameId(Camera),int64(301));
 	Selection.bCameraImage=true;TestFalse(TEXT("external JSON cannot masquerade as an RT JPEG"),UVirtualSensorFileSaveSubsystem::CanSaveCurrent(Camera,Selection));Selection.bCameraImage=false;
-	const auto External=Camera->CaptureComponent->GetExternalFileFrame();TestTrue(TEXT("validated immutable original held"),External&&External->JsonPayload&&*External->JsonPayload==Original);
+	const auto External=Camera->CaptureComp->GetExternalFileFrame();TestTrue(TEXT("validated immutable original held"),External&&External->JsonPayload&&*External->JsonPayload==Original);
 	if(External)
 	{
 		TestEqual(TEXT("source acquisition UTC not replaced by local receive time"),External->TimestampUtc,Descriptor.TimestampUtc);
@@ -502,15 +502,15 @@ FString UVirtualSensorFileSaveSubsystem::RequestTrackedCameraGroundTruthSave(AVi
     if(IsValid(Sensor)){R->Status.SensorId=Sensor->GetSensorId();R->Revision=GetSensorSaveRevision(Sensor);}
     Requests.Add(Id,R);Order.Insert(Id,0);TrimHistory();
     auto Reject=[&](const FString& Why){SetState(R,EVirtualSensorFileSaveState::Failed,Why);return Id;};
-    if(!Allowed||!IsValid(Sensor)||Sensor->GetWorld()!=GetWorld()||!Sensor->CaptureComponent)return Reject(TEXT("정답 데이터 요청 불가 · 센서 또는 진행 중인 파일 저장을 확인하세요."));
+    if(!Allowed||!IsValid(Sensor)||Sensor->GetWorld()!=GetWorld()||!Sensor->CaptureComp)return Reject(TEXT("정답 데이터 요청 불가 · 센서 또는 진행 중인 파일 저장을 확인하세요."));
     if(Sensor->IsInteractiveManipulationActive())return Reject(TEXT("이동·회전을 종료한 뒤 정답 데이터를 저장하세요."));
-    if(!Sensor->CaptureComponent->bGroundTruthEnabled)return Reject(TEXT("정답 데이터를 켠 뒤 저장하세요."));
+    if(!Sensor->CaptureComp->bGroundTruthEnabled)return Reject(TEXT("정답 데이터를 켠 뒤 저장하세요."));
     if(!Sensor->IsSensorRunning())return Reject(TEXT("측정을 시작한 뒤 정답 데이터를 저장하세요."));
     SetState(R,EVirtualSensorFileSaveState::Accepted,TEXT("정답 데이터 저장 요청 접수"));
     if(R->Status.IsTerminal()||bShuttingDown)return Id;
     FString Why;if(!IsRequestCurrent(R,Why))return Reject(Why);
     TWeakObjectPtr<UVirtualSensorFileSaveSubsystem> Weak(this);
-    const bool Accepted=Sensor->CaptureComponent->RequestTrackedGroundTruthSave([Weak,Id](const FVirtualCameraTruthFrame* Frame,const FString& Directory,const FString& Error,const TArray<int64>& Sizes)
+    const bool Accepted=Sensor->CaptureComp->RequestTrackedGroundTruthSave([Weak,Id](const FVirtualCameraTruthFrame* Frame,const FString& Directory,const FString& Error,const TArray<int64>& Sizes)
     {
         auto* Service=Weak.Get();if(!Service)return;const auto* Entry=Service->Requests.Find(Id);if(!Entry)return;const auto Request=*Entry;
         if(Request->Status.IsTerminal())return;
@@ -594,7 +594,7 @@ bool UVirtualSensorFileSaveSubsystem::WriteVerificationBundle(const FString& All
     return Ok;
 }
 
-FString UVirtualSensorFileSaveSubsystem::RequestImuCsv(UVirtualImuComponent* Source,const FString& SensorId,const TArray<FVirtualImuSample>& Samples)
+FString UVirtualSensorFileSaveSubsystem::RequestImuCsv(UVirtualImuComp* Source,const FString& SensorId,const TArray<FVirtualImuSample>& Samples)
 {
     auto R=MakeShared<FVirtualSensorFileSaveRequest,ESPMode::ThreadSafe>();R->Status.RequestId=FGuid::NewGuid().ToString(EGuidFormats::Digits);R->Status.SensorId=SensorId;R->Status.RequestedUtc=FDateTime::UtcNow();
     const FString Id=R->Status.RequestId;Requests.Add(Id,R);Order.Insert(Id,0);TrimHistory();

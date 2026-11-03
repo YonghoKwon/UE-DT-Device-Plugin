@@ -3,11 +3,11 @@
 #include "Device/Core/VirtualSensorSchedulerSubsystem.h"
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
 #include "Device/Contracts/VirtualSensorAcquisitionContext.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 namespace
 {
 FString FormatPreflightDetails(const FVirtualSensorOutputPreflightResult& R)
@@ -70,8 +70,8 @@ FVirtualSensorOutputPreflightResult UVirtualSensorOutputPreflight::InspectForPre
 {
     FVirtualSensorOutputPreflightResult R;auto* World=Context?Context->GetWorld():nullptr;
     auto* Layout=World?World->GetSubsystem<UVirtualSensorLayoutSubsystem>():nullptr;auto* C=Layout?Layout->Coordinator():nullptr;
-    if(!C||!C->GetDeviceCoordinatorConfig().StreamPublisherComponent||!C->GetDeviceCoordinatorConfig().SharedTransportComponent){R.BlockingReasons.Add(TEXT("센서 Coordinator와 전송 설정이 필요합니다."));return EvaluatePreflight(MoveTemp(R),8388608,bBuildDetails);}
-    auto* P=C->GetDeviceCoordinatorConfig().StreamPublisherComponent;auto* T=C->GetDeviceCoordinatorConfig().SharedTransportComponent;const auto& Profile=T->GetTransportProfile();
+    if(!C||!C->GetDeviceCoordinatorConfig().StreamPublisherComp||!C->GetDeviceCoordinatorConfig().SharedTransportComp){R.BlockingReasons.Add(TEXT("센서 Coordinator와 전송 설정이 필요합니다."));return EvaluatePreflight(MoveTemp(R),8388608,bBuildDetails);}
+    auto* P=C->GetDeviceCoordinatorConfig().StreamPublisherComp;auto* T=C->GetDeviceCoordinatorConfig().SharedTransportComp;const auto& Profile=T->GetTransportProfile();
     R.SubmissionsPerFrame=P->MaxSubmissionsPerFrame;R.PcdBudgetMegabytesPerSecond=P->PointCloudBandwidthLimitMegabytesPerSecond;
     if(ObservedFps<=0)if(const auto* Scheduler=World->GetSubsystem<UVirtualSensorSchedulerSubsystem>())ObservedFps=Scheduler->GetTelemetry().AverageFps;
     R.bAssumedFps=!FMath::IsFinite(ObservedFps)||ObservedFps<=0;R.FpsUsed=R.bAssumedFps?60:ObservedFps;
@@ -131,7 +131,7 @@ FVirtualSensorOutputPreflightResult UVirtualSensorOutputPreflight::InspectForPre
             Row.Specification=Camera?FString::Printf(TEXT("%d×%d"),S.CameraResolution.X,S.CameraResolution.Y):FString::Printf(TEXT("%d×%d"),S.LidarHorizontalSamples,S.LidarVerticalChannels);
             if(Kind==EVirtualSensorStreamKind::PointCloud)
             {
-                const auto* L=Cast<AVirtualLidarSensorActor>(A);const auto* Scan=L?L->ScanComponent.Get():nullptr;
+                const auto* L=Cast<AVirtualLidarSensorActor>(A);const auto* Scan=L?L->ScanComp.Get():nullptr;
                 int32 Echoes=1;
                 if(Scan)
                 {

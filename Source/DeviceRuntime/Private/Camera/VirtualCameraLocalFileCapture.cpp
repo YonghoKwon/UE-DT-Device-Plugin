@@ -180,20 +180,20 @@ bool FSensorCameraLocalDispatchTest::RunTest(const FString&)
 {
 	if(GUsingNullRHI||!FApp::CanEverRender()){AddInfo(TEXT("SKIP: camera capture dispatch isolation requires rendering."));return true;}
 	auto* World=FAutomationEditorCommonUtils::CreateNewMap();auto* A=World->SpawnActor<AVirtualCameraSensorActor>();auto* B=World->SpawnActor<AVirtualCameraSensorActor>();
-	A->CaptureComponent->CaptureMode=EVirtualCameraCaptureMode::PreviewOnly;A->CaptureComponent->CaptureResolution=FIntPoint(4,4);
+	A->CaptureComp->CaptureMode=EVirtualCameraCaptureMode::PreviewOnly;A->CaptureComp->CaptureResolution=FIntPoint(4,4);
 	// Existing public one-shot creates the fixture frame, not the production file request.
-	A->CaptureComponent->CaptureAndSendImage();
-	TestTrue(TEXT("fixture has a dispatched local frame"),A->CaptureComponent->GetAvailableLocalFrameId()>=0);
-	B->CaptureComponent->CaptureSceneDeferred();const int32 Before=B->CaptureComponent->LocalFileRenderDispatchCount;
-	const int32 OwnBefore=A->CaptureComponent->LocalFileRenderDispatchCount;FString Error;
-	const bool Accepted=A->CaptureComponent->RequestLocalFileFrame(false,[](auto,const FString&){},Error);
+	A->CaptureComp->CaptureAndSendImage();
+	TestTrue(TEXT("fixture has a dispatched local frame"),A->CaptureComp->GetAvailableLocalFrameId()>=0);
+	B->CaptureComp->CaptureSceneDeferred();const int32 Before=B->CaptureComp->LocalFileRenderDispatchCount;
+	const int32 OwnBefore=A->CaptureComp->LocalFileRenderDispatchCount;FString Error;
+	const bool Accepted=A->CaptureComp->RequestLocalFileFrame(false,[](auto,const FString&){},Error);
 	TestTrue(TEXT("current local copy accepted"),Accepted);
-	TestEqual(TEXT("file request never dispatches another deferred camera"),B->CaptureComponent->LocalFileRenderDispatchCount,Before);
-	TestEqual(TEXT("current frame copy creates no new own acquisition"),A->CaptureComponent->LocalFileRenderDispatchCount,OwnBefore);
-	A->CaptureComponent->CancelLocalFileFrame();
+	TestEqual(TEXT("file request never dispatches another deferred camera"),B->CaptureComp->LocalFileRenderDispatchCount,Before);
+	TestEqual(TEXT("current frame copy creates no new own acquisition"),A->CaptureComp->LocalFileRenderDispatchCount,OwnBefore);
+	A->CaptureComp->CancelLocalFileFrame();
 	// Explicitly advance the test's engine stage, proving B really was pending all along.
 	USceneCaptureComponent::UpdateDeferredCaptures(World->Scene);
-	TestTrue(TEXT("unrelated capture remains pending until the engine capture stage"),B->CaptureComponent->LocalFileRenderDispatchCount>Before);
+	TestTrue(TEXT("unrelated capture remains pending until the engine capture stage"),B->CaptureComp->LocalFileRenderDispatchCount>Before);
 	A->Destroy();B->Destroy();return true;
 }
 #endif

@@ -1,4 +1,4 @@
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "MA0T10MemoryTags.h"
 #include "Device/Contracts/VirtualSensorDefaults.h"
 #include "Device/Core/VirtualPointCloudCoordinates.h"
@@ -19,10 +19,10 @@
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
-#include "Device/Sensor/VirtualSensorOutputComponent.h"
+#include "Device/Sensor/VirtualSensorOutputComp.h"
 #include "EngineUtils.h"
 #include "Device/Sensor/VirtualLidarPayloadCodec.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 
 namespace
 {
@@ -406,7 +406,7 @@ FString BuildLidarTelemetryJson(const FVirtualSensorFrameEnvelope& Frame)
 }
 
 
-bool UVirtualSensorStreamPublisherComponent::SerializePointCloudFrame(
+bool UVirtualSensorStreamPublisherComp::SerializePointCloudFrame(
 	const FVirtualSensorFrameEnvelope& Frame,
 	const FVirtualSensorStreamConfig& Config,
 	FString& OutExtension,
@@ -418,7 +418,7 @@ bool UVirtualSensorStreamPublisherComponent::SerializePointCloudFrame(
 }
 
 #if WITH_DEV_AUTOMATION_TESTS
-bool UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(
+bool UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(
 	const FVirtualSensorFrameEnvelope& Frame,
 	const FVirtualSensorStreamConfig& Config,
 	FString& OutExtension,
@@ -431,7 +431,7 @@ bool UVirtualSensorStreamPublisherComponent::SerializePointCloudForTesting(
 #endif
 
 
-void UVirtualSensorStreamPublisherComponent::QueueFrameForRuntime(const FString& StreamKey, FStreamRuntime& Runtime, const FVirtualSensorFrameEnvelope& Frame)
+void UVirtualSensorStreamPublisherComp::QueueFrameForRuntime(const FString& StreamKey, FStreamRuntime& Runtime, const FVirtualSensorFrameEnvelope& Frame)
 {
 	const bool bHighThroughputBinary = Runtime.Config.TransportBackend == EVirtualSensorStreamTransportBackend::TcpStompHighThroughput &&
 		CanUseHighThroughputTransport() &&
@@ -480,11 +480,11 @@ void UVirtualSensorStreamPublisherComponent::QueueFrameForRuntime(const FString&
 			++Runtime.Status.ConfiguredDivisorSkippedCount;
 			return;
 		}
-		if (TransportComponent && Frame.PointSnapshot.IsValid())
+		if (TransportComp && Frame.PointSnapshot.IsValid())
 		{
 			const int64 Estimate = Frame.PointSnapshot->Num() * int64(FVirtualPcdCodec::BytesPerPoint(SendOptions)) * (SendOptions.bCompressed?33:32) / 32 + 65536;
 			FString SizeError;
-			if (!ValidateBinaryBodySize(Estimate, TransportComponent->GetTransportProfile().MaxMessageBytes, SizeError))
+			if (!ValidateBinaryBodySize(Estimate, TransportComp->GetTransportProfile().MaxMessageBytes, SizeError))
 			{
 				StopForBodyLimit(StreamKey, Runtime, TEXT("[시작 전 크기 검사] ") + SizeError, Frame.FrameId);
 				return;
@@ -607,7 +607,7 @@ void UVirtualSensorStreamPublisherComponent::QueueFrameForRuntime(const FString&
 	Runtime.Status.bPendingLatestFrame = true;
 }
 
-void UVirtualSensorStreamPublisherComponent::StartPointCloudSerialization(const FString& StreamKey, FStreamRuntime& Runtime, const FVirtualSensorFrameEnvelope& Frame)
+void UVirtualSensorStreamPublisherComp::StartPointCloudSerialization(const FString& StreamKey, FStreamRuntime& Runtime, const FVirtualSensorFrameEnvelope& Frame)
 {
 	const double Now = FPlatformTime::Seconds();
 	if (Runtime.Config.PointCloudFormat == EVirtualPointCloudStreamFormat::LAZ &&
@@ -626,7 +626,7 @@ void UVirtualSensorStreamPublisherComponent::StartPointCloudSerialization(const 
 	FVirtualSensorStreamConfig Config = Runtime.Config;
 	Config.PcdSendOptions = GetPcdSendOptions(Frame.SensorId);
 	const int32 CapturedConfigRevision = Runtime.ConfigRevision;
-	const TWeakObjectPtr<UVirtualSensorStreamPublisherComponent> WeakThis(this);
+	const TWeakObjectPtr<UVirtualSensorStreamPublisherComp> WeakThis(this);
 	Async(EAsyncExecution::ThreadPool, [WeakThis, StreamKey, Frame, Config, CapturedConfigRevision]()
 	{
 		const double SerializationStartedSeconds = FPlatformTime::Seconds();

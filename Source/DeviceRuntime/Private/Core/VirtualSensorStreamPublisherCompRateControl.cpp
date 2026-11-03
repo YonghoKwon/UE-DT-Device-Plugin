@@ -1,7 +1,7 @@
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
 
-void UVirtualSensorStreamPublisherComponent::UpdatePointCloudFairBudgets(double Now)
+void UVirtualSensorStreamPublisherComp::UpdatePointCloudFairBudgets(double Now)
 {
     // Max-min frame-rate fairness, weighted by each measured body size. Slow
     // producers get their entire demand first; peers get the same Hz ceiling.
@@ -74,7 +74,7 @@ void UVirtualSensorStreamPublisherComponent::UpdatePointCloudFairBudgets(double 
     }
 }
 
-void UVirtualSensorStreamPublisherComponent::LogPointCloudTransition(const FString& Key,FStreamRuntime& R,const FString& Message,double Now)
+void UVirtualSensorStreamPublisherComp::LogPointCloudTransition(const FString& Key,FStreamRuntime& R,const FString& Message,double Now)
 {
     if(Now<R.NextPcdConsoleLogSeconds){++R.PendingPcdConsoleLogs;++R.Status.SuppressedConsoleLogCount;return;}
     R.NextPcdConsoleLogSeconds=Now+1;
@@ -82,7 +82,7 @@ void UVirtualSensorStreamPublisherComponent::LogPointCloudTransition(const FStri
     R.PendingPcdConsoleLogs=0;
 }
 
-void UVirtualSensorStreamPublisherComponent::UpdatePointCloudRateControl(FStreamRuntime& R,double Now,const FVirtualSensorHighThroughputProfile& Profile)
+void UVirtualSensorStreamPublisherComp::UpdatePointCloudRateControl(FStreamRuntime& R,double Now,const FVirtualSensorHighThroughputProfile& Profile)
 {
     if(R.Config.StreamKind!=EVirtualSensorStreamKind::PointCloud)return;
     if(!bAutoAdjustPointCloudSendRate||!R.Config.bEnabled||R.Config.TransportBackend!=EVirtualSensorStreamTransportBackend::TcpStompHighThroughput)
@@ -103,7 +103,7 @@ void UVirtualSensorStreamPublisherComponent::UpdatePointCloudRateControl(FStream
     R.Status.bRateControlActive=R.AdmissionRatio<.9999;
 }
 
-bool UVirtualSensorStreamPublisherComponent::OmitPointCloudForRateControl(const FString& Key,FStreamRuntime& R,const FVirtualSensorFrameEnvelope& Frame,double Now)
+bool UVirtualSensorStreamPublisherComp::OmitPointCloudForRateControl(const FString& Key,FStreamRuntime& R,const FVirtualSensorFrameEnvelope& Frame,double Now)
 {
     auto& Sequence=R.SensorSequences.FindChecked(Frame.SensorId);
     if(Frame.RequestedAcquisitionIntervalSeconds>0)

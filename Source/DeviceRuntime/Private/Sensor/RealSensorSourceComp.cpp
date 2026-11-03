@@ -1,8 +1,8 @@
-#include "Device/Sensor/RealSensorSourceComponent.h"
+#include "Device/Sensor/RealSensorSourceComp.h"
 
 #include "GameFramework/Actor.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 
 namespace
 {
@@ -43,12 +43,12 @@ FString RealSensorConnectionStateToText(ERealSensorSourceConnectionState State)
 }
 }
 
-URealSensorSourceComponent::URealSensorSourceComponent()
+URealSensorSourceComp::URealSensorSourceComp()
 {
     PrimaryComponentTick.bCanEverTick = false;
 }
 
-void URealSensorSourceComponent::BeginPlay()
+void URealSensorSourceComp::BeginPlay()
 {
     Super::BeginPlay();
     if (bAutoStartSource)
@@ -57,30 +57,30 @@ void URealSensorSourceComponent::BeginPlay()
     }
 }
 
-void URealSensorSourceComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void URealSensorSourceComp::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     StopSource();
     Super::EndPlay(EndPlayReason);
 }
 
-bool URealSensorSourceComponent::StartSource()
+bool URealSensorSourceComp::StartSource()
 {
     SetSourceState(ERealSensorSourceConnectionState::Running, TEXT("Source started."));
     return true;
 }
 
-void URealSensorSourceComponent::StopSource()
+void URealSensorSourceComp::StopSource()
 {
     SetSourceState(ERealSensorSourceConnectionState::Stopped, TEXT("Source stopped."));
 }
 
-bool URealSensorSourceComponent::PushFrameOnce(bool bSendTransport)
+bool URealSensorSourceComp::PushFrameOnce(bool bSendTransport)
 {
     SetSourceState(ERealSensorSourceConnectionState::Error, TEXT("PushFrameOnce is not implemented for this source."));
     return false;
 }
 
-FString URealSensorSourceComponent::GetDeploymentReadinessSummaryText() const
+FString URealSensorSourceComp::GetDeploymentReadinessSummaryText() const
 {
     const bool bNeedsExternalEvidence = RequiresExternalDeploymentEvidence();
     FString NextAction = TEXT("Use replay as baseline and confirm payload handoff.");
@@ -118,12 +118,12 @@ FString URealSensorSourceComponent::GetDeploymentReadinessSummaryText() const
         LastSourceMessage.IsEmpty() ? TEXT("None") : *LastSourceMessage);
 }
 
-bool URealSensorSourceComponent::RequiresExternalDeploymentEvidence() const
+bool URealSensorSourceComp::RequiresExternalDeploymentEvidence() const
 {
     return SourceKind != ERealSensorSourceKind::FileReplay;
 }
 
-AVirtualSensorActorBase* URealSensorSourceComponent::ResolveTargetSensorActor() const
+AVirtualSensorActorBase* URealSensorSourceComp::ResolveTargetSensorActor() const
 {
     if (TargetSensorActor)
     {
@@ -136,18 +136,18 @@ AVirtualSensorActorBase* URealSensorSourceComponent::ResolveTargetSensorActor() 
     return Cast<AVirtualSensorActorBase>(GetOwner());
 }
 
-UVirtualLidarScanComponent* URealSensorSourceComponent::ResolveTargetLidar() const
+UVirtualLidarScanComp* URealSensorSourceComp::ResolveTargetLidar() const
 {
     if (TargetLidar)
     {
         return TargetLidar;
     }
-    return GetOwner() ? GetOwner()->FindComponentByClass<UVirtualLidarScanComponent>() : nullptr;
+    return GetOwner() ? GetOwner()->FindComponentByClass<UVirtualLidarScanComp>() : nullptr;
 }
 
-bool URealSensorSourceComponent::PushPointFrameToTarget(const TArray<FVirtualLidarPoint>& Points, bool bSendTransport, const FString& SuccessMessage, int32 Rows, int32 Cols, bool bUpdateLidarDimensions)
+bool URealSensorSourceComp::PushPointFrameToTarget(const TArray<FVirtualLidarPoint>& Points, bool bSendTransport, const FString& SuccessMessage, int32 Rows, int32 Cols, bool bUpdateLidarDimensions)
 {
-    UVirtualLidarScanComponent* LidarComp = ResolveTargetLidar();
+    UVirtualLidarScanComp* LidarComp = ResolveTargetLidar();
     AVirtualSensorActorBase* SensorActor = ResolveTargetSensorActor();
     if (!LidarComp && !SensorActor)
     {
@@ -189,13 +189,13 @@ bool URealSensorSourceComponent::PushPointFrameToTarget(const TArray<FVirtualLid
     return true;
 }
 
-void URealSensorSourceComponent::SetSourceState(ERealSensorSourceConnectionState NewState, const FString& Message)
+void URealSensorSourceComp::SetSourceState(ERealSensorSourceConnectionState NewState, const FString& Message)
 {
     ConnectionState = NewState;
     LastSourceMessage = Message;
 }
 
-void URealSensorSourceComponent::MarkFramePushed(int32 PointCount, const FString& Message)
+void URealSensorSourceComp::MarkFramePushed(int32 PointCount, const FString& Message)
 {
     ++LastSourceFrameId;
     LastSourcePointCount = PointCount;

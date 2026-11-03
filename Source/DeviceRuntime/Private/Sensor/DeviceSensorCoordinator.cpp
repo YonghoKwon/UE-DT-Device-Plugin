@@ -5,20 +5,20 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/PlayerController.h"
-#include "Device/Sensor/RealSensorSourceComponent.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/RealSensorSourceComp.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
-#include "Device/Sensor/VirtualLidarVisualizationComponent.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
+#include "Device/Sensor/VirtualLidarVisualizationComp.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
 #include "Device/Sensor/VirtualSensorMonitorView.h"
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 
 
 
 
-void ADeviceSensorCoordinator::SaveLidarViewState(UVirtualLidarScanComponent* LidarComp)
+void ADeviceSensorCoordinator::SaveLidarViewState(UVirtualLidarScanComp* LidarComp)
 {
     if (!LidarComp || LidarPointCloudOnlyStates.Contains(LidarComp))
     {
@@ -35,7 +35,7 @@ void ADeviceSensorCoordinator::SaveLidarViewState(UVirtualLidarScanComponent* Li
     State.MaxPreviewPoints = LidarComp->MaxPreviewPoints;
     if (const AVirtualLidarSensorActor* LidarActor = Cast<AVirtualLidarSensorActor>(LidarComp->GetOwner()))
     {
-        if (const UVirtualLidarVisualizationComponent* Visualization = LidarActor->VisualizationComponent)
+        if (const UVirtualLidarVisualizationComp* Visualization = LidarActor->VisualizationComp)
         {
             State.bHadVisualizationComponent = true;
             State.bShowWorldPointCloud = Visualization->GetVisualizationSettings().bShowWorldPointCloud;
@@ -44,7 +44,7 @@ void ADeviceSensorCoordinator::SaveLidarViewState(UVirtualLidarScanComponent* Li
     LidarPointCloudOnlyStates.Add(LidarComp, State);
 }
 
-void ADeviceSensorCoordinator::ApplyPointCloudOnlyToLidar(UVirtualLidarScanComponent* LidarComp, bool bSelected)
+void ADeviceSensorCoordinator::ApplyPointCloudOnlyToLidar(UVirtualLidarScanComp* LidarComp, bool bSelected)
 {
     if (!LidarComp)
     {
@@ -64,7 +64,7 @@ void ADeviceSensorCoordinator::ApplyPointCloudOnlyToLidar(UVirtualLidarScanCompo
     LidarComp->SetPointCloudPreviewEnabled(bSelected);
     if (AVirtualLidarSensorActor* LidarActor = Cast<AVirtualLidarSensorActor>(LidarComp->GetOwner()))
     {
-        if (UVirtualLidarVisualizationComponent* Visualization = LidarActor->VisualizationComponent)
+        if (UVirtualLidarVisualizationComp* Visualization = LidarActor->VisualizationComp)
         {
             // The V2 visualization owns the final renderer choice. Keeping its
             // setting in sync prevents the next completed scan from disabling
@@ -74,7 +74,7 @@ void ADeviceSensorCoordinator::ApplyPointCloudOnlyToLidar(UVirtualLidarScanCompo
     }
 }
 
-void ADeviceSensorCoordinator::RestoreLidarViewState(UVirtualLidarScanComponent* LidarComp)
+void ADeviceSensorCoordinator::RestoreLidarViewState(UVirtualLidarScanComp* LidarComp)
 {
     if (!LidarComp)
     {
@@ -92,7 +92,7 @@ void ADeviceSensorCoordinator::RestoreLidarViewState(UVirtualLidarScanComponent*
         {
             if (AVirtualLidarSensorActor* LidarActor = Cast<AVirtualLidarSensorActor>(LidarComp->GetOwner()))
             {
-                if (UVirtualLidarVisualizationComponent* Visualization = LidarActor->VisualizationComponent)
+                if (UVirtualLidarVisualizationComp* Visualization = LidarActor->VisualizationComp)
                 {
                     Visualization->SetWorldPointCloudEnabled(State->bShowWorldPointCloud);
                 }
@@ -138,7 +138,7 @@ void ADeviceSensorCoordinator::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     RestorePointCloudOnlyVisibility();
     for(AVirtualSensorActorBase* A:SensorActors)if(IsValid(A))A->OnSensorActivated.RemoveAll(this);
-    for (UVirtualLidarScanComponent* LidarComp : Lidars)
+    for (UVirtualLidarScanComp* LidarComp : Lidars)
     {
         RestoreLidarViewState(LidarComp);
     }
@@ -176,17 +176,17 @@ void ADeviceSensorCoordinator::DiscoverSensorsInLevel()
         {
             RegisterCamera(CameraComp);
         }
-        TArray<UVirtualLidarScanComponent*> FoundLidars;
-        Actor->GetComponents<UVirtualLidarScanComponent>(FoundLidars);
-        for (UVirtualLidarScanComponent* LidarComp : FoundLidars)
+        TArray<UVirtualLidarScanComp*> FoundLidars;
+        Actor->GetComponents<UVirtualLidarScanComp>(FoundLidars);
+        for (UVirtualLidarScanComp* LidarComp : FoundLidars)
         {
             RegisterLidar(LidarComp);
         }
-        TArray<URealSensorSourceComponent*> FoundRealSensorSources;
-        Actor->GetComponents<URealSensorSourceComponent>(FoundRealSensorSources);
-        for (URealSensorSourceComponent* RealSensorSourceComponent : FoundRealSensorSources)
+        TArray<URealSensorSourceComp*> FoundRealSensorSources;
+        Actor->GetComponents<URealSensorSourceComp>(FoundRealSensorSources);
+        for (URealSensorSourceComp* RealSensorSourceComp : FoundRealSensorSources)
         {
-            RegisterRealSensorSource(RealSensorSourceComponent);
+            RegisterRealSensorSource(RealSensorSourceComp);
         }
     }
 }
@@ -204,7 +204,7 @@ void ADeviceSensorCoordinator::RegisterCamera(UVirtualCameraCaptureComponent* Ca
     }
 }
 
-void ADeviceSensorCoordinator::RegisterLidar(UVirtualLidarScanComponent* LidarComp)
+void ADeviceSensorCoordinator::RegisterLidar(UVirtualLidarScanComp* LidarComp)
 {
     if (LidarComp && !Lidars.Contains(LidarComp))
     {
@@ -221,11 +221,11 @@ void ADeviceSensorCoordinator::RegisterLidar(UVirtualLidarScanComponent* LidarCo
     }
 }
 
-void ADeviceSensorCoordinator::RegisterRealSensorSource(URealSensorSourceComponent* RealSensorSourceComponent)
+void ADeviceSensorCoordinator::RegisterRealSensorSource(URealSensorSourceComp* RealSensorSourceComp)
 {
-    if (RealSensorSourceComponent && !RealSensorSources.Contains(RealSensorSourceComponent))
+    if (RealSensorSourceComp && !RealSensorSources.Contains(RealSensorSourceComp))
     {
-        RealSensorSources.Add(RealSensorSourceComponent);
+        RealSensorSources.Add(RealSensorSourceComp);
         ApplyWidgetBinding();
     }
 }
@@ -246,7 +246,7 @@ void ADeviceSensorCoordinator::SelectLidarByIndex(int32 Index)
         SelectedLidarIndex = Index;
         if (bPointCloudOnlyModeEnabled)
         {
-            for (UVirtualLidarScanComponent* LidarComp : Lidars)
+            for (UVirtualLidarScanComp* LidarComp : Lidars)
             {
                 ApplyPointCloudOnlyToLidar(LidarComp, LidarComp == GetSelectedLidar());
             }
@@ -283,7 +283,7 @@ void ADeviceSensorCoordinator::SelectNextLidar()
     SelectedLidarIndex = (SelectedLidarIndex + 1) % Lidars.Num();
     if (bPointCloudOnlyModeEnabled)
     {
-        for (UVirtualLidarScanComponent* LidarComp : Lidars)
+        for (UVirtualLidarScanComp* LidarComp : Lidars)
         {
             ApplyPointCloudOnlyToLidar(LidarComp, LidarComp == GetSelectedLidar());
         }
@@ -333,7 +333,7 @@ void ADeviceSensorCoordinator::SetPointCloudOnlyMode(bool bEnabled)
             ApplyPointCloudOnlyVisibility();
         }
 
-        for (UVirtualLidarScanComponent* LidarComp : Lidars)
+        for (UVirtualLidarScanComp* LidarComp : Lidars)
         {
             ApplyPointCloudOnlyToLidar(LidarComp, LidarComp == GetSelectedLidar());
         }
@@ -347,7 +347,7 @@ void ADeviceSensorCoordinator::SetPointCloudOnlyMode(bool bEnabled)
     {
         bPointCloudOnlyModeEnabled = false;
         RestorePointCloudOnlyVisibility();
-        for (UVirtualLidarScanComponent* LidarComp : Lidars)
+        for (UVirtualLidarScanComp* LidarComp : Lidars)
         {
             RestoreLidarViewState(LidarComp);
         }
@@ -382,7 +382,7 @@ void ADeviceSensorCoordinator::StartAllSensors()
     {
         if (CameraComp && !Cast<AVirtualSensorActorBase>(CameraComp->GetOwner())) CameraComp->StartCapture();
     }
-    for (UVirtualLidarScanComponent* LidarComp : Lidars)
+    for (UVirtualLidarScanComp* LidarComp : Lidars)
     {
         if (LidarComp && !Cast<AVirtualSensorActorBase>(LidarComp->GetOwner())) LidarComp->StartScan();
     }
@@ -398,7 +398,7 @@ void ADeviceSensorCoordinator::StopAllSensors()
     {
         if (CameraComp && !Cast<AVirtualSensorActorBase>(CameraComp->GetOwner())) CameraComp->StopCapture();
     }
-    for (UVirtualLidarScanComponent* LidarComp : Lidars)
+    for (UVirtualLidarScanComp* LidarComp : Lidars)
     {
         if (LidarComp && !Cast<AVirtualSensorActorBase>(LidarComp->GetOwner())) LidarComp->StopScan();
     }
@@ -407,9 +407,9 @@ void ADeviceSensorCoordinator::StopAllSensors()
 int32 ADeviceSensorCoordinator::StartAllRealSensorSources()
 {
     int32 StartedCount = 0;
-    for (URealSensorSourceComponent* RealSensorSourceComponent : RealSensorSources)
+    for (URealSensorSourceComp* RealSensorSourceComp : RealSensorSources)
     {
-        if (RealSensorSourceComponent && RealSensorSourceComponent->StartSource())
+        if (RealSensorSourceComp && RealSensorSourceComp->StartSource())
         {
             ++StartedCount;
         }
@@ -419,19 +419,19 @@ int32 ADeviceSensorCoordinator::StartAllRealSensorSources()
 
 void ADeviceSensorCoordinator::StopAllRealSensorSources()
 {
-    for (URealSensorSourceComponent* RealSensorSourceComponent : RealSensorSources)
+    for (URealSensorSourceComp* RealSensorSourceComp : RealSensorSources)
     {
-        if (RealSensorSourceComponent)
+        if (RealSensorSourceComp)
         {
-            RealSensorSourceComponent->StopSource();
+            RealSensorSourceComp->StopSource();
         }
     }
 }
 
 bool ADeviceSensorCoordinator::PushSelectedRealSensorSourceOnce(bool bSendTransport)
 {
-    URealSensorSourceComponent* RealSensorSourceComponent = GetSelectedRealSensorSource();
-    return RealSensorSourceComponent && RealSensorSourceComponent->PushFrameOnce(bSendTransport);
+    URealSensorSourceComp* RealSensorSourceComp = GetSelectedRealSensorSource();
+    return RealSensorSourceComp && RealSensorSourceComp->PushFrameOnce(bSendTransport);
 }
 
 void ADeviceSensorCoordinator::CaptureAllOnce()
@@ -444,7 +444,7 @@ void ADeviceSensorCoordinator::CaptureAllOnce()
     {
         if (CameraComp && !Cast<AVirtualSensorActorBase>(CameraComp->GetOwner())) CameraComp->CaptureAndSendImage();
     }
-    for (UVirtualLidarScanComponent* LidarComp : Lidars)
+    for (UVirtualLidarScanComp* LidarComp : Lidars)
     {
         if (LidarComp && !Cast<AVirtualSensorActorBase>(LidarComp->GetOwner())) LidarComp->ScanAndSend();
     }
@@ -456,7 +456,7 @@ void ADeviceSensorCoordinator::CaptureSelectedOnce()
     {
         CameraComp->CaptureAndSendImage();
     }
-    if (UVirtualLidarScanComponent* LidarComp = GetSelectedLidar())
+    if (UVirtualLidarScanComp* LidarComp = GetSelectedLidar())
     {
         LidarComp->ScanAndSend();
     }
@@ -466,7 +466,7 @@ void ADeviceSensorCoordinator::RefreshSelectedSensorOnce(bool bLidar)
 {
     if (bLidar)
     {
-        if (UVirtualLidarScanComponent* LidarComp = GetSelectedLidar())
+        if (UVirtualLidarScanComp* LidarComp = GetSelectedLidar())
         {
             LidarComp->ScanAndSend();
         }
@@ -485,9 +485,9 @@ void ADeviceSensorCoordinator::RegisterSensorActor(AVirtualSensorActorBase* Sens
     SensorActors.Add(SensorActor);
     SensorActor->OnSensorActivated.RemoveAll(this);
     SensorActor->OnSensorActivated.AddUObject(this,&ThisClass::HandleSensorActivated);
-    SensorActor->SetSharedOutputServices(GetDeviceCoordinatorConfig().SharedTransportComponent, GetDeviceCoordinatorConfig().SharedRecorderComponent, GetDeviceCoordinatorConfig().StreamPublisherComponent);
+    SensorActor->SetSharedOutputServices(GetDeviceCoordinatorConfig().SharedTransportComp, GetDeviceCoordinatorConfig().SharedRecorderComp, GetDeviceCoordinatorConfig().StreamPublisherComp);
     if(auto* C=SensorActor->FindComponentByClass<UVirtualCameraCaptureComponent>())RegisterCamera(C);
-    if(auto* L=SensorActor->FindComponentByClass<UVirtualLidarScanComponent>())RegisterLidar(L);
+    if(auto* L=SensorActor->FindComponentByClass<UVirtualLidarScanComp>())RegisterLidar(L);
     SensorActor->OnEndPlay.AddUniqueDynamic(this,&ThisClass::HandleSensorEndPlay);
     OnSensorInventoryChanged.Broadcast();
 }
@@ -498,7 +498,7 @@ void ADeviceSensorCoordinator::UnregisterSensorActor(AVirtualSensorActorBase* Se
 {
     if(!Sensor)return;
     auto* SelectedCamera=GetSelectedCamera();auto* SelectedLidar=GetSelectedLidar();
-    if(auto* L=Sensor->FindComponentByClass<UVirtualLidarScanComponent>())RestoreLidarViewState(L);
+    if(auto* L=Sensor->FindComponentByClass<UVirtualLidarScanComp>())RestoreLidarViewState(L);
     const int32 Removed=SensorActors.Remove(Sensor);
     Cameras.RemoveAll([&](const auto& C){return !IsValid(C)||C->GetOwner()==Sensor;});
     Lidars.RemoveAll([&](const auto& L){return !IsValid(L)||L->GetOwner()==Sensor;});
@@ -512,13 +512,13 @@ bool ADeviceSensorCoordinator::SelectSensorActor(AVirtualSensorActorBase* Sensor
 {
     if(!IsValid(Sensor)||!SensorActors.Contains(Sensor))return false;
     if(auto* C=Sensor->FindComponentByClass<UVirtualCameraCaptureComponent>()){const int32 I=Cameras.IndexOfByKey(C);if(I==INDEX_NONE)return false;SelectCameraByIndex(I);SetViewMode(EVirtualSensorViewMode::Camera);}
-    else if(auto* L=Sensor->FindComponentByClass<UVirtualLidarScanComponent>()){const int32 I=Lidars.IndexOfByKey(L);if(I==INDEX_NONE)return false;SelectLidarByIndex(I);SetViewMode(EVirtualSensorViewMode::Lidar);}else return false;
+    else if(auto* L=Sensor->FindComponentByClass<UVirtualLidarScanComp>()){const int32 I=Lidars.IndexOfByKey(L);if(I==INDEX_NONE)return false;SelectLidarByIndex(I);SetViewMode(EVirtualSensorViewMode::Lidar);}else return false;
     return true;
 }
 
 void ADeviceSensorCoordinator::SetSelectedLidarPreviewPolicy(int32 InStride, int32 InMaxPoints, bool bInHitOnly)
 {
-    if (UVirtualLidarScanComponent* LidarComp = GetSelectedLidar())
+    if (UVirtualLidarScanComp* LidarComp = GetSelectedLidar())
     {
         LidarComp->SetPreviewPolicy(InStride, InMaxPoints, bInHitOnly);
     }
@@ -526,7 +526,7 @@ void ADeviceSensorCoordinator::SetSelectedLidarPreviewPolicy(int32 InStride, int
 
 void ADeviceSensorCoordinator::AdjustSelectedLidarPreviewBudget(int32 StrideDelta, int32 MaxPointsDelta)
 {
-    if (UVirtualLidarScanComponent* LidarComp = GetSelectedLidar())
+    if (UVirtualLidarScanComp* LidarComp = GetSelectedLidar())
     {
         const int32 NextStride = FMath::Clamp(LidarComp->PreviewPointStride + StrideDelta, 1, 100);
         const int32 NextMaxPoints = FMath::Clamp(LidarComp->MaxPreviewPoints + MaxPointsDelta, 0, 1000000);
@@ -553,20 +553,20 @@ int32 ADeviceSensorCoordinator::FindCameraIndexBySensorId(const FString& SensorI
 	return INDEX_NONE;
 }
 
-UVirtualLidarScanComponent* ADeviceSensorCoordinator::GetSelectedLidar() const
+UVirtualLidarScanComp* ADeviceSensorCoordinator::GetSelectedLidar() const
 {
     return Lidars.IsValidIndex(SelectedLidarIndex) ? Lidars[SelectedLidarIndex] : nullptr;
 }
 
-URealSensorSourceComponent* ADeviceSensorCoordinator::GetSelectedRealSensorSource() const
+URealSensorSourceComp* ADeviceSensorCoordinator::GetSelectedRealSensorSource() const
 {
-    if (UVirtualLidarScanComponent* SelectedLidar = GetSelectedLidar())
+    if (UVirtualLidarScanComp* SelectedLidar = GetSelectedLidar())
     {
-        for (URealSensorSourceComponent* RealSensorSourceComponent : RealSensorSources)
+        for (URealSensorSourceComp* RealSensorSourceComp : RealSensorSources)
         {
-            if (RealSensorSourceComponent && RealSensorSourceComponent->TargetLidar == SelectedLidar)
+            if (RealSensorSourceComp && RealSensorSourceComp->TargetLidar == SelectedLidar)
             {
-                return RealSensorSourceComponent;
+                return RealSensorSourceComp;
             }
         }
     }
@@ -678,7 +678,7 @@ FVirtualSensorHealthSummary ADeviceSensorCoordinator::GetHealthSummary() const
         }
     }
 
-    for (const UVirtualLidarScanComponent* LidarComp : Lidars)
+    for (const UVirtualLidarScanComp* LidarComp : Lidars)
     {
         if (!LidarComp || CountIfStale(LidarComp->GetRuntimeStatus()))
         {
@@ -686,24 +686,24 @@ FVirtualSensorHealthSummary ADeviceSensorCoordinator::GetHealthSummary() const
         }
     }
 
-    for (const URealSensorSourceComponent* RealSensorSourceComponent : RealSensorSources)
+    for (const URealSensorSourceComp* RealSensorSourceComp : RealSensorSources)
     {
-        if (!RealSensorSourceComponent)
+        if (!RealSensorSourceComp)
         {
             ++Health.ErrorRealSensorSourceCount;
             continue;
         }
 
-        if (RealSensorSourceComponent->GetConnectionState() == ERealSensorSourceConnectionState::Running)
+        if (RealSensorSourceComp->GetConnectionState() == ERealSensorSourceConnectionState::Running)
         {
             ++Health.RunningRealSensorSourceCount;
         }
-        else if (RealSensorSourceComponent->GetConnectionState() == ERealSensorSourceConnectionState::Error)
+        else if (RealSensorSourceComp->GetConnectionState() == ERealSensorSourceConnectionState::Error)
         {
             ++Health.ErrorRealSensorSourceCount;
         }
 
-        if (RealSensorSourceComponent->RequiresExternalDeploymentEvidence())
+        if (RealSensorSourceComp->RequiresExternalDeploymentEvidence())
         {
             ++Health.ExternalEvidenceRequiredRealSensorSourceCount;
         }
@@ -753,24 +753,24 @@ void ADeviceSensorCoordinator::AssignSharedServicesIfPossible(UActorComponent* S
 
     if (UVirtualCameraCaptureComponent* CameraComp = Cast<UVirtualCameraCaptureComponent>(SensorComp))
     {
-        if (GetDeviceCoordinatorConfig().SharedTransportComponent)
+        if (GetDeviceCoordinatorConfig().SharedTransportComp)
         {
-            CameraComp->SetTransportComponent(GetDeviceCoordinatorConfig().SharedTransportComponent);
+            CameraComp->SetTransportComponent(GetDeviceCoordinatorConfig().SharedTransportComp);
         }
-        if (GetDeviceCoordinatorConfig().SharedRecorderComponent)
+        if (GetDeviceCoordinatorConfig().SharedRecorderComp)
         {
-            CameraComp->SetRecorderComponent(GetDeviceCoordinatorConfig().SharedRecorderComponent);
+            CameraComp->SetRecorderComponent(GetDeviceCoordinatorConfig().SharedRecorderComp);
         }
     }
-    else if (UVirtualLidarScanComponent* LidarComp = Cast<UVirtualLidarScanComponent>(SensorComp))
+    else if (UVirtualLidarScanComp* LidarComp = Cast<UVirtualLidarScanComp>(SensorComp))
     {
-        if (GetDeviceCoordinatorConfig().SharedTransportComponent)
+        if (GetDeviceCoordinatorConfig().SharedTransportComp)
         {
-            LidarComp->SetTransportComponent(GetDeviceCoordinatorConfig().SharedTransportComponent);
+            LidarComp->SetTransportComponent(GetDeviceCoordinatorConfig().SharedTransportComp);
         }
-        if (GetDeviceCoordinatorConfig().SharedRecorderComponent)
+        if (GetDeviceCoordinatorConfig().SharedRecorderComp)
         {
-            LidarComp->SetRecorderComponent(GetDeviceCoordinatorConfig().SharedRecorderComponent);
+            LidarComp->SetRecorderComponent(GetDeviceCoordinatorConfig().SharedRecorderComp);
         }
     }
 }
@@ -858,7 +858,7 @@ bool ADeviceSensorCoordinator::ShouldKeepActorVisibleInPointCloudOnly(const AAct
         return true;
     }
 
-    if (const UVirtualLidarScanComponent* SelectedLidar = GetSelectedLidar())
+    if (const UVirtualLidarScanComp* SelectedLidar = GetSelectedLidar())
     {
         if (Actor == SelectedLidar->GetOwner())
         {
@@ -895,8 +895,8 @@ int32 ADeviceSensorCoordinator::SetLidarAcquisitionBackend(EVirtualLidarAcquisit
 
 bool ADeviceSensorCoordinator::SetPcdBandwidthOptions(const FString& Id,const FVirtualPcdSendOptions& Options,bool All,FString& Error)
 {
-    if(!GetDeviceCoordinatorConfig().StreamPublisherComponent){Error=TEXT("PCD publisher is unavailable");return false;}
-    return GetDeviceCoordinatorConfig().StreamPublisherComponent->SetPcdSendOptions(Id,Options,All,Error);
+    if(!GetDeviceCoordinatorConfig().StreamPublisherComp){Error=TEXT("PCD publisher is unavailable");return false;}
+    return GetDeviceCoordinatorConfig().StreamPublisherComp->SetPcdSendOptions(Id,Options,All,Error);
 }
 
 void ADeviceSensorCoordinator::BindDeviceMonitorView(UObject* ViewOwner)

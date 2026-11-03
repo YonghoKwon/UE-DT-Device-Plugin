@@ -1,4 +1,4 @@
-#include "Device/Sensor/LidarJsonLinesReplaySourceComponent.h"
+#include "Device/Sensor/LidarJsonLinesReplaySourceComp.h"
 
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
@@ -6,7 +6,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "TimerManager.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 
 namespace
 {
@@ -39,39 +39,39 @@ void ReadTagString(const FString& TagsText, TArray<FName>& OutTags)
 }
 }
 
-ULidarJsonLinesReplaySourceComponent::ULidarJsonLinesReplaySourceComponent()
+ULidarJsonLinesReplaySourceComp::ULidarJsonLinesReplaySourceComp()
 {
     PrimaryComponentTick.bCanEverTick = false;
     SourceKind = ERealSensorSourceKind::FileReplay;
     SourceId = TEXT("JsonLinesLidarReplay");
 }
 
-void ULidarJsonLinesReplaySourceComponent::BeginPlay()
+void ULidarJsonLinesReplaySourceComp::BeginPlay()
 {
     Super::BeginPlay();
 }
 
-void ULidarJsonLinesReplaySourceComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void ULidarJsonLinesReplaySourceComp::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     StopReplay();
     Super::EndPlay(EndPlayReason);
 }
 
-bool ULidarJsonLinesReplaySourceComponent::LoadJsonLinesFrame(TArray<FVirtualLidarPoint>& OutPoints) const
+bool ULidarJsonLinesReplaySourceComp::LoadJsonLinesFrame(TArray<FVirtualLidarPoint>& OutPoints) const
 {
     OutPoints.Reset();
     const FString ResolvedPath = ResolveJsonLinesFilePath();
-    const_cast<ULidarJsonLinesReplaySourceComponent*>(this)->LastResolvedJsonLinesPath = ResolvedPath;
+    const_cast<ULidarJsonLinesReplaySourceComp*>(this)->LastResolvedJsonLinesPath = ResolvedPath;
     if (ResolvedPath.IsEmpty() || !FPaths::FileExists(ResolvedPath))
     {
-        const_cast<ULidarJsonLinesReplaySourceComponent*>(this)->LastReplayMessage = FString::Printf(TEXT("JSONL file not found: %s"), *ResolvedPath);
+        const_cast<ULidarJsonLinesReplaySourceComp*>(this)->LastReplayMessage = FString::Printf(TEXT("JSONL file not found: %s"), *ResolvedPath);
         return false;
     }
 
     TArray<FString> Lines;
     if (!FFileHelper::LoadFileToStringArray(Lines, *ResolvedPath))
     {
-        const_cast<ULidarJsonLinesReplaySourceComponent*>(this)->LastReplayMessage = FString::Printf(TEXT("Failed to read JSONL: %s"), *ResolvedPath);
+        const_cast<ULidarJsonLinesReplaySourceComp*>(this)->LastReplayMessage = FString::Printf(TEXT("Failed to read JSONL: %s"), *ResolvedPath);
         return false;
     }
 
@@ -103,14 +103,14 @@ bool ULidarJsonLinesReplaySourceComponent::LoadJsonLinesFrame(TArray<FVirtualLid
         }
     }
 
-    const_cast<ULidarJsonLinesReplaySourceComponent*>(this)->LastLoadedPointCount = OutPoints.Num();
-    const_cast<ULidarJsonLinesReplaySourceComponent*>(this)->LastReplayMessage = FString::Printf(TEXT("Loaded %d points from %s"), OutPoints.Num(), *ResolvedPath);
+    const_cast<ULidarJsonLinesReplaySourceComp*>(this)->LastLoadedPointCount = OutPoints.Num();
+    const_cast<ULidarJsonLinesReplaySourceComp*>(this)->LastReplayMessage = FString::Printf(TEXT("Loaded %d points from %s"), OutPoints.Num(), *ResolvedPath);
     return OutPoints.Num() > 0;
 }
 
-bool ULidarJsonLinesReplaySourceComponent::PushFrameOnce(bool bSendTransport)
+bool ULidarJsonLinesReplaySourceComp::PushFrameOnce(bool bSendTransport)
 {
-    UVirtualLidarScanComponent* LidarComp = ResolveTargetLidar();
+    UVirtualLidarScanComp* LidarComp = ResolveTargetLidar();
     if (!LidarComp)
     {
         LastReplayMessage = TEXT("Target LiDAR is not set.");
@@ -130,22 +130,22 @@ bool ULidarJsonLinesReplaySourceComponent::PushFrameOnce(bool bSendTransport)
     return PushPointFrameToTarget(Points, bSendTransport, LastReplayMessage);
 }
 
-void ULidarJsonLinesReplaySourceComponent::PushFrameOnceInEditor()
+void ULidarJsonLinesReplaySourceComp::PushFrameOnceInEditor()
 {
     PushFrameOnce(bSendTransportByDefault);
 }
 
-void ULidarJsonLinesReplaySourceComponent::PushFrameOnceNoTransportInEditor()
+void ULidarJsonLinesReplaySourceComp::PushFrameOnceNoTransportInEditor()
 {
     PushFrameOnce(false);
 }
 
-void ULidarJsonLinesReplaySourceComponent::StartReplay()
+void ULidarJsonLinesReplaySourceComp::StartReplay()
 {
     StartSource();
 }
 
-bool ULidarJsonLinesReplaySourceComponent::StartSource()
+bool ULidarJsonLinesReplaySourceComp::StartSource()
 {
     UWorld* World = GetWorld();
     if (!World)
@@ -157,22 +157,22 @@ bool ULidarJsonLinesReplaySourceComponent::StartSource()
     SetSourceState(ERealSensorSourceConnectionState::Starting, TEXT("JSONL replay starting."));
     bReplayActive = true;
     PushFrameOnce(bSendTransportByDefault);
-    World->GetTimerManager().SetTimer(ReplayTimerHandle, this, &ULidarJsonLinesReplaySourceComponent::PushFrameFromTimer, FMath::Max(0.033f, ReplayInterval), true);
+    World->GetTimerManager().SetTimer(ReplayTimerHandle, this, &ULidarJsonLinesReplaySourceComp::PushFrameFromTimer, FMath::Max(0.033f, ReplayInterval), true);
     SetSourceState(ERealSensorSourceConnectionState::Running, TEXT("JSONL replay running."));
     return true;
 }
 
-void ULidarJsonLinesReplaySourceComponent::StartReplayInEditor()
+void ULidarJsonLinesReplaySourceComp::StartReplayInEditor()
 {
     StartReplay();
 }
 
-void ULidarJsonLinesReplaySourceComponent::StopReplay()
+void ULidarJsonLinesReplaySourceComp::StopReplay()
 {
     StopSource();
 }
 
-void ULidarJsonLinesReplaySourceComponent::StopSource()
+void ULidarJsonLinesReplaySourceComp::StopSource()
 {
     if (UWorld* World = GetWorld())
     {
@@ -182,12 +182,12 @@ void ULidarJsonLinesReplaySourceComponent::StopSource()
     SetSourceState(ERealSensorSourceConnectionState::Stopped, TEXT("JSONL replay stopped."));
 }
 
-void ULidarJsonLinesReplaySourceComponent::StopReplayInEditor()
+void ULidarJsonLinesReplaySourceComp::StopReplayInEditor()
 {
     StopReplay();
 }
 
-FString ULidarJsonLinesReplaySourceComponent::ResolveJsonLinesFilePath() const
+FString ULidarJsonLinesReplaySourceComp::ResolveJsonLinesFilePath() const
 {
     FString Path = JsonLinesFilePath;
     Path.TrimStartAndEndInline();
@@ -215,7 +215,7 @@ FString ULidarJsonLinesReplaySourceComponent::ResolveJsonLinesFilePath() const
     return Path;
 }
 
-bool ULidarJsonLinesReplaySourceComponent::ParseJsonPointLine(const FString& Line, FVirtualLidarPoint& OutPoint) const
+bool ULidarJsonLinesReplaySourceComp::ParseJsonPointLine(const FString& Line, FVirtualLidarPoint& OutPoint) const
 {
     FString Trimmed = Line;
     Trimmed.TrimStartAndEndInline();
@@ -305,7 +305,7 @@ bool ULidarJsonLinesReplaySourceComponent::ParseJsonPointLine(const FString& Lin
     return true;
 }
 
-void ULidarJsonLinesReplaySourceComponent::PushFrameFromTimer()
+void ULidarJsonLinesReplaySourceComp::PushFrameFromTimer()
 {
     PushFrameOnce(bSendTransportByDefault);
 }

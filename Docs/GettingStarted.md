@@ -74,7 +74,7 @@ r.Lumen.HardwareRayTracing=False
 
 ```cpp
 #include "Device/Sensor/DeviceSemanticPolicy.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 
 FVirtualLidarSemanticClassRule Slab;
 Slab.Label=TEXT("Slab"); Slab.ActorTags={TEXT("Slab")};
@@ -93,10 +93,10 @@ DeviceSemanticPolicy::Configure({Slab,Floor},
 1. 바닥에 엔진 `Plane`, 앞에 `Cube`를 배치합니다. Actor Tags에 각각 `Floor`, `Slab`을 넣고 충돌을 켭니다. LiDAR는 X축 전방, 단위는 UE cm입니다.
 2. `VirtualLidarSensorActor`를 바닥보다 위, Cube 앞에 놓습니다. `SimulationQuality=RealTimePreview`, `MultiHit=false`, CSV/JSONL/PCD 자동 파일 export는 끕니다. 점군 미리보기는 켭니다. 서버 PCD 정책을 미리보기 점 수에 맞춰 줄이지 않습니다.
 3. `VirtualCameraSensorActor`와 Directional Light/Sky Light, Player Start를 배치합니다.
-4. `DeviceSensorMonitorHostActor`를 **한 개** 배치합니다. `Show On Begin Play=true`, `Panel Class=DeviceSensorMonitorPanel`이 기본값입니다. 별도의 Level Blueprint `Create Widget`은 추가하지 않습니다.
+4. `DeviceSensorMonitorHostActor`를 **한 개** 배치합니다. `Show On Begin Play=true`, `Panel Class=DxDeviceSensorMonitorPanel`이 기본값입니다. 별도의 Level Blueprint `Create Widget`은 추가하지 않습니다.
 5. Editor Development를 빌드하고 Play합니다. 왼쪽 패널에서 센서를 선택하면 ID·주기·hit/점 수·서버/미리보기 점 수·상태와 영상이 표시됩니다. `1회 캡처`는 선택 센서의 기존 수동 캡처 API를 씁니다. 미리보기 점 증감은 측정 해상도와 서버 payload를 바꾸지 않습니다.
 
-BP로 외형만 바꾸려면 `DeviceSensorMonitorPanel`을 부모로 WBP를 만들고 Host의 `Panel Class`에 지정합니다. 기본 C++ 레이아웃을 그대로 쓰려면 Designer Root를 비워 둡니다. 직접 Designer를 구성할 경우 공개 `RefreshSensors`, `SelectSensor`, `RefreshStatus`, `CaptureOnce`, `AdjustPreview` API에 연결합니다. 프로젝트 전용 패널을 복사할 필요가 없습니다.
+BP로 외형만 바꾸려면 `DxDeviceSensorMonitorPanel`을 부모로 WBP를 만들고 Host의 `Panel Class`에 지정합니다. 기본 C++ 레이아웃을 그대로 쓰려면 Designer Root를 비워 둡니다. 직접 Designer를 구성할 경우 공개 `RefreshSensors`, `SelectSensor`, `RefreshStatus`, `CaptureOnce`, `AdjustPreview` API에 연결합니다. 프로젝트 전용 패널을 복사할 필요가 없습니다.
 
 ## 5. 재현 가능한 TestHost
 

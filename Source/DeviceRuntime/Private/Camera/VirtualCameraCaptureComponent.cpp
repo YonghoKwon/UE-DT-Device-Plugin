@@ -1,7 +1,7 @@
 // VirtualCameraCaptureComponent.cpp
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
 #include "Device/Core/VirtualSensorTextureReadback.h"
-#include "Device/Camera/VirtualCameraGroundTruth.h"
+#include "Device/Camera/VirtualCameraGroundTruthComp.h"
 #include "Device/Contracts/VirtualSensorDefaults.h"
 #include "Device/Core/VirtualSensorCaptureRendering.h"
 #include "Device/Contracts/VirtualSensorAcquisitionContext.h"
@@ -24,10 +24,10 @@
 #include "RHIGPUReadback.h"
 #include "RenderingThread.h"
 #include "TextureResource.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
 #include "Device/Core/VirtualSensorSchedulerSubsystem.h"
-#include "Device/Sensor/VirtualSensorRecorderComponent.h"
+#include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include <atomic>
 
 namespace
@@ -619,11 +619,11 @@ void UVirtualCameraCaptureComponent::FlushCompletedEncodes()
 		if (CaptureMode == EVirtualCameraCaptureMode::PayloadAndOutput && !LastJsonPayload.IsEmpty())
 		{
 			DispatchPayload(LastJsonPayload, Result.JpegBytes);
-			if (TransportComponent) StatusMessage = TransportComponent->LastResult.Message;
+			if (TransportComp) StatusMessage = TransportComp->LastResult.Message;
 		}
-		if (RecorderComponent && !LastJsonPayload.IsEmpty())
+		if (RecorderComp && !LastJsonPayload.IsEmpty())
 		{
-			RecorderComponent->RecordJsonFrame(SensorId, TEXT("virtual_camera"), CompletedFrameId, LastJsonPayload);
+			RecorderComp->RecordJsonFrame(SensorId, TEXT("virtual_camera"), CompletedFrameId, LastJsonPayload);
 		}
 
 		const double NowSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
@@ -653,9 +653,9 @@ void UVirtualCameraCaptureComponent::FlushCompletedEncodes()
 	}
 }
 
-void UVirtualCameraCaptureComponent::SetTransportComponent(UVirtualSensorTransportComponent* InTransportComponent)
+void UVirtualCameraCaptureComponent::SetTransportComponent(UVirtualSensorTransportComp* InTransportComponent)
 {
-    TransportComponent = InTransportComponent;
+    TransportComp = InTransportComponent;
 }
 
 FVirtualSensorAcquisitionContext UVirtualCameraCaptureComponent::CompleteSlabAcquisition(int64 Id,bool Success,bool FlushOnFailure)
@@ -670,9 +670,9 @@ FVirtualSensorAcquisitionContext UVirtualCameraCaptureComponent::CompleteSlabAcq
 	return Context;
 }
 
-void UVirtualCameraCaptureComponent::SetRecorderComponent(UVirtualSensorRecorderComponent* InRecorderComponent)
+void UVirtualCameraCaptureComponent::SetRecorderComponent(UVirtualSensorRecorderComp* InRecorderComponent)
 {
-    RecorderComponent = InRecorderComponent;
+    RecorderComp = InRecorderComponent;
 }
 
 void UVirtualCameraCaptureComponent::ApplyDeviceProfile(EVirtualCameraDeviceProfile NewProfile)
@@ -782,15 +782,15 @@ void UVirtualCameraCaptureComponent::CaptureAndSendImage()
     if (CaptureMode == EVirtualCameraCaptureMode::PayloadAndOutput)
     {
         DispatchPayload(JsonPayload, JpegBytes);
-        if (TransportComponent)
+        if (TransportComp)
         {
-            StatusMessage = TransportComponent->LastResult.Message;
+            StatusMessage = TransportComp->LastResult.Message;
         }
     }
 
-    if (RecorderComponent)
+    if (RecorderComp)
     {
-        RecorderComponent->RecordJsonFrame(SensorId, TEXT("virtual_camera"), FrameId, JsonPayload);
+        RecorderComp->RecordJsonFrame(SensorId, TEXT("virtual_camera"), FrameId, JsonPayload);
     }
 
     LastJpegSnapshot = MakeShared<const TArray64<uint8>, ESPMode::ThreadSafe>(MoveTemp(JpegBytes));
@@ -828,9 +828,9 @@ bool UVirtualCameraCaptureComponent::InjectExternalJsonPayload(const FString& Js
         DispatchJsonPayloadOnly(JsonPayload, RecordSensorId);
     }
 
-    if (RecorderComponent)
+    if (RecorderComp)
     {
-        RecorderComponent->RecordJsonFrame(RecordSensorId, TEXT("virtual_camera"), PayloadFrameId, JsonPayload);
+        RecorderComp->RecordJsonFrame(RecordSensorId, TEXT("virtual_camera"), PayloadFrameId, JsonPayload);
     }
 
     UpdateRuntimeStatus(JsonPayload.Len(), FString::Printf(TEXT("Injected external camera payload bytes=%lld sendTransport=%s"),
@@ -905,12 +905,12 @@ void UVirtualCameraCaptureComponent::UpdateRuntimeStatus(int32 PayloadLength, co
 
 void UVirtualCameraCaptureComponent::DispatchPayload(const FString& JsonPayload, const TArray64<uint8>& JpegBytes) const
 {
-    if (TransportComponent)
+    if (TransportComp)
     {
-        TransportComponent->SendJson(SensorId, TEXT("virtual_camera"), JsonPayload);
+        TransportComp->SendJson(SensorId, TEXT("virtual_camera"), JsonPayload);
         TArray<uint8> Bytes32;
         Bytes32.Append(JpegBytes.GetData(), static_cast<int32>(JpegBytes.Num()));
-        TransportComponent->SendBinary(SensorId, TEXT("virtual_camera_frame"), TEXT("jpg"), Bytes32);
+        TransportComp->SendBinary(SensorId, TEXT("virtual_camera_frame"), TEXT("jpg"), Bytes32);
         return;
     }
 
@@ -936,9 +936,9 @@ void UVirtualCameraCaptureComponent::DispatchJsonPayloadOnly(const FString& Json
 {
     const FString EffectiveSensorId = SensorIdOverride.IsEmpty() ? SensorId : SensorIdOverride;
 
-    if (TransportComponent)
+    if (TransportComp)
     {
-        TransportComponent->SendJson(EffectiveSensorId, TEXT("virtual_camera"), JsonPayload);
+        TransportComp->SendJson(EffectiveSensorId, TEXT("virtual_camera"), JsonPayload);
         return;
     }
 
@@ -1140,7 +1140,7 @@ void UVirtualCameraCaptureComponent::SetGroundTruthEnabled(bool Enabled)
     bGroundTruthEnabled=Enabled;
     if(!Enabled){CancelGroundTruthSave();if(GroundTruth)GroundTruth->Cancel();GroundTruthPreviewDemandUntil=0;}
 }
-bool UVirtualCameraCaptureComponent::CaptureDatasetFrame(UVirtualCameraGroundTruth& Destination,bool IncludeTruth)
+bool UVirtualCameraCaptureComponent::CaptureDatasetFrame(UVirtualCameraGroundTruthComp& Destination,bool IncludeTruth)
 {
     if(IsCaptureRunning()||!GetWorld()||(IncludeTruth&&!bGroundTruthEnabled)||Destination.IsBusy())return false;
     EnsureRenderTarget();
@@ -1172,7 +1172,7 @@ void UVirtualCameraCaptureComponent::CaptureGroundTruth(const FVirtualCameraPayl
 {
     const double Now=FPlatformTime::Seconds();
     if(!bGroundTruthEnabled||(!bGroundTruthSaveRequested&&(Now>=GroundTruthPreviewDemandUntil||Now<NextGroundTruthPreview)))return;
-    if(!GroundTruth){GroundTruth=NewObject<UVirtualCameraGroundTruth>(GetOwner());GroundTruth->RegisterComponentWithWorld(GetWorld());}
+    if(!GroundTruth){GroundTruth=NewObject<UVirtualCameraGroundTruthComp>(GetOwner());GroundTruth->RegisterComponentWithWorld(GetWorld());}
     if(GroundTruth->IsBusy())return;
     const bool Save=bGroundTruthSaveRequested;bGroundTruthSaveRequested=false;
     GroundTruth->Capture(*this,Snapshot,Save,false,true,Save?MoveTemp(GroundTruthSaveCompletion):FVirtualCameraTruthSaveCompletion());NextGroundTruthPreview=Now+.2;

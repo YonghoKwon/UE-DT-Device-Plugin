@@ -1,4 +1,4 @@
-#include "Device/Camera/VirtualCameraGroundTruth.h"
+#include "Device/Camera/VirtualCameraGroundTruthComp.h"
 #include "MA0T10MemoryTags.h"
 #include "Device/Core/VirtualSensorTextureReadback.h"
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
@@ -95,17 +95,17 @@ struct FVirtualCameraTruthWork
     TArray<int64> SavedSizes;
 };
 
-UVirtualCameraGroundTruth::UVirtualCameraGroundTruth(){PrimaryComponentTick.bCanEverTick=false;}
-UVirtualCameraGroundTruth::~UVirtualCameraGroundTruth()=default;
-bool UVirtualCameraGroundTruth::IsSaving() const { return Work&&Work->Save; }
-void UVirtualCameraGroundTruth::ReleaseReadbackCache()
+UVirtualCameraGroundTruthComp::UVirtualCameraGroundTruthComp(){PrimaryComponentTick.bCanEverTick=false;}
+UVirtualCameraGroundTruthComp::~UVirtualCameraGroundTruthComp()=default;
+bool UVirtualCameraGroundTruthComp::IsSaving() const { return Work&&Work->Save; }
+void UVirtualCameraGroundTruthComp::ReleaseReadbackCache()
 {
     auto D=MoveTemp(CachedDepth),S=MoveTemp(CachedSemantic),R=MoveTemp(CachedRgb);CachedSize=FIntPoint::ZeroValue;
     ENQUEUE_RENDER_COMMAND(ReleaseCameraTruthCache)([D=MoveTemp(D),S=MoveTemp(S),R=MoveTemp(R)](FRHICommandListImmediate&)mutable{D.Reset();S.Reset();R.Reset();});
 }
-void UVirtualCameraGroundTruth::EndPlay(const EEndPlayReason::Type Reason){Cancel();ReleaseReadbackCache();Super::EndPlay(Reason);}
-void UVirtualCameraGroundTruth::OnUnregister(){Cancel();ReleaseReadbackCache();if(DepthCapture)DepthCapture->DestroyComponent();DepthCapture=nullptr;DepthTarget=nullptr;SemanticScene.Reset();Super::OnUnregister();}
-void UVirtualCameraGroundTruth::Cancel(const FString& Reason)
+void UVirtualCameraGroundTruthComp::EndPlay(const EEndPlayReason::Type Reason){Cancel();ReleaseReadbackCache();Super::EndPlay(Reason);}
+void UVirtualCameraGroundTruthComp::OnUnregister(){Cancel();ReleaseReadbackCache();if(DepthCapture)DepthCapture->DestroyComponent();DepthCapture=nullptr;DepthTarget=nullptr;SemanticScene.Reset();Super::OnUnregister();}
+void UVirtualCameraGroundTruthComp::Cancel(const FString& Reason)
 {
     if(SemanticScene)SemanticScene->CancelPendingCapture();
     if(GetWorld())GetWorld()->GetTimerManager().ClearTimer(PollTimer);
@@ -117,7 +117,7 @@ void UVirtualCameraGroundTruth::Cancel(const FString& Reason)
     }
     LastFrame.Reset();PreviewTextures.Reset();Status=TEXT("정답 데이터 대기");
 }
-bool UVirtualCameraGroundTruth::Capture(UVirtualCameraCaptureComponent& Source,const FVirtualCameraPayloadSnapshot& Snapshot,bool Save,bool Dataset,bool IncludeTruth,FVirtualCameraTruthSaveCompletion Completion)
+bool UVirtualCameraGroundTruthComp::Capture(UVirtualCameraCaptureComponent& Source,const FVirtualCameraPayloadSnapshot& Snapshot,bool Save,bool Dataset,bool IncludeTruth,FVirtualCameraTruthSaveCompletion Completion)
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_CameraGT);
     auto Reject=[&](const FString& Reason){Status=Reason;if(Completion)Completion(nullptr,FString(),Reason,{});return false;};
@@ -198,7 +198,7 @@ bool UVirtualCameraGroundTruth::Capture(UVirtualCameraCaptureComponent& Source,c
     return true;
 }
 
-void UVirtualCameraGroundTruth::Poll()
+void UVirtualCameraGroundTruthComp::Poll()
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_CameraGT);
     auto State=Work;if(!State||State->Cancelled||State->Mapping)return;
@@ -220,7 +220,7 @@ void UVirtualCameraGroundTruth::Poll()
     {if(FPlatformTime::Seconds()-State->Started>10){const FString Reason=TEXT("정답 데이터 GPU 대기 시간 초과");Cancel(Reason);Status=Reason;}return;}
     State->Mapping=true;GetWorld()->GetTimerManager().ClearTimer(PollTimer);
     auto* Module=&FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
-    TWeakObjectPtr<UVirtualCameraGroundTruth> Weak(this);
+    TWeakObjectPtr<UVirtualCameraGroundTruthComp> Weak(this);
     ENQUEUE_RENDER_COMMAND(CameraTruthMap)([State,Weak,Module](FRHICommandListImmediate&)mutable
     {
         MA0T10_LLM_SCOPE_BYTAG(MA0T10_CameraGT);
@@ -317,7 +317,7 @@ void UVirtualCameraGroundTruth::Poll()
         });
     });
 }
-void UVirtualCameraGroundTruth::Complete(const TSharedPtr<FVirtualCameraTruthWork,ESPMode::ThreadSafe>& State)
+void UVirtualCameraGroundTruthComp::Complete(const TSharedPtr<FVirtualCameraTruthWork,ESPMode::ThreadSafe>& State)
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_CameraGT);
     if(Work!=State||State->Cancelled)return;
@@ -342,4 +342,4 @@ void UVirtualCameraGroundTruth::Complete(const TSharedPtr<FVirtualCameraTruthWor
     Status=FString::Printf(TEXT("정답 #%lld · Z 0–50 m · 미분류 %d · 제출 %.2f ms · 읽기 %.2f ms · CPU %.2f ms%s"),LastFrame->Acquisition.FrameId,LastFrame->UnclassifiedPixels,LastFrame->SubmitMs,LastFrame->ReadbackLatencyMs,LastFrame->DecodeMs,State->Save?TEXT(" · 저장 완료"):TEXT(""));
     if(Completion)Completion(State->Frame.Get(),State->Directory,FString(),State->SavedSizes);
 }
-UTexture2D* UVirtualCameraGroundTruth::Preview(uint8 Mode) const{return Mode>=1&&Mode<=3&&PreviewTextures.IsValidIndex(Mode-1)?PreviewTextures[Mode-1].Get():nullptr;}
+UTexture2D* UVirtualCameraGroundTruthComp::Preview(uint8 Mode) const{return Mode>=1&&Mode<=3&&PreviewTextures.IsValidIndex(Mode-1)?PreviewTextures[Mode-1].Get():nullptr;}

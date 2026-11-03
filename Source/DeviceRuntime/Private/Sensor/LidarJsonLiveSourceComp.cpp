@@ -1,10 +1,10 @@
-#include "Device/Sensor/LidarJsonLiveSourceComponent.h"
+#include "Device/Sensor/LidarJsonLiveSourceComp.h"
 
 #include "Async/Async.h"
 #include "Json.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-#include "Device/Sensor/VirtualLidarScanComponent.h"
+#include "Device/Sensor/VirtualLidarScanComp.h"
 
 namespace
 {
@@ -134,7 +134,7 @@ FString BuildLiveJsonLinesFromPayloadObject(const TSharedPtr<FJsonObject>& Paylo
 }
 }
 
-ULidarJsonLiveSourceComponent::ULidarJsonLiveSourceComponent()
+ULidarJsonLiveSourceComp::ULidarJsonLiveSourceComp()
 {
     PrimaryComponentTick.bCanEverTick = false;
     SourceKind = ERealSensorSourceKind::JsonLiveBridge;
@@ -142,22 +142,22 @@ ULidarJsonLiveSourceComponent::ULidarJsonLiveSourceComponent()
     LastSourceMessage = TEXT("JSON live LiDAR bridge is ready for buffered JSON lines.");
 }
 
-bool ULidarJsonLiveSourceComponent::StartSource()
+bool ULidarJsonLiveSourceComp::StartSource()
 {
     SetSourceState(ERealSensorSourceConnectionState::Running, TEXT("JSON live LiDAR bridge ready."));
     return true;
 }
 
-void ULidarJsonLiveSourceComponent::StopSource()
+void ULidarJsonLiveSourceComp::StopSource()
 {
     SetSourceState(ERealSensorSourceConnectionState::Stopped, TEXT("JSON live LiDAR bridge stopped."));
 }
 
-void ULidarJsonLiveSourceComponent::AppendJsonLine(const FString& JsonLine)
+void ULidarJsonLiveSourceComp::AppendJsonLine(const FString& JsonLine)
 {
     if (!IsInGameThread())
     {
-        TWeakObjectPtr<ULidarJsonLiveSourceComponent> WeakThis(this);
+        TWeakObjectPtr<ULidarJsonLiveSourceComp> WeakThis(this);
         AsyncTask(ENamedThreads::GameThread, [WeakThis, JsonLine]()
         {
             if (WeakThis.IsValid())
@@ -171,11 +171,11 @@ void ULidarJsonLiveSourceComponent::AppendJsonLine(const FString& JsonLine)
     AppendNormalizedLine(JsonLine);
 }
 
-void ULidarJsonLiveSourceComponent::AppendJsonLines(const FString& JsonLines)
+void ULidarJsonLiveSourceComp::AppendJsonLines(const FString& JsonLines)
 {
     if (!IsInGameThread())
     {
-        TWeakObjectPtr<ULidarJsonLiveSourceComponent> WeakThis(this);
+        TWeakObjectPtr<ULidarJsonLiveSourceComp> WeakThis(this);
         AsyncTask(ENamedThreads::GameThread, [WeakThis, JsonLines]()
         {
             if (WeakThis.IsValid())
@@ -194,7 +194,7 @@ void ULidarJsonLiveSourceComponent::AppendJsonLines(const FString& JsonLines)
     }
 }
 
-bool ULidarJsonLiveSourceComponent::AppendWebSocketPayload(const FString& PayloadJson)
+bool ULidarJsonLiveSourceComp::AppendWebSocketPayload(const FString& PayloadJson)
 {
     TSharedPtr<FJsonObject> RootObject;
     const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PayloadJson);
@@ -233,12 +233,12 @@ bool ULidarJsonLiveSourceComponent::AppendWebSocketPayload(const FString& Payloa
     return true;
 }
 
-bool ULidarJsonLiveSourceComponent::AppendLivePayloadJson(const FString& PayloadJson)
+bool ULidarJsonLiveSourceComp::AppendLivePayloadJson(const FString& PayloadJson)
 {
     return AppendWebSocketPayload(PayloadJson);
 }
 
-void ULidarJsonLiveSourceComponent::AppendNormalizedLine(const FString& JsonLine)
+void ULidarJsonLiveSourceComp::AppendNormalizedLine(const FString& JsonLine)
 {
     FString Trimmed = JsonLine;
     Trimmed.TrimStartAndEndInline();
@@ -256,14 +256,14 @@ void ULidarJsonLiveSourceComponent::AppendNormalizedLine(const FString& JsonLine
     LastSourceMessage = FString::Printf(TEXT("Buffered JSON live line. pendingLines=%d"), PendingLineCount);
 }
 
-void ULidarJsonLiveSourceComponent::ClearBufferedFrame()
+void ULidarJsonLiveSourceComp::ClearBufferedFrame()
 {
     BufferedJsonLines.Reset();
     PendingLineCount = 0;
     LastSourceMessage = TEXT("JSON live LiDAR buffer cleared.");
 }
 
-void ULidarJsonLiveSourceComponent::AppendSampleWebSocketFrameInEditor()
+void ULidarJsonLiveSourceComp::AppendSampleWebSocketFrameInEditor()
 {
     const FString ResolvedPath = ResolveSampleWebSocketPayloadPath();
     FString PayloadJson;
@@ -281,22 +281,22 @@ void ULidarJsonLiveSourceComponent::AppendSampleWebSocketFrameInEditor()
     AppendWebSocketPayload(PayloadJson);
 }
 
-void ULidarJsonLiveSourceComponent::PushBufferedFrameInEditor()
+void ULidarJsonLiveSourceComp::PushBufferedFrameInEditor()
 {
     PushFrameOnce(bSendTransportByDefault);
 }
 
-void ULidarJsonLiveSourceComponent::PushBufferedFrameNoTransportInEditor()
+void ULidarJsonLiveSourceComp::PushBufferedFrameNoTransportInEditor()
 {
     PushFrameOnce(false);
 }
 
-void ULidarJsonLiveSourceComponent::ClearBufferedFrameInEditor()
+void ULidarJsonLiveSourceComp::ClearBufferedFrameInEditor()
 {
     ClearBufferedFrame();
 }
 
-bool ULidarJsonLiveSourceComponent::BuildFrameFromBufferedLines(TArray<FVirtualLidarPoint>& OutPoints) const
+bool ULidarJsonLiveSourceComp::BuildFrameFromBufferedLines(TArray<FVirtualLidarPoint>& OutPoints) const
 {
     OutPoints.Reset();
 
@@ -328,12 +328,12 @@ bool ULidarJsonLiveSourceComponent::BuildFrameFromBufferedLines(TArray<FVirtualL
         OutPoints.Add(Point);
     }
 
-    const_cast<ULidarJsonLiveSourceComponent*>(this)->LastParsedLineCount = ParsedLineCount;
-    const_cast<ULidarJsonLiveSourceComponent*>(this)->LastDroppedLineCount = DroppedLineCount;
+    const_cast<ULidarJsonLiveSourceComp*>(this)->LastParsedLineCount = ParsedLineCount;
+    const_cast<ULidarJsonLiveSourceComp*>(this)->LastDroppedLineCount = DroppedLineCount;
     return OutPoints.Num() > 0;
 }
 
-bool ULidarJsonLiveSourceComponent::PushFrameOnce(bool bSendTransport)
+bool ULidarJsonLiveSourceComp::PushFrameOnce(bool bSendTransport)
 {
     if (!IsInGameThread())
     {
@@ -373,9 +373,9 @@ bool ULidarJsonLiveSourceComponent::PushFrameOnce(bool bSendTransport)
     return bPushed;
 }
 
-void ULidarJsonLiveSourceComponent::QueuePushFrameOnce(bool bSendTransport)
+void ULidarJsonLiveSourceComp::QueuePushFrameOnce(bool bSendTransport)
 {
-    TWeakObjectPtr<ULidarJsonLiveSourceComponent> WeakThis(this);
+    TWeakObjectPtr<ULidarJsonLiveSourceComp> WeakThis(this);
     AsyncTask(ENamedThreads::GameThread, [WeakThis, bSendTransport]()
     {
         if (WeakThis.IsValid())
@@ -385,7 +385,7 @@ void ULidarJsonLiveSourceComponent::QueuePushFrameOnce(bool bSendTransport)
     });
 }
 
-FString ULidarJsonLiveSourceComponent::ResolveSampleWebSocketPayloadPath() const
+FString ULidarJsonLiveSourceComp::ResolveSampleWebSocketPayloadPath() const
 {
     FString Path = SampleWebSocketPayloadPath;
     Path.TrimStartAndEndInline();
@@ -413,7 +413,7 @@ FString ULidarJsonLiveSourceComponent::ResolveSampleWebSocketPayloadPath() const
     return Path;
 }
 
-bool ULidarJsonLiveSourceComponent::ParseJsonPointLine(const FString& Line, FVirtualLidarPoint& OutPoint) const
+bool ULidarJsonLiveSourceComp::ParseJsonPointLine(const FString& Line, FVirtualLidarPoint& OutPoint) const
 {
     FString Trimmed = Line;
     Trimmed.TrimStartAndEndInline();

@@ -1,4 +1,4 @@
-#include "Device/Core/VirtualSensorStreamPublisherComponent.h"
+#include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Device/Contracts/VirtualSensorDefaults.h"
 #include "Device/Core/VirtualPointCloudCoordinates.h"
 #include "Device/Core/VirtualSensorWireHeaders.h"
@@ -18,14 +18,14 @@
 #include "Device/Camera/VirtualCameraCaptureComponent.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
-#include "Device/Sensor/VirtualSensorOutputComponent.h"
+#include "Device/Sensor/VirtualSensorOutputComp.h"
 #include "EngineUtils.h"
 #include "Device/Sensor/VirtualLidarPayloadCodec.h"
-#include "Device/Sensor/VirtualSensorTransportComponent.h"
+#include "Device/Sensor/VirtualSensorTransportComp.h"
 
 
 
-void UVirtualSensorStreamPublisherComponent::SubmitFrame(const FVirtualSensorFrameEnvelope& Frame)
+void UVirtualSensorStreamPublisherComp::SubmitFrame(const FVirtualSensorFrameEnvelope& Frame)
 {
 	if (GetWorld()) if (auto* Slab=FVirtualSensorAcquisitionContextProviders::Get(GetWorld()))
 		if (!Slab->AllowsAcquisitionFrame(Frame.SensorId,Frame.SlabContext)) return;
@@ -50,9 +50,9 @@ void UVirtualSensorStreamPublisherComponent::SubmitFrame(const FVirtualSensorFra
 	}
 }
 
-void UVirtualSensorStreamPublisherComponent::PumpPreparedMessages(double NowSeconds)
+void UVirtualSensorStreamPublisherComp::PumpPreparedMessages(double NowSeconds)
 {
-	if (!TransportComponent || StreamRuntimes.IsEmpty()) return;
+	if (!TransportComp || StreamRuntimes.IsEmpty()) return;
 	TArray<FString> Keys;
 	StreamRuntimes.GetKeys(Keys);
 	Keys.Sort();
@@ -101,7 +101,7 @@ void UVirtualSensorStreamPublisherComponent::PumpPreparedMessages(double NowSeco
 			}
 		}
 		FString BodyError;
-		if (!ValidateBinaryBodySize(Message.ByteCount, TransportComponent->GetTransportProfile().MaxMessageBytes, BodyError))
+		if (!ValidateBinaryBodySize(Message.ByteCount, TransportComp->GetTransportProfile().MaxMessageBytes, BodyError))
 		{
 			StopForBodyLimit(Keys[Index], *Runtime, BodyError, Message.FrameId);
 			continue;
@@ -149,8 +149,8 @@ void UVirtualSensorStreamPublisherComponent::PumpPreparedMessages(double NowSeco
 			continue;
 		}
 		const FVirtualSensorTransportResult Result = Message.bBinaryPcd
-			? TransportComponent->SendStompBinaryStreamRequest(*Message.BinaryBody, Message.BinaryMetadata)
-			: TransportComponent->SendJsonStreamRequest(Message.SensorId, SensorType, DataKind, Message.FrameId, Message.Json, bReceipt, Message.BinaryHeaders);
+			? TransportComp->SendStompBinaryStreamRequest(*Message.BinaryBody, Message.BinaryMetadata)
+			: TransportComp->SendJsonStreamRequest(Message.SensorId, SensorType, DataKind, Message.FrameId, Message.Json, bReceipt, Message.BinaryHeaders);
 		Runtime->Status.LastRequestId = Result.RequestId;
 		Runtime->Status.Destination = Result.Destination;
 		Runtime->Status.Message = Result.Message;
@@ -207,7 +207,7 @@ void UVirtualSensorStreamPublisherComponent::PumpPreparedMessages(double NowSeco
 	}
 }
 
-void UVirtualSensorStreamPublisherComponent::UpdateCameraStreamDemand()
+void UVirtualSensorStreamPublisherComp::UpdateCameraStreamDemand()
 {
 	if (ADeviceSensorCoordinator* Coordinator = Cast<ADeviceSensorCoordinator>(GetOwner()))
 	{
@@ -229,11 +229,11 @@ void UVirtualSensorStreamPublisherComponent::UpdateCameraStreamDemand()
 		}
 	}
 }
-bool UVirtualSensorStreamPublisherComponent::NeedsCompatibilityLidarOutput(const FString& Id,const FVirtualSlabFrameContext& Context) const
+bool UVirtualSensorStreamPublisherComp::NeedsCompatibilityLidarOutput(const FString& Id,const FVirtualSlabFrameContext& Context) const
 {
     return NeedsCompatibilityLidarOutputForContext(Id,static_cast<FVirtualSensorAcquisitionContext>(Context));
 }
-bool UVirtualSensorStreamPublisherComponent::NeedsCompatibilityLidarOutputForContext(const FString& Id,const FVirtualSensorAcquisitionContext& Context) const
+bool UVirtualSensorStreamPublisherComp::NeedsCompatibilityLidarOutputForContext(const FString& Id,const FVirtualSensorAcquisitionContext& Context) const
 {
     if(IsLocalCaptureSuspended(Id))return false;
     const auto* Slab=GetWorld()?FVirtualSensorAcquisitionContextProviders::Get(GetWorld()):nullptr;
@@ -247,7 +247,7 @@ bool UVirtualSensorStreamPublisherComponent::NeedsCompatibilityLidarOutputForCon
         }}
     return false;
 }
-void UVirtualSensorStreamPublisherComponent::RecordRunFailure(const FString& RunId,const FString& SensorId,EVirtualSensorStreamKind Kind,int64 FrameId,const FString& Reason)
+void UVirtualSensorStreamPublisherComp::RecordRunFailure(const FString& RunId,const FString& SensorId,EVirtualSensorStreamKind Kind,int64 FrameId,const FString& Reason)
 {
 	if(RunId.IsEmpty()) return;
 	if(auto* Provider=FVirtualSensorAcquisitionContextProviders::Get(GetWorld()))Provider->RecordAcquisitionOutputFailure(RunId,SensorId,VirtualSensorAcquisitionOutput(Kind),FrameId,Reason);
