@@ -27,7 +27,7 @@
 #include "Widgets/Layout/SWrapBox.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
 #include "Device/Contracts/DeviceIdentityPolicy.h"
 #include "Device/Core/VirtualSensorHitchDiagnostics.h"

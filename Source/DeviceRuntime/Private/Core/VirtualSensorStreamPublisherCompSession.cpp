@@ -15,7 +15,7 @@
 #include "Misc/SecureHash.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
 #include "Device/Sensor/VirtualSensorOutputComp.h"
@@ -214,7 +214,7 @@ void UVirtualSensorStreamPublisherComp::UpdateCameraStreamDemand()
 		for (AVirtualSensorActorBase* SensorActor : Coordinator->GetSensorActors())
 		{
 			if (!SensorActor || SensorActor->GetSensorKind() != EVirtualSensorKind::Camera) continue;
-			if (UVirtualCameraCaptureComponent* Camera = SensorActor->FindComponentByClass<UVirtualCameraCaptureComponent>())
+			if (UVirtualCameraCaptureComp* Camera = SensorActor->FindComponentByClass<UVirtualCameraCaptureComp>())
 			{
 				const FStreamRuntime* Global = StreamRuntimes.Find(MakeStreamKey(EVirtualSensorStreamKind::CameraImage, FString()));
 				const FStreamRuntime* Exact = StreamRuntimes.Find(MakeStreamKey(EVirtualSensorStreamKind::CameraImage, SensorActor->GetSensorId()));

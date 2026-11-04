@@ -8,10 +8,10 @@
 #include "RHIGlobals.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarScanComp.h"
-#include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
+#include "Device/Sensor/VirtualLidarGpuDepthProjectionComp.h"
 #include "Device/Sensor/VirtualSensorEditableTypes.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Camera/VirtualCameraGroundTruthComp.h"
 #include "HAL/PlatformMemory.h"
 #include "Misc/FileHelper.h"
@@ -77,7 +77,7 @@ private:
     bool Finish()
     {
         Test->AddInfo(FString::Printf(TEXT("GPU-CRASH-01 mode%d final%d wall%.3fs memoryStartMiB%.3f memoryEndMiB%.3f"),Mode,Completed,FPlatformTime::Seconds()-Started,MemoryStart/1048576.,FPlatformMemory::GetStats().UsedPhysical/1048576.));
-        if(Truth)Truth->Cancel();if(Scan)Scan->StopScan();if(Camera)Camera->CaptureComp->StopCapture();if(Lidar)Lidar->GpuDepthProjectionComponent->UnregisterComponent();Scene.Reset();return true;
+        if(Truth)Truth->Cancel();if(Scan)Scan->StopScan();if(Camera)Camera->CaptureComp->StopCapture();if(Lidar)Lidar->GpuDepthProjectionComp->UnregisterComponent();Scene.Reset();return true;
     }
     FAutomationTestBase* Test;int32 Mode,Completed=0;double Started=0;uint64 NextFrame=0,MemoryStart=0;int64 Baseline=-1;
     bool Pending=false,LidarDone=false,CameraDone=false;

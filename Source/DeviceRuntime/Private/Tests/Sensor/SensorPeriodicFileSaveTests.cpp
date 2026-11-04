@@ -6,7 +6,7 @@
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Camera/VirtualCameraPayloadCodec.h"
 #include "Misc/Base64.h"
 

@@ -8,7 +8,7 @@
 #include "HAL/PlatformTime.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarVisualizationComp.h"
@@ -83,7 +83,7 @@ float UVirtualSensorSchedulerSubsystem::ResolveAdaptiveCameraAdmissionHz(float C
     return FMath::Clamp(CurrentHz, FloorHz, CeilingHz);
 }
 
-void UVirtualSensorSchedulerSubsystem::RegisterCamera(UVirtualCameraCaptureComponent* Camera)
+void UVirtualSensorSchedulerSubsystem::RegisterCamera(UVirtualCameraCaptureComp* Camera)
 {
     if (Camera && !Cameras.Contains(Camera))
     {
@@ -94,7 +94,7 @@ void UVirtualSensorSchedulerSubsystem::RegisterCamera(UVirtualCameraCaptureCompo
 
 void UVirtualSensorSchedulerSubsystem::RegisterTask(UActorComponent* TaskComponent)
 {
-    if (UVirtualCameraCaptureComponent* Camera = Cast<UVirtualCameraCaptureComponent>(TaskComponent))
+    if (UVirtualCameraCaptureComp* Camera = Cast<UVirtualCameraCaptureComp>(TaskComponent))
     {
         RegisterCamera(Camera);
     }
@@ -106,7 +106,7 @@ void UVirtualSensorSchedulerSubsystem::RegisterTask(UActorComponent* TaskCompone
 
 void UVirtualSensorSchedulerSubsystem::UnregisterTask(UActorComponent* TaskComponent)
 {
-    if (UVirtualCameraCaptureComponent* Camera = Cast<UVirtualCameraCaptureComponent>(TaskComponent))
+    if (UVirtualCameraCaptureComp* Camera = Cast<UVirtualCameraCaptureComp>(TaskComponent))
     {
         UnregisterCamera(Camera);
     }
@@ -116,11 +116,11 @@ void UVirtualSensorSchedulerSubsystem::UnregisterTask(UActorComponent* TaskCompo
     }
 }
 
-void UVirtualSensorSchedulerSubsystem::UnregisterCamera(UVirtualCameraCaptureComponent* Camera)
+void UVirtualSensorSchedulerSubsystem::UnregisterCamera(UVirtualCameraCaptureComp* Camera)
 {
     RegistrationTimes.Remove(Camera);
     if (PreferredCamera.Get() == Camera) PreferredCamera.Reset();
-    Cameras.RemoveAll([Camera](const TWeakObjectPtr<UVirtualCameraCaptureComponent>& Item) { return !Item.IsValid() || Item.Get() == Camera; });
+    Cameras.RemoveAll([Camera](const TWeakObjectPtr<UVirtualCameraCaptureComp>& Item) { return !Item.IsValid() || Item.Get() == Camera; });
     NextCameraIndex = Cameras.Num() > 0 ? NextCameraIndex % Cameras.Num() : 0;
 }
 
@@ -165,7 +165,7 @@ void UVirtualSensorSchedulerSubsystem::RefreshLidarCadencePhases(double WallSeco
                 Lidar->ApplyAutomaticCadencePhase(WallSeconds,Assignment.Phase,Assignment.bInitial);
 }
 
-void UVirtualSensorSchedulerSubsystem::SetPreferredCamera(UVirtualCameraCaptureComponent* Camera)
+void UVirtualSensorSchedulerSubsystem::SetPreferredCamera(UVirtualCameraCaptureComp* Camera)
 {
     PreferredCamera = Camera;
 }
@@ -197,7 +197,7 @@ void UVirtualSensorSchedulerSubsystem::CompactRegistrations()
 {
     for (auto It = RegistrationTimes.CreateIterator(); It; ++It)
         if (!It.Key().IsValid()) It.RemoveCurrent();
-    Cameras.RemoveAll([](const TWeakObjectPtr<UVirtualCameraCaptureComponent>& Item) { return !Item.IsValid(); });
+    Cameras.RemoveAll([](const TWeakObjectPtr<UVirtualCameraCaptureComp>& Item) { return !Item.IsValid(); });
     Lidars.RemoveAll([](const TWeakObjectPtr<UVirtualLidarScanComp>& Item) { return !Item.IsValid(); });
     for (auto It = AdaptiveLidarChunkSizes.CreateIterator(); It; ++It)
     {
@@ -255,7 +255,7 @@ void UVirtualSensorSchedulerSubsystem::Tick(float DeltaTime)
     EffectiveAggregateCameraCaptureHz =
         ResolveNominalCameraRatePerSensor(TargetFps, Cameras.Num()) * Cameras.Num();
 
-    for (const TWeakObjectPtr<UVirtualCameraCaptureComponent>& Camera : Cameras)
+    for (const TWeakObjectPtr<UVirtualCameraCaptureComp>& Camera : Cameras)
     {
         if (Camera.IsValid()) Camera->TickScheduledCapture(NowSeconds, false);
     }
@@ -283,7 +283,7 @@ void UVirtualSensorSchedulerSubsystem::Tick(float DeltaTime)
     }
     if (CameraAdmissions >= CameraCapturesThisFrame && CameraCapturesThisFrame > 0)
     {
-        for (const TWeakObjectPtr<UVirtualCameraCaptureComponent>& Camera : Cameras)
+        for (const TWeakObjectPtr<UVirtualCameraCaptureComp>& Camera : Cameras)
         {
             if (Camera.IsValid() && Camera->IsScheduledCaptureDue(NowSeconds))
             {
@@ -380,7 +380,7 @@ void UVirtualSensorSchedulerSubsystem::Tick(float DeltaTime)
             Telemetry.MinimumCameraCompletionHz,
             Telemetry.MinimumLidarCompletionHz);
 
-        for (const TWeakObjectPtr<UVirtualCameraCaptureComponent>& Camera : Cameras)
+        for (const TWeakObjectPtr<UVirtualCameraCaptureComp>& Camera : Cameras)
         {
             if (!Camera.IsValid()) continue;
             const FVirtualSensorRuntimeStatus& Status = Camera->GetRuntimeStatus();
@@ -470,11 +470,11 @@ void UVirtualSensorSchedulerSubsystem::ConfigureCommandLineBenchmarkIfRequested(
                 ? EVirtualLidarAcquisitionBackend::GpuDepthProjection
                 : EVirtualLidarAcquisitionBackend::Auto;
 
-    const TArray<TWeakObjectPtr<UVirtualCameraCaptureComponent>> ExistingCameras = Cameras;
+    const TArray<TWeakObjectPtr<UVirtualCameraCaptureComp>> ExistingCameras = Cameras;
     const TArray<TWeakObjectPtr<UVirtualLidarScanComp>> ExistingLidars = Lidars;
     for (int32 Index = 0; Index < ExistingCameras.Num(); ++Index)
     {
-        const TWeakObjectPtr<UVirtualCameraCaptureComponent>& Camera = ExistingCameras[Index];
+        const TWeakObjectPtr<UVirtualCameraCaptureComp>& Camera = ExistingCameras[Index];
         if (!Camera.IsValid()) continue;
         if (Index >= RequestedCameras)
         {
@@ -518,7 +518,7 @@ void UVirtualSensorSchedulerSubsystem::ConfigureCommandLineBenchmarkIfRequested(
     {
         AActor* Owner = World->SpawnActor<AActor>(AActor::StaticClass(), FTransform(FVector(0.0, Index * 50.0, 170.0)));
         if (!Owner) continue;
-        UVirtualCameraCaptureComponent* Camera = NewObject<UVirtualCameraCaptureComponent>(Owner, *FString::Printf(TEXT("BenchmarkCamera_%02d"), Index + 1));
+        UVirtualCameraCaptureComp* Camera = NewObject<UVirtualCameraCaptureComp>(Owner, *FString::Printf(TEXT("BenchmarkCamera_%02d"), Index + 1));
         Camera->SensorId = FString::Printf(TEXT("BENCH-CAM-%02d"), Index + 1);
         Camera->bAutoStartCapture = false;
         Camera->bAutoRegisterToManager = false;
@@ -714,7 +714,7 @@ void UVirtualSensorSchedulerSubsystem::RefreshTelemetry(float WorkMs)
         Telemetry.FailedAcquisitionFrameCount += Status.FailedAcquisitionFrameCount;
         Telemetry.QueueOverflowCount += Status.QueueOverflowCount;
     };
-    for (const TWeakObjectPtr<UVirtualCameraCaptureComponent>& Camera : Cameras)
+    for (const TWeakObjectPtr<UVirtualCameraCaptureComp>& Camera : Cameras)
     {
         if (!Camera.IsValid()) continue;
         const FVirtualSensorRuntimeStatus& Status = Camera->GetRuntimeStatus();

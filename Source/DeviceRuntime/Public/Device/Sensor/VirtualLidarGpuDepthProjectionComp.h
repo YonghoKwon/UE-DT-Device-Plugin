@@ -6,7 +6,7 @@
 #include "Device/Core/VirtualSensorAcquisitionBackend.h"
 #include "Device/Sensor/VirtualLidarSemanticScene.h"
 #include "Device/Core/VirtualSensorResourceDiagnostics.h"
-#include "VirtualLidarGpuDepthProjectionComponent.generated.h"
+#include "VirtualLidarGpuDepthProjectionComp.generated.h"
 
 class FRHIGPUTextureReadback;
 class UTextureRenderTarget2D;
@@ -18,15 +18,15 @@ class FVirtualLidarSemanticScene;
  * responsibility and is reported by the owner as a backend limitation.
  */
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualLidarGpuDepthProjectionComponent
+class DEVICERUNTIME_API UVirtualLidarGpuDepthProjectionComp
 	: public USceneCaptureComponent2D
 	, public IVirtualSensorAcquisitionBackend
 {
 	GENERATED_BODY()
 
 public:
-	UVirtualLidarGpuDepthProjectionComponent();
-	virtual ~UVirtualLidarGpuDepthProjectionComponent() override;
+	UVirtualLidarGpuDepthProjectionComp();
+	virtual ~UVirtualLidarGpuDepthProjectionComp() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void OnUnregister() override;
 

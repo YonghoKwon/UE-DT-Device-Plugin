@@ -1,6 +1,6 @@
 #include "Device/Sensor/DeviceSensorCoordinator.h"
 
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Components/PrimitiveComponent.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
@@ -170,9 +170,9 @@ void ADeviceSensorCoordinator::DiscoverSensorsInLevel()
         {
             RegisterSensorActor(SensorActor);
         }
-        TArray<UVirtualCameraCaptureComponent*> FoundCameras;
-        Actor->GetComponents<UVirtualCameraCaptureComponent>(FoundCameras);
-        for (UVirtualCameraCaptureComponent* CameraComp : FoundCameras)
+        TArray<UVirtualCameraCaptureComp*> FoundCameras;
+        Actor->GetComponents<UVirtualCameraCaptureComp>(FoundCameras);
+        for (UVirtualCameraCaptureComp* CameraComp : FoundCameras)
         {
             RegisterCamera(CameraComp);
         }
@@ -191,7 +191,7 @@ void ADeviceSensorCoordinator::DiscoverSensorsInLevel()
     }
 }
 
-void ADeviceSensorCoordinator::RegisterCamera(UVirtualCameraCaptureComponent* CameraComp)
+void ADeviceSensorCoordinator::RegisterCamera(UVirtualCameraCaptureComp* CameraComp)
 {
     if (CameraComp && !Cameras.Contains(CameraComp))
     {
@@ -378,7 +378,7 @@ void ADeviceSensorCoordinator::StartAllSensors()
     {
         if (SensorActor) SensorActor->StartSensor();
     }
-    for (UVirtualCameraCaptureComponent* CameraComp : Cameras)
+    for (UVirtualCameraCaptureComp* CameraComp : Cameras)
     {
         if (CameraComp && !Cast<AVirtualSensorActorBase>(CameraComp->GetOwner())) CameraComp->StartCapture();
     }
@@ -394,7 +394,7 @@ void ADeviceSensorCoordinator::StopAllSensors()
     {
         if (SensorActor) SensorActor->StopSensor();
     }
-    for (UVirtualCameraCaptureComponent* CameraComp : Cameras)
+    for (UVirtualCameraCaptureComp* CameraComp : Cameras)
     {
         if (CameraComp && !Cast<AVirtualSensorActorBase>(CameraComp->GetOwner())) CameraComp->StopCapture();
     }
@@ -440,7 +440,7 @@ void ADeviceSensorCoordinator::CaptureAllOnce()
     {
         if (SensorActor) SensorActor->CaptureSensorOnce();
     }
-    for (UVirtualCameraCaptureComponent* CameraComp : Cameras)
+    for (UVirtualCameraCaptureComp* CameraComp : Cameras)
     {
         if (CameraComp && !Cast<AVirtualSensorActorBase>(CameraComp->GetOwner())) CameraComp->CaptureAndSendImage();
     }
@@ -452,7 +452,7 @@ void ADeviceSensorCoordinator::CaptureAllOnce()
 
 void ADeviceSensorCoordinator::CaptureSelectedOnce()
 {
-    if (UVirtualCameraCaptureComponent* CameraComp = GetSelectedCamera())
+    if (UVirtualCameraCaptureComp* CameraComp = GetSelectedCamera())
     {
         CameraComp->CaptureAndSendImage();
     }
@@ -473,7 +473,7 @@ void ADeviceSensorCoordinator::RefreshSelectedSensorOnce(bool bLidar)
         return;
     }
 
-    if (UVirtualCameraCaptureComponent* CameraComp = GetSelectedCamera())
+    if (UVirtualCameraCaptureComp* CameraComp = GetSelectedCamera())
     {
         CameraComp->CaptureAndSendImage();
     }
@@ -486,7 +486,7 @@ void ADeviceSensorCoordinator::RegisterSensorActor(AVirtualSensorActorBase* Sens
     SensorActor->OnSensorActivated.RemoveAll(this);
     SensorActor->OnSensorActivated.AddUObject(this,&ThisClass::HandleSensorActivated);
     SensorActor->SetSharedOutputServices(GetDeviceCoordinatorConfig().SharedTransportComp, GetDeviceCoordinatorConfig().SharedRecorderComp, GetDeviceCoordinatorConfig().StreamPublisherComp);
-    if(auto* C=SensorActor->FindComponentByClass<UVirtualCameraCaptureComponent>())RegisterCamera(C);
+    if(auto* C=SensorActor->FindComponentByClass<UVirtualCameraCaptureComp>())RegisterCamera(C);
     if(auto* L=SensorActor->FindComponentByClass<UVirtualLidarScanComp>())RegisterLidar(L);
     SensorActor->OnEndPlay.AddUniqueDynamic(this,&ThisClass::HandleSensorEndPlay);
     OnSensorInventoryChanged.Broadcast();
@@ -511,7 +511,7 @@ void ADeviceSensorCoordinator::UnregisterSensorActor(AVirtualSensorActorBase* Se
 bool ADeviceSensorCoordinator::SelectSensorActor(AVirtualSensorActorBase* Sensor)
 {
     if(!IsValid(Sensor)||!SensorActors.Contains(Sensor))return false;
-    if(auto* C=Sensor->FindComponentByClass<UVirtualCameraCaptureComponent>()){const int32 I=Cameras.IndexOfByKey(C);if(I==INDEX_NONE)return false;SelectCameraByIndex(I);SetViewMode(EVirtualSensorViewMode::Camera);}
+    if(auto* C=Sensor->FindComponentByClass<UVirtualCameraCaptureComp>()){const int32 I=Cameras.IndexOfByKey(C);if(I==INDEX_NONE)return false;SelectCameraByIndex(I);SetViewMode(EVirtualSensorViewMode::Camera);}
     else if(auto* L=Sensor->FindComponentByClass<UVirtualLidarScanComp>()){const int32 I=Lidars.IndexOfByKey(L);if(I==INDEX_NONE)return false;SelectLidarByIndex(I);SetViewMode(EVirtualSensorViewMode::Lidar);}else return false;
     return true;
 }
@@ -534,12 +534,12 @@ void ADeviceSensorCoordinator::AdjustSelectedLidarPreviewBudget(int32 StrideDelt
     }
 }
 
-UVirtualCameraCaptureComponent* ADeviceSensorCoordinator::GetSelectedCamera() const
+UVirtualCameraCaptureComp* ADeviceSensorCoordinator::GetSelectedCamera() const
 {
     return Cameras.IsValidIndex(SelectedCameraIndex) ? Cameras[SelectedCameraIndex] : nullptr;
 }
 
-UVirtualCameraCaptureComponent* ADeviceSensorCoordinator::GetCameraByIndex(int32 Index) const
+UVirtualCameraCaptureComp* ADeviceSensorCoordinator::GetCameraByIndex(int32 Index) const
 {
 	return Cameras.IsValidIndex(Index) ? Cameras[Index].Get() : nullptr;
 }
@@ -670,7 +670,7 @@ FVirtualSensorHealthSummary ADeviceSensorCoordinator::GetHealthSummary() const
         return Age.GetTotalSeconds() > GetDeviceCoordinatorConfig().StaleSensorSeconds;
     };
 
-    for (const UVirtualCameraCaptureComponent* CameraComp : Cameras)
+    for (const UVirtualCameraCaptureComp* CameraComp : Cameras)
     {
         if (!CameraComp || CountIfStale(CameraComp->GetRuntimeStatus()))
         {
@@ -751,7 +751,7 @@ void ADeviceSensorCoordinator::AssignSharedServicesIfPossible(UActorComponent* S
         return;
     }
 
-    if (UVirtualCameraCaptureComponent* CameraComp = Cast<UVirtualCameraCaptureComponent>(SensorComp))
+    if (UVirtualCameraCaptureComp* CameraComp = Cast<UVirtualCameraCaptureComp>(SensorComp))
     {
         if (GetDeviceCoordinatorConfig().SharedTransportComp)
         {
@@ -866,7 +866,7 @@ bool ADeviceSensorCoordinator::ShouldKeepActorVisibleInPointCloudOnly(const AAct
         }
     }
 
-    if (const UVirtualCameraCaptureComponent* SelectedCamera = GetSelectedCamera())
+    if (const UVirtualCameraCaptureComp* SelectedCamera = GetSelectedCamera())
     {
         if (Actor == SelectedCamera->GetOwner())
         {

@@ -16,7 +16,7 @@
 #include "Misc/SecureHash.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
 #include "Device/Sensor/VirtualSensorOutputComp.h"

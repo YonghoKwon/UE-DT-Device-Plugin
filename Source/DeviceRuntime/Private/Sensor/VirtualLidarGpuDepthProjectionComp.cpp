@@ -1,4 +1,4 @@
-#include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
+#include "Device/Sensor/VirtualLidarGpuDepthProjectionComp.h"
 #include "MA0T10MemoryTags.h"
 #include "Device/Core/VirtualSensorTextureReadback.h"
 #include "Device/Sensor/VirtualLidarSemanticScene.h"
@@ -22,7 +22,7 @@ int64 GpuDepthUtcNowUnixNanoseconds()
 	return (FDateTime::UtcNow() - UnixEpoch).GetTicks() * 100;
 }
 }
-UVirtualLidarGpuDepthProjectionComponent::UVirtualLidarGpuDepthProjectionComponent()
+UVirtualLidarGpuDepthProjectionComp::UVirtualLidarGpuDepthProjectionComp()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	bCaptureEveryFrame = false;
@@ -41,9 +41,9 @@ UVirtualLidarGpuDepthProjectionComponent::UVirtualLidarGpuDepthProjectionCompone
 	}
 }
 
-UVirtualLidarGpuDepthProjectionComponent::~UVirtualLidarGpuDepthProjectionComponent() = default;
+UVirtualLidarGpuDepthProjectionComp::~UVirtualLidarGpuDepthProjectionComp() = default;
 
-FVirtualSensorResourceSnapshot UVirtualLidarGpuDepthProjectionComponent::GetResourceSnapshot() const
+FVirtualSensorResourceSnapshot UVirtualLidarGpuDepthProjectionComp::GetResourceSnapshot() const
 {
     check(IsInGameThread());
     FVirtualSensorResourceSnapshot S; S.Owner=GetName()+TEXT("/gpu-depth");
@@ -56,26 +56,26 @@ FVirtualSensorResourceSnapshot UVirtualLidarGpuDepthProjectionComponent::GetReso
     return S;
 }
 
-void UVirtualLidarGpuDepthProjectionComponent::EndPlay(const EEndPlayReason::Type Reason)
+void UVirtualLidarGpuDepthProjectionComp::EndPlay(const EEndPlayReason::Type Reason)
 {
     CancelAcquisition();
     SemanticScene.Reset();
     Super::EndPlay(Reason);
 }
 
-bool UVirtualLidarGpuDepthProjectionComponent::IsAvailable() const
+bool UVirtualLidarGpuDepthProjectionComp::IsAvailable() const
 {
 	return FApp::CanEverRender() && GDynamicRHI != nullptr && IsRegistered() && GetWorld() != nullptr;
 }
 
-void UVirtualLidarGpuDepthProjectionComponent::OnUnregister()
+void UVirtualLidarGpuDepthProjectionComp::OnUnregister()
 {
     CancelAcquisition();
     SemanticScene.Reset();
     Super::OnUnregister();
 }
 
-bool UVirtualLidarGpuDepthProjectionComponent::EnsureRenderTarget(const FVirtualLidarDepthAcquisitionRequest& Request)
+bool UVirtualLidarGpuDepthProjectionComp::EnsureRenderTarget(const FVirtualLidarDepthAcquisitionRequest& Request)
 {
 	// Each depth frame measures the current scene, not a temporal image history.
 	VirtualSensorCaptureRendering::Prepare(*this, true);
@@ -112,7 +112,7 @@ bool UVirtualLidarGpuDepthProjectionComponent::EnsureRenderTarget(const FVirtual
 	return TextureTarget != nullptr;
 }
 
-bool UVirtualLidarGpuDepthProjectionComponent::BeginAcquisition(const FVirtualLidarDepthAcquisitionRequest& Request)
+bool UVirtualLidarGpuDepthProjectionComp::BeginAcquisition(const FVirtualLidarDepthAcquisitionRequest& Request)
 {
 	if (bAcquisitionActive || !IsAvailable())
 	{
@@ -165,7 +165,7 @@ bool UVirtualLidarGpuDepthProjectionComponent::BeginAcquisition(const FVirtualLi
 	return true;
 }
 
-void UVirtualLidarGpuDepthProjectionComponent::QueueReadback()
+void UVirtualLidarGpuDepthProjectionComp::QueueReadback()
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
 	if (!DepthRenderTarget || bReadbackQueued) return;
@@ -258,14 +258,14 @@ void UVirtualLidarGpuDepthProjectionComponent::QueueReadback()
 }
 
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
-void UVirtualLidarGpuDepthProjectionComponent::SetSemanticPsoPendingForTests(bool bPending)
+void UVirtualLidarGpuDepthProjectionComp::SetSemanticPsoPendingForTests(bool bPending)
 {
     bForceSemanticPsoPendingForTests=bPending;
     if(SemanticScene)SemanticScene->bForcePsoPendingForTests=bPending;
 }
 #endif
 
-EVirtualSensorBackendPollResult UVirtualLidarGpuDepthProjectionComponent::PollAcquisition(
+EVirtualSensorBackendPollResult UVirtualLidarGpuDepthProjectionComp::PollAcquisition(
 	FVirtualLidarDepthAcquisitionFrame& OutFrame)
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
@@ -302,7 +302,7 @@ EVirtualSensorBackendPollResult UVirtualLidarGpuDepthProjectionComponent::PollAc
 	auto CapturedSemanticReadback = bPendingSemanticReadback ? SemanticReadback : nullptr;
 	auto Identities = MoveTemp(PendingSemanticIdentities);
 	const FString SemanticStatus = PendingSemanticStatus;
-	TWeakObjectPtr<UVirtualLidarGpuDepthProjectionComponent> WeakThis(this);
+	TWeakObjectPtr<UVirtualLidarGpuDepthProjectionComp> WeakThis(this);
 	bReadbackCopyInFlight = true;
 	StatusMessage = TEXT("GPU SceneDepth staging copy pending");
 
@@ -374,11 +374,11 @@ EVirtualSensorBackendPollResult UVirtualLidarGpuDepthProjectionComponent::PollAc
 	return EVirtualSensorBackendPollResult::Pending;
 }
 
-void UVirtualLidarGpuDepthProjectionComponent::CancelAcquisition()
+void UVirtualLidarGpuDepthProjectionComp::CancelAcquisition()
 {CancelAcquisitionInternal(false);}
-void UVirtualLidarGpuDepthProjectionComponent::CancelDatasetAcquisition()
+void UVirtualLidarGpuDepthProjectionComp::CancelDatasetAcquisition()
 {CancelAcquisitionInternal(!bAcquisitionActive&&!bReadbackCopyInFlight);}
-void UVirtualLidarGpuDepthProjectionComponent::CancelAcquisitionInternal(bool KeepReadbacks)
+void UVirtualLidarGpuDepthProjectionComp::CancelAcquisitionInternal(bool KeepReadbacks)
 {
 	++AcquisitionGeneration;
     if(SemanticScene)SemanticScene->CancelPendingCapture();
@@ -391,7 +391,7 @@ void UVirtualLidarGpuDepthProjectionComponent::CancelAcquisitionInternal(bool Ke
 	StatusMessage = TEXT("GPU depth acquisition cancelled");
 }
 
-void UVirtualLidarGpuDepthProjectionComponent::ReleaseReadbackOnRenderThread()
+void UVirtualLidarGpuDepthProjectionComp::ReleaseReadbackOnRenderThread()
 {
 	ReadbackDimensions = FIntPoint::ZeroValue;
 	auto Semantic = MoveTemp(SemanticReadback);

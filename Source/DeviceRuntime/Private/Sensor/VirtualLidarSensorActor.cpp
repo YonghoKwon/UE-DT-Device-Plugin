@@ -6,7 +6,7 @@
 #include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualLidarAnalysisComp.h"
 #include "Device/Sensor/VirtualLidarExportComp.h"
-#include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
+#include "Device/Sensor/VirtualLidarGpuDepthProjectionComp.h"
 #include "Device/Sensor/VirtualLidarVisualizationComp.h"
 #include "Device/Sensor/VirtualSensorOutputComp.h"
 #include "Device/Core/VirtualSensorSchedulerSubsystem.h"
@@ -21,9 +21,9 @@ AVirtualLidarSensorActor::AVirtualLidarSensorActor()
     AnalysisComp = CreateDefaultSubobject<UVirtualLidarAnalysisComp>(TEXT("LidarAnalysisComponent"));
     VisualizationComp = CreateDefaultSubobject<UVirtualLidarVisualizationComp>(TEXT("LidarVisualizationComponent"));
     ExportComp = CreateDefaultSubobject<UVirtualLidarExportComp>(TEXT("LidarExportComponent"));
-    GpuDepthProjectionComponent = CreateDefaultSubobject<UVirtualLidarGpuDepthProjectionComponent>(TEXT("LidarGpuDepthProjectionComponent"));
-    GpuDepthProjectionComponent->SetupAttachment(ScanComp);
-    ScanComp->BindGpuDepthProjectionComponent(GpuDepthProjectionComponent);
+    GpuDepthProjectionComp = CreateDefaultSubobject<UVirtualLidarGpuDepthProjectionComp>(TEXT("LidarGpuDepthProjectionComponent"));
+    GpuDepthProjectionComp->SetupAttachment(ScanComp);
+    ScanComp->BindGpuDepthProjectionComponent(GpuDepthProjectionComp);
 
     EditorForwardArrowComp = CreateDefaultSubobject<UArrowComponent>(TEXT("EditorForwardArrowComp"));
     EditorForwardArrowComp->SetupAttachment(RootComponent);

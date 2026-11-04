@@ -29,7 +29,7 @@
 #include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarPayloadCodec.h"
-#include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
+#include "Device/Sensor/VirtualLidarGpuDepthProjectionComp.h"
 #include "Device/Sensor/VirtualLidarSurfaceResponseComp.h"
 #include "Device/Sensor/VirtualLidarVisualizationComp.h"
 #include "Device/Sensor/VirtualSensorOutputComp.h"
@@ -132,8 +132,8 @@ void UVirtualLidarScanComp::SetInteractivePreviewMode(bool bEnabled, bool bSuppr
 EVirtualLidarAcquisitionBackend UVirtualLidarScanComp::ResolveAcquisitionBackend(FString& OutReason) const
 {
     OutReason.Reset();
-    const bool bGpuAvailable = GpuDepthProjectionComponent.IsValid()
-        && GpuDepthProjectionComponent->IsAvailable();
+    const bool bGpuAvailable = GpuDepthProjectionComp.IsValid()
+        && GpuDepthProjectionComp->IsAvailable();
 
     if (AcquisitionBackend == EVirtualLidarAcquisitionBackend::AccurateCpuTrace)
     {

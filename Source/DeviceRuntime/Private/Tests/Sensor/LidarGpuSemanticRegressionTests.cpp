@@ -9,7 +9,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarScanComp.h"
-#include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
+#include "Device/Sensor/VirtualLidarGpuDepthProjectionComp.h"
 #include "RHIGlobals.h"
 
 class FLidarGpuSemanticCommand : public IAutomationLatentCommand
@@ -107,7 +107,7 @@ public:
         return Finish();
     }
 private:
-    bool Finish() { if (Sensor) { Sensor->ScanComp->StopScan(); Sensor->GpuDepthProjectionComponent->UnregisterComponent(); } Scene.Reset(); return true; }
+    bool Finish() { if (Sensor) { Sensor->ScanComp->StopScan(); Sensor->GpuDepthProjectionComp->UnregisterComponent(); } Scene.Reset(); return true; }
     FAutomationTestBase* Test;
     TUniquePtr<FPreviewScene> Scene;
     AStaticMeshActor* Plate = nullptr;

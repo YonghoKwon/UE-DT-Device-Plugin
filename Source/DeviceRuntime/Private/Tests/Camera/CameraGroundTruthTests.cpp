@@ -2,7 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "Device/Camera/VirtualCameraGroundTruthComp.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Sensor/VirtualSensorSemanticLabels.h"
 #include "Device/Sensor/VirtualSensorEditableTypes.h"
@@ -36,7 +36,7 @@ bool FCameraTruthMath::RunTest(const FString&)
     TestEqual(TEXT("two same-class Actor boxes"),Boxes.Num(),2);
     if(Boxes.Num()==2){TestEqual(TEXT("first mask min x"),Boxes[0].XMin,1);TestEqual(TEXT("first mask max x inclusive"),Boxes[0].XMax,2);TestEqual(TEXT("second mask pixel count"),Boxes[1].Pixels,3);TestEqual(TEXT("second mask clipped min x"),Boxes[1].XMin,0);TestEqual(TEXT("second mask y"),Boxes[1].YMin,1);}
     TestTrue(TEXT("malformed mask rejected"),FVirtualCameraTruthFrame::FindBoxes(C,I,3,3).IsEmpty());
-    const auto* Camera=GetDefault<UVirtualCameraCaptureComponent>();
+    const auto* Camera=GetDefault<UVirtualCameraCaptureComp>();
     TestFalse(TEXT("opt-in disabled in CDO"),Camera->bGroundTruthEnabled);TestNull(TEXT("disabled has no truth service"),Camera->GetGroundTruth());
     return true;
 }

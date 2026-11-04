@@ -7,7 +7,7 @@
 #include "RHIGlobals.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarScanComp.h"
-#include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
+#include "Device/Sensor/VirtualLidarGpuDepthProjectionComp.h"
 
 // Force only this private semantic scene to remain pending. Main depth capture,
 // RHI readback, completion, frame IDs and subsequent PSO recovery remain real.
@@ -28,7 +28,7 @@ public:
             Target->GetStaticMeshComponent()->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube")));
             Target->SetActorLocation(FVector(1000,0,0));Target->SetActorScale3D(FVector(.5,8,4));
             Lidar=World->SpawnActor<AVirtualLidarSensorActor>();Lidar->ScanComp->StopScan();
-            Backend=Lidar->GpuDepthProjectionComponent.Get();Backend->SetSemanticPsoPendingForTests(true);
+            Backend=Lidar->GpuDepthProjectionComp.Get();Backend->SetSemanticPsoPendingForTests(true);
             Request.bRequestSemantics=true;Request.HorizontalSamples=64;Request.VerticalChannels=16;
             Request.HorizontalFovDegrees=30;Request.MinVerticalAngleDegrees=-8;Request.MaxVerticalAngleDegrees=8;Request.MaxDistanceCm=5000;
             World->SendAllEndOfFrameUpdates();return false;
@@ -80,7 +80,7 @@ private:
     FAutomationTestBase* Test;
     TUniquePtr<FPreviewScene> Scene;
     AVirtualLidarSensorActor* Lidar=nullptr;
-    UVirtualLidarGpuDepthProjectionComponent* Backend=nullptr;
+    UVirtualLidarGpuDepthProjectionComp* Backend=nullptr;
     FVirtualLidarDepthAcquisitionRequest Request;
     bool InFlight=false;
     int32 Phase=0,CadenceFrames=0;

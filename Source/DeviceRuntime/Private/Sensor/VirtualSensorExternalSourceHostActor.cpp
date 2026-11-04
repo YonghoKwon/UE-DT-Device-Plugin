@@ -66,7 +66,7 @@ void AVirtualSensorExternalSourceHostActor::BeginPlay()
 		Source->TargetLidarComp = Lidar ? Lidar->ScanComp : nullptr;
 	}
 	CameraBufferedJsonComp->TargetSensorActor = Camera;
-	CameraBufferedJsonComp->TargetCamera = Camera ? Camera->CaptureComp : nullptr;
+	CameraBufferedJsonComp->TargetCameraComp = Camera ? Camera->CaptureComp : nullptr;
 
 	InitializeTopicReceiverRuntime();
 	if (bAutoStartTopicReceivers)

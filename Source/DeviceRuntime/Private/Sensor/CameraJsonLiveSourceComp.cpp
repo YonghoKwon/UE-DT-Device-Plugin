@@ -1,7 +1,7 @@
 #include "Device/Sensor/CameraJsonLiveSourceComp.h"
 
 #include "GameFramework/Actor.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
 
 UCameraJsonLiveSourceComp::UCameraJsonLiveSourceComp()
@@ -50,7 +50,7 @@ void UCameraJsonLiveSourceComp::ClearBufferedFrame()
 
 bool UCameraJsonLiveSourceComp::PushFrameOnce(bool bSendTransport)
 {
-    UVirtualCameraCaptureComponent* CameraComp = ResolveTargetCamera();
+    UVirtualCameraCaptureComp* CameraComp = ResolveTargetCamera();
     AVirtualSensorActorBase* SensorActor = ResolveTargetSensorActor();
     if (!CameraComp && !SensorActor)
     {
@@ -102,18 +102,18 @@ AVirtualSensorActorBase* UCameraJsonLiveSourceComp::ResolveTargetSensorActor() c
     {
         return TargetSensorActor;
     }
-    if (TargetCamera)
+    if (TargetCameraComp)
     {
-        return Cast<AVirtualSensorActorBase>(TargetCamera->GetOwner());
+        return Cast<AVirtualSensorActorBase>(TargetCameraComp->GetOwner());
     }
     return Cast<AVirtualSensorActorBase>(GetOwner());
 }
 
-UVirtualCameraCaptureComponent* UCameraJsonLiveSourceComp::ResolveTargetCamera() const
+UVirtualCameraCaptureComp* UCameraJsonLiveSourceComp::ResolveTargetCamera() const
 {
-    if (TargetCamera)
+    if (TargetCameraComp)
     {
-        return TargetCamera;
+        return TargetCameraComp;
     }
-    return GetOwner() ? GetOwner()->FindComponentByClass<UVirtualCameraCaptureComponent>() : nullptr;
+    return GetOwner() ? GetOwner()->FindComponentByClass<UVirtualCameraCaptureComp>() : nullptr;
 }

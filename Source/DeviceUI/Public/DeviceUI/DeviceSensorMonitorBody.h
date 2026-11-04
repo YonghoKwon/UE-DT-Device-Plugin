@@ -40,7 +40,7 @@
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Contracts/DeviceIdentityPolicy.h"
 #include "Device/Contracts/VirtualSensorDefaults.h"
 #include "Device/Core/VirtualSensorSchedulerSubsystem.h"

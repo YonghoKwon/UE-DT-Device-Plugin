@@ -6,7 +6,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarScanComp.h"
-#include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
+#include "Device/Sensor/VirtualLidarGpuDepthProjectionComp.h"
 #include "RHIGlobals.h"
 
 class FLidarReadbackReuseCommand : public IAutomationLatentCommand
@@ -29,7 +29,7 @@ public:
             return false;
         }
         if (FPlatformTime::Seconds()-Started < 2) return false;
-        auto* Backend = Sensor->GpuDepthProjectionComponent.Get();
+        auto* Backend = Sensor->GpuDepthProjectionComp.Get();
         if (!bRequested)
         {
             FVirtualLidarDepthAcquisitionRequest Request;
@@ -74,7 +74,7 @@ public:
         return false;
     }
 private:
-    bool Finish() { if (Sensor) Sensor->GpuDepthProjectionComponent->UnregisterComponent(); Scene.Reset(); return true; }
+    bool Finish() { if (Sensor) Sensor->GpuDepthProjectionComp->UnregisterComponent(); Scene.Reset(); return true; }
     FAutomationTestBase* Test;
     TUniquePtr<FPreviewScene> Scene;
     AVirtualLidarSensorActor* Sensor = nullptr;

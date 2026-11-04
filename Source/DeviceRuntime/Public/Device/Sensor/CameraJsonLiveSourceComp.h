@@ -4,7 +4,7 @@
 #include "Device/Sensor/RealSensorSourceComp.h"
 #include "CameraJsonLiveSourceComp.generated.h"
 
-class UVirtualCameraCaptureComponent;
+class UVirtualCameraCaptureComp;
 class AVirtualSensorActorBase;
 
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
@@ -27,7 +27,7 @@ public:
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|RealSensorLive|Camera")
-    TObjectPtr<UVirtualCameraCaptureComponent> TargetCamera;
+    TObjectPtr<UVirtualCameraCaptureComp> TargetCameraComp;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|RealSensorLive|Camera")
     bool bClearBufferAfterPush = true;
@@ -40,7 +40,7 @@ public:
 
 private:
     AVirtualSensorActorBase* ResolveTargetSensorActor() const;
-    UVirtualCameraCaptureComponent* ResolveTargetCamera() const;
+    UVirtualCameraCaptureComp* ResolveTargetCamera() const;
 
 private:
     UPROPERTY()

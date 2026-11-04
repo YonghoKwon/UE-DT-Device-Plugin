@@ -1,5 +1,5 @@
 #include "Device/Core/VirtualSensorTextureReadback.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Async/Async.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/World.h"
@@ -18,11 +18,11 @@ struct FVirtualCameraPreviewFence
     FGPUFenceRHIRef Fence;
     std::atomic<bool> Submitted{false};
 };
-void UVirtualCameraCaptureComponent::RequestPlacementPreviewProof()
+void UVirtualCameraCaptureComp::RequestPlacementPreviewProof()
 {PlacementPreviewFence.Reset();bPlacementPreviewProofRequested=true;}
-void UVirtualCameraCaptureComponent::CancelPlacementPreviewProof()
+void UVirtualCameraCaptureComp::CancelPlacementPreviewProof()
 {bPlacementPreviewProofRequested=false;PlacementPreviewFence.Reset();}
-bool UVirtualCameraCaptureComponent::GetPlacementPreviewCompletion(FVirtualCameraPreviewCompletion& Out) const
+bool UVirtualCameraCaptureComp::GetPlacementPreviewCompletion(FVirtualCameraPreviewCompletion& Out) const
 {
     const auto P=PlacementPreviewFence;
     if(!P||!P->Submitted.load(std::memory_order_acquire)||!P->Fence.IsValid()||!P->Fence->Poll()||P->Completion.Generation!=ScheduledGeneration)return false;
@@ -41,13 +41,13 @@ struct FVirtualCameraLocalReadbackState
 	bool Mapping=false;
 };
 
-int64 UVirtualCameraCaptureComponent::GetAvailableLocalFrameId() const
+int64 UVirtualCameraCaptureComp::GetAvailableLocalFrameId() const
 {
 	return bHasFileAcquisition&&CameraRenderTarget&&LastFileAcquisition.SensorId==SensorId&&
 		CameraRenderTarget->SizeX==LastFileAcquisition.Width&&CameraRenderTarget->SizeY==LastFileAcquisition.Height?LastFileAcquisition.FrameId:-1;
 }
 
-bool UVirtualCameraCaptureComponent::RequestLocalFileFrame(bool bNewFrame,FVirtualCameraLocalSaveCallback Callback,FString& Error)
+bool UVirtualCameraCaptureComp::RequestLocalFileFrame(bool bNewFrame,FVirtualCameraLocalSaveCallback Callback,FString& Error)
 {
 	check(IsInGameThread());
 	if(LocalFileReadback) { Error=TEXT("Camera 파일 캡처 요청이 이미 진행 중입니다."); return false; }
@@ -62,7 +62,7 @@ bool UVirtualCameraCaptureComponent::RequestLocalFileFrame(bool bNewFrame,FVirtu
 	if(!bNewFrame) QueueLocalFileReadback();
 	return true;
 }
-void UVirtualCameraCaptureComponent::RecordLocalFileAcquisition(double)
+void UVirtualCameraCaptureComp::RecordLocalFileAcquisition(double)
 {
 	PendingFileAcquisition.SensorId=SensorId; PendingFileAcquisition.FrameId=FrameId;
 	PendingFileAcquisition.Manufacturer=DeviceSpec.Manufacturer;PendingFileAcquisition.Model=DeviceSpec.Model;
@@ -70,7 +70,7 @@ void UVirtualCameraCaptureComponent::RecordLocalFileAcquisition(double)
 	PendingFileAcquisition.SimulationQuality=Quality;bFileAcquisitionPendingRender=true;
 	if(const auto* Context=SlabCaptureContexts.Find(FrameId))PendingFileSlabContext=*Context;else PendingFileSlabContext=FVirtualSensorAcquisitionContext();
 }
-void UVirtualCameraCaptureComponent::UpdateSceneCaptureContents(FSceneInterface* Scene)
+void UVirtualCameraCaptureComp::UpdateSceneCaptureContents(FSceneInterface* Scene)
 {
 	// This callback is invoked by the engine at this component's natural capture point.
 	// Never dispatch another component's deferred capture in response to a file request.
@@ -106,7 +106,7 @@ void UVirtualCameraCaptureComponent::UpdateSceneCaptureContents(FSceneInterface*
 	}
 	if(LocalFileReadback&&LocalFileReadback->WaitingForNewFrame) {LocalFileReadback->WaitingForNewFrame=false;QueueLocalFileReadback();}
 }
-void UVirtualCameraCaptureComponent::QueueLocalFileReadback()
+void UVirtualCameraCaptureComp::QueueLocalFileReadback()
 {
 	const auto State=LocalFileReadback;
 	if(!State||State->Cancelled||State->Readback||!GetWorld()) return;
@@ -124,7 +124,7 @@ void UVirtualCameraCaptureComponent::QueueLocalFileReadback()
 	const auto Copy=State->Readback;
 	ENQUEUE_RENDER_COMMAND(SensorLocalFileCopy)([Copy,Texture](FRHICommandListImmediate& R){VirtualSensorTextureReadback::Enqueue(R,*Copy,Texture);});
 }
-void UVirtualCameraCaptureComponent::PollLocalFileFrame()
+void UVirtualCameraCaptureComp::PollLocalFileFrame()
 {
 	check(IsInGameThread()); const auto State=LocalFileReadback;
 	if(!State||State->Cancelled||State->WaitingForNewFrame||State->Mapping||!State->Readback||!State->Readback->IsReady()) return;
@@ -132,7 +132,7 @@ void UVirtualCameraCaptureComponent::PollLocalFileFrame()
 	if(!TryAcquireLocalFileEncodeSlot()) return;
 	State->Mapping=true; auto Copy=MoveTemp(State->Readback);
 	IImageWrapperModule* Module=&FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
-	TWeakObjectPtr<UVirtualCameraCaptureComponent> Weak(this);
+	TWeakObjectPtr<UVirtualCameraCaptureComp> Weak(this);
 	ENQUEUE_RENDER_COMMAND(SensorLocalFileMap)([Copy,State,Module,Weak](FRHICommandListImmediate&) mutable
 	{
 		TArray<FColor> Pixels;int32 Pitch=0;const FColor* Raw=static_cast<const FColor*>(Copy->Lock(Pitch));
@@ -159,7 +159,7 @@ void UVirtualCameraCaptureComponent::PollLocalFileFrame()
 		});
 	});
 }
-void UVirtualCameraCaptureComponent::CancelLocalFileFrame()
+void UVirtualCameraCaptureComp::CancelLocalFileFrame()
 {
 	if(!LocalFileReadback) return;
 	LocalFileReadback->Cancelled=true;

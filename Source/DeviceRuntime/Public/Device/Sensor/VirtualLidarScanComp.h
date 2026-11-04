@@ -20,7 +20,7 @@ class UVirtualSensorTransportComp;
 class UVirtualSensorRecorderComp;
 class UVirtualSensorSchedulerSubsystem;
 class UVirtualLidarSurfaceResponseComp;
-class UVirtualLidarGpuDepthProjectionComponent;
+class UVirtualLidarGpuDepthProjectionComp;
 struct FVirtualLidarV2EncodeOptions;
 struct FVirtualLidarDepthAcquisitionFrame;
 struct FVirtualLidarDerivedOutputJob;
@@ -210,7 +210,7 @@ public:
     int32 ProcessScheduledScanChunk(int32 MaxRays);
 	void RequestImmediateScheduledScan();
     void SetInteractivePreviewMode(bool bEnabled, bool bSuppressDerivedOutput = true);
-    void BindGpuDepthProjectionComponent(UVirtualLidarGpuDepthProjectionComponent* InComponent);
+    void BindGpuDepthProjectionComponent(UVirtualLidarGpuDepthProjectionComp* InComponent);
 
     virtual EVirtualSensorKind GetScheduledSensorKind() const override { return EVirtualSensorKind::Lidar; }
     virtual bool IsScheduledTaskActive() const override { return IsScanRunning(); }
@@ -872,7 +872,7 @@ private:
     int32 ScheduledHitPointCount = 0;
     TMap<FString, int32> ScheduledSemanticCounts;
     mutable TMap<TWeakObjectPtr<UPrimitiveComponent>, FSurfaceResponseCacheEntry> SurfaceResponseCache;
-    TWeakObjectPtr<UVirtualLidarGpuDepthProjectionComponent> GpuDepthProjectionComponent;
+    TWeakObjectPtr<UVirtualLidarGpuDepthProjectionComp> GpuDepthProjectionComp;
     EVirtualLidarAcquisitionBackend ActiveAcquisitionBackend = EVirtualLidarAcquisitionBackend::AccurateCpuTrace;
     FString AcquisitionBackendFallbackReason;
 };

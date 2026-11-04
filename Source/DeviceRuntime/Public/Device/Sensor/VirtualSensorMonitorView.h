@@ -5,7 +5,7 @@
 #include "VirtualSensorMonitorView.generated.h"
 
 class APlayerController;
-class UVirtualCameraCaptureComponent;
+class UVirtualCameraCaptureComp;
 class UVirtualLidarScanComp;
 class URealSensorSourceComp;
 
@@ -20,7 +20,7 @@ class DEVICERUNTIME_API IVirtualSensorMonitorView
 {
     GENERATED_BODY()
 public:
-    virtual void BindMonitorCamera(UVirtualCameraCaptureComponent* Camera) = 0;
+    virtual void BindMonitorCamera(UVirtualCameraCaptureComp* Camera) = 0;
     virtual void BindMonitorLidar(UVirtualLidarScanComp* Lidar) = 0;
     virtual void BindMonitorExternalSource(URealSensorSourceComp* Source) = 0;
     virtual void ShowMonitorCamera() = 0;

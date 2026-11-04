@@ -2,17 +2,17 @@
 #include "Misc/AutomationTest.h"
 #include "Tests/AutomationEditorCommon.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarScanComp.h"
-#include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
+#include "Device/Sensor/VirtualLidarGpuDepthProjectionComp.h"
 #include "Device/Core/VirtualSensorStreamPublisherComp.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSensorResourceSnapshotTest,"MA0T10.ResourceLifecycle.SnapshotIsReadOnly",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCameraOrderedFailureRecoveryTest,"MA0T10.ResourceLifecycle.CameraFailedHeadReleasesFollowers",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FCameraOrderedFailureRecoveryTest::RunTest(const FString&)
 {
-    auto* C=NewObject<UVirtualCameraCaptureComponent>();C->OutputMode=EVirtualCameraOutputMode::None;
+    auto* C=NewObject<UVirtualCameraCaptureComp>();C->OutputMode=EVirtualCameraOutputMode::None;
     auto QueueFollower=[&](){C->EncodeOrder={1,2};auto& Done=C->CompletedEncodes.FindOrAdd(2);Done.JpegBytes={0xff,0xd8,0xff,0xd9};Done.Width=1;Done.Height=1;
         FVirtualCameraPayloadSnapshot Meta;Meta.FrameId=2;Meta.SensorId=TEXT("ordered-test");Meta.TimestampUtc=FDateTime::UtcNow();C->ScheduledAcquisitionSnapshots.Add(2,Meta);};
     QueueFollower();C->CompleteSlabAcquisition(1,false);
@@ -35,7 +35,7 @@ bool FSensorResourceSnapshotTest::RunTest(const FString&)
         TestEqual(TEXT("stopped camera has no acquisition metadata"),C.Counts.FindRef(TEXT("acquisition_snapshots")),int64(0));
         TestEqual(TEXT("stopped lidar has no scheduled scan"),L.Counts.FindRef(TEXT("scan_in_flight")),int64(0));
         TestTrue(TEXT("GPU estimates are clearly separate"),C.EstimatedGpuBytes.Contains(TEXT("render_target_unpadded")));
-        Lidar->GpuDepthProjectionComponent->GetResourceSnapshot();
+        Lidar->GpuDepthProjectionComp->GetResourceSnapshot();
     }
     TestEqual(TEXT("diagnostics never capture camera"),Camera->GetSensorRuntimeStatus().FrameId,CameraId);
     TestEqual(TEXT("diagnostics never scan lidar"),Lidar->GetSensorRuntimeStatus().FrameId,LidarId);

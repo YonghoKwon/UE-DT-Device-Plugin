@@ -6,7 +6,7 @@
 #include "Device/Sensor/VirtualLidarSemanticScene.h"
 #include "VirtualCameraGroundTruthComp.generated.h"
 
-class UVirtualCameraCaptureComponent;
+class UVirtualCameraCaptureComp;
 class UTexture2D;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
@@ -50,7 +50,7 @@ class DEVICERUNTIME_API UVirtualCameraGroundTruthComp : public UActorComponent
 public:
     UVirtualCameraGroundTruthComp();
     virtual ~UVirtualCameraGroundTruthComp() override;
-    bool Capture(UVirtualCameraCaptureComponent& Source, const FVirtualCameraPayloadSnapshot& Snapshot, bool bSave, bool bDataset=false, bool bIncludeTruth=true, FVirtualCameraTruthSaveCompletion Completion={});
+    bool Capture(UVirtualCameraCaptureComp& Source, const FVirtualCameraPayloadSnapshot& Snapshot, bool bSave, bool bDataset=false, bool bIncludeTruth=true, FVirtualCameraTruthSaveCompletion Completion={});
     void Cancel(const FString& Reason=TEXT("센서 변경 또는 종료로 정답 데이터 저장을 취소했습니다."));
     void Poll();
     UTexture2D* Preview(uint8 Mode) const;

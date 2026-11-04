@@ -1,7 +1,7 @@
 #include "Device/Camera/VirtualCameraGroundTruthComp.h"
 #include "MA0T10MemoryTags.h"
 #include "Device/Core/VirtualSensorTextureReadback.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Core/VirtualSensorCaptureRendering.h"
 #include "Device/Core/VirtualSensorFileSaveSubsystem.h"
 #include "Device/Sensor/VirtualLidarSemanticScene.h"
@@ -85,7 +85,7 @@ struct FVirtualCameraTruthWork
     TSharedPtr<FVirtualCameraTruthFrame,ESPMode::ThreadSafe> Frame=MakeShared<FVirtualCameraTruthFrame,ESPMode::ThreadSafe>();
     TMap<int32,TPair<uint8,uint32>> Identities;
     TArray<FColor> Displays[3];
-    TWeakObjectPtr<UVirtualCameraCaptureComponent> Source;
+    TWeakObjectPtr<UVirtualCameraCaptureComp> Source;
     int32 Revision=0;
     double Started=0;
     bool Mapping=false, Save=false,Dataset=false,IncludeTruth=true;
@@ -117,7 +117,7 @@ void UVirtualCameraGroundTruthComp::Cancel(const FString& Reason)
     }
     LastFrame.Reset();PreviewTextures.Reset();Status=TEXT("정답 데이터 대기");
 }
-bool UVirtualCameraGroundTruthComp::Capture(UVirtualCameraCaptureComponent& Source,const FVirtualCameraPayloadSnapshot& Snapshot,bool Save,bool Dataset,bool IncludeTruth,FVirtualCameraTruthSaveCompletion Completion)
+bool UVirtualCameraGroundTruthComp::Capture(UVirtualCameraCaptureComp& Source,const FVirtualCameraPayloadSnapshot& Snapshot,bool Save,bool Dataset,bool IncludeTruth,FVirtualCameraTruthSaveCompletion Completion)
 {
     MA0T10_LLM_SCOPE_BYTAG(MA0T10_CameraGT);
     auto Reject=[&](const FString& Reason){Status=Reason;if(Completion)Completion(nullptr,FString(),Reason,{});return false;};

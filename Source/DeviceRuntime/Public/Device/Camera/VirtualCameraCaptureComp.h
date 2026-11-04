@@ -9,7 +9,7 @@
 #include "Device/Camera/VirtualCameraPayloadCodec.h"
 #include "Device/Camera/VirtualCameraGroundTruthComp.h"
 #include "Device/Core/VirtualSensorResourceDiagnostics.h"
-#include "VirtualCameraCaptureComponent.generated.h"
+#include "VirtualCameraCaptureComp.generated.h"
 
 class UTextureRenderTarget2D;
 class UVirtualSensorTransportComp;
@@ -55,12 +55,12 @@ enum class EVirtualCameraCaptureMode : uint8
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnVirtualCameraFrameCaptured, const FString&, JsonPayload, UTextureRenderTarget2D*, RenderTarget);
 
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
-class DEVICERUNTIME_API UVirtualCameraCaptureComponent : public USceneCaptureComponent2D, public IVirtualSensorScheduledTask
+class DEVICERUNTIME_API UVirtualCameraCaptureComp : public USceneCaptureComponent2D, public IVirtualSensorScheduledTask
 {
     GENERATED_BODY()
 
 public:
-    UVirtualCameraCaptureComponent();
+    UVirtualCameraCaptureComp();
 
     /** Opt-in only. No additional render/readback allocations while disabled. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="DigitalTwin|VirtualCamera|GroundTruth")

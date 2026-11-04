@@ -8,7 +8,7 @@
 
 class UDrawFrustumComponent;
 class UTextureRenderTarget2D;
-class UVirtualCameraCaptureComponent;
+class UVirtualCameraCaptureComp;
 
 UCLASS()
 class DEVICERUNTIME_API AVirtualCameraSensorActor : public AVirtualSensorActorBase
@@ -19,7 +19,7 @@ public:
 	AVirtualCameraSensorActor();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	TObjectPtr<UVirtualCameraCaptureComponent> CaptureComp;
+	TObjectPtr<UVirtualCameraCaptureComp> CaptureComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|EditorVisualization")
 	TObjectPtr<UDrawFrustumComponent> EditorFrustumComp;

@@ -5,7 +5,7 @@
 
 class AVirtualSensorActorBase;
 class UVirtualLidarScanComp;
-class UVirtualCameraCaptureComponent;
+class UVirtualCameraCaptureComp;
 class UComboBoxString;
 class UImage;
 class UTextBlock;
@@ -31,7 +31,7 @@ private:
     friend struct FDeviceSensorMonitorBody;
     bool bShowingLidar=false;
     UPROPERTY(Transient) TObjectPtr<UVirtualLidarScanComp> LidarComp;
-    UPROPERTY(Transient) TObjectPtr<UVirtualCameraCaptureComponent> CameraComp;
+    UPROPERTY(Transient) TObjectPtr<UVirtualCameraCaptureComp> CameraComp;
     UPROPERTY(Transient) TObjectPtr<UComboBoxString> SensorList;
     UPROPERTY(Transient) TObjectPtr<UTextBlock> Summary;
     UPROPERTY(Transient) TObjectPtr<UImage> Preview;

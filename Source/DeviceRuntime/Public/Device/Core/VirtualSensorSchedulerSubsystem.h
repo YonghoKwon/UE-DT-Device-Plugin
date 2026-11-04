@@ -5,7 +5,7 @@
 #include "Device/Sensor/VirtualLidarCadenceCohort.h"
 #include "VirtualSensorSchedulerSubsystem.generated.h"
 
-class UVirtualCameraCaptureComponent;
+class UVirtualCameraCaptureComp;
 class UVirtualLidarScanComp;
 class AActor;
 class UActorComponent;
@@ -121,15 +121,15 @@ public:
     virtual TStatId GetStatId() const override;
     virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 
-    void RegisterCamera(UVirtualCameraCaptureComponent* Camera);
-    void UnregisterCamera(UVirtualCameraCaptureComponent* Camera);
+    void RegisterCamera(UVirtualCameraCaptureComp* Camera);
+    void UnregisterCamera(UVirtualCameraCaptureComp* Camera);
     void RegisterLidar(UVirtualLidarScanComp* Lidar);
     void UnregisterLidar(UVirtualLidarScanComp* Lidar);
     void RefreshLidarCadencePhases(double WallSeconds);
 
     void RegisterTask(UActorComponent* TaskComponent);
     void UnregisterTask(UActorComponent* TaskComponent);
-    void SetPreferredCamera(UVirtualCameraCaptureComponent* Camera);
+    void SetPreferredCamera(UVirtualCameraCaptureComp* Camera);
     void SetPreferredLidar(UVirtualLidarScanComp* Lidar);
     bool ShouldRefreshLidarPreview(const UVirtualLidarScanComp* Lidar) const;
     bool ConsumeLidarPreviewRefresh(UVirtualLidarScanComp* Lidar, float MaximumRefreshHz = 10.0f);
@@ -156,13 +156,13 @@ private:
     void RefreshFrameStatistics();
     void ConfigureCommandLineBenchmarkIfRequested();
 
-    TArray<TWeakObjectPtr<UVirtualCameraCaptureComponent>> Cameras;
+    TArray<TWeakObjectPtr<UVirtualCameraCaptureComp>> Cameras;
     TArray<TWeakObjectPtr<UVirtualLidarScanComp>> Lidars;
     TArray<UVirtualLidarScanComp*> CadenceMembers;
     FVirtualLidarCadenceCohort CadenceCohort;
     std::vector<FVirtualLidarCadenceCohort::FMember> CadenceMembership;
     TMap<TWeakObjectPtr<UActorComponent>, double> RegistrationTimes;
-    TWeakObjectPtr<UVirtualCameraCaptureComponent> PreferredCamera;
+    TWeakObjectPtr<UVirtualCameraCaptureComp> PreferredCamera;
     TWeakObjectPtr<UVirtualLidarScanComp> PreferredLidar;
     int32 NextCameraIndex = 0;
     int32 NextLidarIndex = 0;

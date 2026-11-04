@@ -4,7 +4,7 @@
 
 #include "Components/DrawFrustumComponent.h"
 #include "Engine/TextureRenderTarget2D.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Core/VirtualSensorFileSaveSubsystem.h"
 #include "Device/Sensor/VirtualSensorOutputComp.h"
 #include "Device/Sensor/VirtualSensorEditableTypes.h"
@@ -13,7 +13,7 @@ AVirtualCameraSensorActor::AVirtualCameraSensorActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	CaptureComp = CreateDefaultSubobject<UVirtualCameraCaptureComponent>(TEXT("CameraCaptureComponent"));
+	CaptureComp = CreateDefaultSubobject<UVirtualCameraCaptureComp>(TEXT("CameraCaptureComponent"));
 	RootComponent = CaptureComp;
 
 	EditorFrustumComp = CreateDefaultSubobject<UDrawFrustumComponent>(TEXT("EditorFrustumComp"));

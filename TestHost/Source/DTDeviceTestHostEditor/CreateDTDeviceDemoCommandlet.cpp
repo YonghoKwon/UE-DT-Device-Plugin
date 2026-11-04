@@ -2,7 +2,7 @@
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarScanComp.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
-#include "Device/Camera/VirtualCameraCaptureComponent.h"
+#include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "DeviceUI/DeviceSensorMonitorHostActor.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/SkyLight.h"

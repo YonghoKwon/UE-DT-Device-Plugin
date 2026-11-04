@@ -29,7 +29,7 @@
 #include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarPayloadCodec.h"
-#include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
+#include "Device/Sensor/VirtualLidarGpuDepthProjectionComp.h"
 #include "Device/Sensor/VirtualLidarSurfaceResponseComp.h"
 #include "Device/Sensor/VirtualLidarVisualizationComp.h"
 #include "Device/Sensor/VirtualSensorOutputComp.h"
@@ -266,9 +266,9 @@ void UVirtualLidarScanComp::RequestImmediateScheduledScan()
 }
 
 void UVirtualLidarScanComp::BindGpuDepthProjectionComponent(
-    UVirtualLidarGpuDepthProjectionComponent* InComponent)
+    UVirtualLidarGpuDepthProjectionComp* InComponent)
 {
-    GpuDepthProjectionComponent = InComponent;
+    GpuDepthProjectionComp = InComponent;
 }
 
 void UVirtualLidarScanComp::ConvertGpuDepthFrame(const FVirtualLidarDepthAcquisitionFrame& Frame)

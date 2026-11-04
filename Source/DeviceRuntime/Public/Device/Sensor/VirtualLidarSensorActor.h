@@ -10,7 +10,7 @@ class UVirtualLidarScanComp;
 class UVirtualLidarAnalysisComp;
 class UVirtualLidarExportComp;
 class UVirtualLidarVisualizationComp;
-class UVirtualLidarGpuDepthProjectionComponent;
+class UVirtualLidarGpuDepthProjectionComp;
 
 UCLASS()
 class DEVICERUNTIME_API AVirtualLidarSensorActor : public AVirtualSensorActorBase
@@ -36,7 +36,7 @@ public:
     TObjectPtr<UVirtualLidarExportComp> ExportComp;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
-    TObjectPtr<UVirtualLidarGpuDepthProjectionComponent> GpuDepthProjectionComponent;
+    TObjectPtr<UVirtualLidarGpuDepthProjectionComp> GpuDepthProjectionComp;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|EditorVisualization")
     TObjectPtr<UArrowComponent> EditorForwardArrowComp;

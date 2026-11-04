@@ -12,7 +12,7 @@ class APlayerController;
 class AVirtualSensorActorBase;
 class UPrimitiveComponent;
 class URealSensorSourceComp;
-class UVirtualCameraCaptureComponent;
+class UVirtualCameraCaptureComp;
 class UVirtualLidarScanComp;
 class UVirtualSensorTransportComp;
 class UVirtualSensorRecorderComp;
@@ -67,7 +67,7 @@ public:
     void UnregisterSensorActor(AVirtualSensorActorBase* SensorActor);
     bool SelectSensorActor(AVirtualSensorActorBase* SensorActor);
     FSimpleMulticastDelegate OnSensorInventoryChanged;
-    void RegisterCamera(UVirtualCameraCaptureComponent* CameraComp);
+    void RegisterCamera(UVirtualCameraCaptureComp* CameraComp);
     void RegisterLidar(UVirtualLidarScanComp* LidarComp);
     void RegisterRealSensorSource(URealSensorSourceComp* RealSensorSourceComp);
     void SelectCameraByIndex(int32 Index);
@@ -91,9 +91,9 @@ public:
     void RefreshSelectedSensorOnce(bool bLidar);
     void SetSelectedLidarPreviewPolicy(int32 InStride, int32 InMaxPoints, bool bInHitOnly);
     void AdjustSelectedLidarPreviewBudget(int32 StrideDelta, int32 MaxPointsDelta);
-    UVirtualCameraCaptureComponent* GetSelectedCamera() const;
+    UVirtualCameraCaptureComp* GetSelectedCamera() const;
     int32 GetCameraCount() const { return Cameras.Num(); }
-    UVirtualCameraCaptureComponent* GetCameraByIndex(int32 Index) const;
+    UVirtualCameraCaptureComp* GetCameraByIndex(int32 Index) const;
     int32 FindCameraIndexBySensorId(const FString& SensorId) const;
     UVirtualLidarScanComp* GetSelectedLidar() const;
     URealSensorSourceComp* GetSelectedRealSensorSource() const;
@@ -134,7 +134,7 @@ private:
     TWeakObjectPtr<UObject> MonitorOwner;
 
     UPROPERTY(Transient)
-    TArray<TObjectPtr<UVirtualCameraCaptureComponent>> Cameras;
+    TArray<TObjectPtr<UVirtualCameraCaptureComp>> Cameras;
 
     UPROPERTY(Transient)
     TArray<TObjectPtr<AVirtualSensorActorBase>> SensorActors;

@@ -28,7 +28,7 @@
 #include "Device/Sensor/VirtualSensorRecorderComp.h"
 #include "Device/Sensor/VirtualLidarSensorActor.h"
 #include "Device/Sensor/VirtualLidarPayloadCodec.h"
-#include "Device/Sensor/VirtualLidarGpuDepthProjectionComponent.h"
+#include "Device/Sensor/VirtualLidarGpuDepthProjectionComp.h"
 #include "Device/Sensor/VirtualLidarSurfaceResponseComp.h"
 #include "Device/Sensor/VirtualLidarVisualizationComp.h"
 #include "Device/Sensor/VirtualSensorOutputComp.h"
@@ -142,7 +142,7 @@ void UVirtualLidarScanComp::StopScanInternal(bool KeepReadbacks)
     bGpuDepthScanInProgress = false;
     CancelSceneQueryBatch();ScheduledRayQuery.Reset();HardwareSurfaceIdentities.Reset();
     RecycleScenePointStorage();
-    if(GpuDepthProjectionComponent.IsValid()){if(KeepReadbacks)GpuDepthProjectionComponent->CancelDatasetAcquisition();else GpuDepthProjectionComponent->CancelAcquisition();}
+    if(GpuDepthProjectionComp.IsValid()){if(KeepReadbacks)GpuDepthProjectionComp->CancelDatasetAcquisition();else GpuDepthProjectionComp->CancelAcquisition();}
     bScheduledPayloadBuildInFlight = false;
     bScheduledAutoExportInFlight = false;
     RuntimeStatus.bDerivedWorkInFlight=false;
@@ -153,7 +153,7 @@ void UVirtualLidarScanComp::StopScanInternal(bool KeepReadbacks)
 }
 bool UVirtualLidarScanComp::BeginGpuDepthScan(double NowSeconds)
 {
-    if (!GpuDepthProjectionComponent.IsValid()) return false;
+    if (!GpuDepthProjectionComp.IsValid()) return false;
     FVirtualLidarDepthAcquisitionRequest Request;
 	if (auto* Slab = FVirtualSensorAcquisitionContextProviders::Get(GetWorld())) Request.SlabContext=Slab->CaptureAcquisitionContext(SensorId,FrameId+1);
 	ScheduledSlabContext=Request.SlabContext;
@@ -171,9 +171,9 @@ bool UVirtualLidarScanComp::BeginGpuDepthScan(double NowSeconds)
     Request.bRequestFidelity=bEnableMaterialResponse || (bEnableMotionDistortion && bUseRollingPointTimestamps);
     BeginFidelityAcquisition(false);
 
-    if (!GpuDepthProjectionComponent->BeginAcquisition(Request))
+    if (!GpuDepthProjectionComp->BeginAcquisition(Request))
     {
-        AcquisitionBackendFallbackReason = GpuDepthProjectionComponent->GetBackendStatusMessage();
+        AcquisitionBackendFallbackReason = GpuDepthProjectionComp->GetBackendStatusMessage();
         return false;
     }
 
@@ -190,9 +190,9 @@ bool UVirtualLidarScanComp::BeginGpuDepthScan(double NowSeconds)
 
 int32 UVirtualLidarScanComp::ProcessGpuDepthScan()
 {
-    if (!bGpuDepthScanInProgress || !GpuDepthProjectionComponent.IsValid()) return 0;
+    if (!bGpuDepthScanInProgress || !GpuDepthProjectionComp.IsValid()) return 0;
     FVirtualLidarDepthAcquisitionFrame Frame;
-    const EVirtualSensorBackendPollResult Result = GpuDepthProjectionComponent->PollAcquisition(Frame);
+    const EVirtualSensorBackendPollResult Result = GpuDepthProjectionComp->PollAcquisition(Frame);
     if (Result == EVirtualSensorBackendPollResult::Pending)
     {
         return 0;
@@ -203,7 +203,7 @@ int32 UVirtualLidarScanComp::ProcessGpuDepthScan()
         ++RuntimeStatus.FailedAcquisitionFrameCount;
         bGpuDepthScanInProgress = false;
         RuntimeStatus.bAcquisitionInFlight = false;
-        AcquisitionBackendFallbackReason = GpuDepthProjectionComponent->GetBackendStatusMessage();
+        AcquisitionBackendFallbackReason = GpuDepthProjectionComp->GetBackendStatusMessage();
         ActiveAcquisitionBackend = EVirtualLidarAcquisitionBackend::AccurateCpuTrace;
         RuntimeStatus.ActiveAcquisitionBackend = TEXT("accurate_cpu_trace");
         RuntimeStatus.AcquisitionBackendMessage = AcquisitionBackendFallbackReason;
