@@ -17,19 +17,24 @@ bool DevicePointCloudStartsWithBytes(const TArray<uint8>& Bytes, const ANSICHAR*
 
 bool DevicePointCloudHasPointCloudSignature(const FString& Format, const TArray<uint8>& Bytes)
 {
-	if (Format == TEXT("CSV")) return DevicePointCloudStartsWithBytes(Bytes, "x,y,z,distance,hit");
+	if (Format == TEXT("CSV"))
+		return DevicePointCloudStartsWithBytes(Bytes, "x,y,z,distance,hit");
 	if (Format == TEXT("JSONL"))
 	{
 		for (const uint8 Byte : Bytes)
 		{
-			if (Byte == ' ' || Byte == '\t' || Byte == '\r' || Byte == '\n') continue;
+			if (Byte == ' ' || Byte == '\t' || Byte == '\r' || Byte == '\n')
+				continue;
 			return Byte == '{';
 		}
 		return false;
 	}
-	if (Format == TEXT("PCD")) return DevicePointCloudStartsWithBytes(Bytes, "# .PCD");
-	if (Format == TEXT("LAS") || Format == TEXT("LAZ")) return DevicePointCloudStartsWithBytes(Bytes, "LASF");
-	if (Format == TEXT("VLB2")) return DevicePointCloudStartsWithBytes(Bytes, "VLDR2");
+	if (Format == TEXT("PCD"))
+		return DevicePointCloudStartsWithBytes(Bytes, "# .PCD");
+	if (Format == TEXT("LAS") || Format == TEXT("LAZ"))
+		return DevicePointCloudStartsWithBytes(Bytes, "LASF");
+	if (Format == TEXT("VLB2"))
+		return DevicePointCloudStartsWithBytes(Bytes, "VLDR2");
 	return false;
 }
 
@@ -60,9 +65,7 @@ bool DevicePointCloudParseInt32Header(const TMap<FName, FString>& Headers, const
 	return DevicePointCloudReadRequiredHeader(Headers, Name, Text) && LexTryParseString(OutValue, *Text);
 }
 
-
 }
-
 
 TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParsePointCloudJson(const FString& JsonString)
 {
@@ -79,13 +82,13 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParsePointCloudJso
 	double Frame = -1.0, PointCount = -1.0, ByteCount = -1.0;
 	FString EncodedData;
 	if (!Root->TryGetStringField(TEXT("schema"), Data->SchemaVersion) ||
-		!Root->TryGetStringField(TEXT("sensorId"), Data->SensorId) || Data->SensorId.IsEmpty() ||
-		!Root->TryGetNumberField(TEXT("frameId"), Frame) ||
-		!Root->TryGetStringField(TEXT("format"), Data->Format) ||
-		!Root->TryGetStringField(TEXT("encoding"), Data->Encoding) ||
-		!Root->TryGetNumberField(TEXT("pointCount"), PointCount) ||
-		!Root->TryGetNumberField(TEXT("byteCount"), ByteCount) ||
-		!Root->TryGetStringField(TEXT("data"), EncodedData) || EncodedData.IsEmpty())
+	    !Root->TryGetStringField(TEXT("sensorId"), Data->SensorId) || Data->SensorId.IsEmpty() ||
+	    !Root->TryGetNumberField(TEXT("frameId"), Frame) ||
+	    !Root->TryGetStringField(TEXT("format"), Data->Format) ||
+	    !Root->TryGetStringField(TEXT("encoding"), Data->Encoding) ||
+	    !Root->TryGetNumberField(TEXT("pointCount"), PointCount) ||
+	    !Root->TryGetNumberField(TEXT("byteCount"), ByteCount) ||
+	    !Root->TryGetStringField(TEXT("data"), EncodedData) || EncodedData.IsEmpty())
 	{
 		Data->Message = TEXT("Point Cloud 필수 필드 또는 data가 없습니다.");
 		return Data;
@@ -95,12 +98,12 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParsePointCloudJso
 	Data->DeclaredByteCount = static_cast<int32>(ByteCount);
 	Data->Format = Data->Format.ToUpper();
 	const bool bKnownFormat = Data->Format == TEXT("CSV") || Data->Format == TEXT("JSONL") || Data->Format == TEXT("PCD") ||
-		Data->Format == TEXT("LAS") || Data->Format == TEXT("LAZ") || Data->Format == TEXT("VLB2");
+	                          Data->Format == TEXT("LAS") || Data->Format == TEXT("LAZ") || Data->Format == TEXT("VLB2");
 	if (Data->SchemaVersion != TEXT("virtual-pointcloud.v1") || Data->Encoding != TEXT("base64") ||
-		!bKnownFormat || Data->PointCount <= 0 || Data->DeclaredByteCount <= 0)
+	    !bKnownFormat || Data->PointCount <= 0 || Data->DeclaredByteCount <= 0)
 	{
 		Data->Message = FString::Printf(TEXT("Point Cloud 계약 불일치: schema=%s format=%s encoding=%s points=%d bytes=%d"),
-			*Data->SchemaVersion, *Data->Format, *Data->Encoding, Data->PointCount, Data->DeclaredByteCount);
+		                                *Data->SchemaVersion, *Data->Format, *Data->Encoding, Data->PointCount, Data->DeclaredByteCount);
 		return Data;
 	}
 	Data->bDeepValidated = Data->FrameId >= 0 && (Data->FrameId % 10) == 0;
@@ -117,18 +120,18 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParsePointCloudJso
 		if (Data->DecodedByteCount != Data->DeclaredByteCount || !bSignatureValid)
 		{
 			Data->Message = FString::Printf(TEXT("Point Cloud 상세 검증 실패: declared=%d decoded=%d signature=%s"),
-				Data->DeclaredByteCount, Data->DecodedByteCount, bSignatureValid ? TEXT("true") : TEXT("false"));
+			                                Data->DeclaredByteCount, Data->DecodedByteCount, bSignatureValid ? TEXT("true") : TEXT("false"));
 			return Data;
 		}
 	}
 	Data->bValid = true;
 	Data->Message = FString::Printf(TEXT("Point Cloud 수신 정상 · %s · %d points · %d bytes%s"), *Data->Format,
-		Data->PointCount, Data->DeclaredByteCount, Data->bDeepValidated ? TEXT(" · 상세 검증") : TEXT(""));
+	                                Data->PointCount, Data->DeclaredByteCount, Data->bDeepValidated ? TEXT(" · 상세 검증") : TEXT(""));
 	return Data;
 }
 TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseBinaryPcd(
-	const TArray<uint8>& Body,
-	const TMap<FName, FString>& IncomingHeaders)
+    const TArray<uint8>& Body,
+    const TMap<FName, FString>& IncomingHeaders)
 {
 	TSharedPtr<FVirtualPointCloudStreamReceiverData> Data = MakeShared<FVirtualPointCloudStreamReceiverData>();
 	Data->Kind = EVirtualSensorTopicReceiveKind::PointCloud;
@@ -136,47 +139,65 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseBinaryPcd(
 	Data->Format = TEXT("PCD");
 	Data->Encoding = TEXT("binary");
 	Data->DecodedByteCount = Body.Num();
-	FVirtualPcdDocument Pcd; FString PcdError;
-	if(!FVirtualPcdCodec::Decode(Body,Pcd,PcdError)){Data->Message=PcdError;return Data;}
-	Data->Encoding=Pcd.Encoding;
-	const FString& Header=Pcd.Header;
-	TMap<FName,FString> CombinedHeaders = IncomingHeaders;
+	FVirtualPcdDocument Pcd;
+	FString PcdError;
+	if (!FVirtualPcdCodec::Decode(Body, Pcd, PcdError))
+	{
+		Data->Message = PcdError;
+		return Data;
+	}
+	Data->Encoding = Pcd.Encoding;
+	const FString& Header = Pcd.Header;
+	TMap<FName, FString> CombinedHeaders = IncomingHeaders;
 	TSharedPtr<FJsonObject> Embedded;
-	TArray<FString> Lines; Header.ParseIntoArrayLines(Lines);
+	TArray<FString> Lines;
+	Header.ParseIntoArrayLines(Lines);
 	for (const FString& Line : Lines)
 	{
-		if (!Line.StartsWith(TEXT("# MA0T10_META "))) continue;
+		if (!Line.StartsWith(TEXT("# MA0T10_META ")))
+			continue;
 		if (Embedded.IsValid() || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Line.Mid(14)), Embedded) || !Embedded.IsValid())
-		{ Data->Message=TEXT("PCD 내부 메타데이터 JSON 오류 또는 중복"); return Data; }
+		{
+			Data->Message = TEXT("PCD 내부 메타데이터 JSON 오류 또는 중복");
+			return Data;
+		}
 		FString Schema;
-		if (!Embedded->TryGetStringField(TEXT("schema"),Schema) || Schema!=TEXT("virtual-pointcloud.context.v1"))
-		{ Data->Message=TEXT("PCD 내부 메타데이터 schema 오류"); return Data; }
-		const TCHAR* Fields[][2]={{TEXT("scenario_uuid"),TEXT("x-scenario-uuid")},{TEXT("run_uuid"),TEXT("x-run-uuid")},{TEXT("mtl_no"),TEXT("x-mtl-no")},
-			{TEXT("frame_no"),TEXT("x-slab-frame-no")},{TEXT("elapsed_sec"),TEXT("x-slab-elapsed-sec")},{TEXT("session_segment"),TEXT("x-session-segment")}};
+		if (!Embedded->TryGetStringField(TEXT("schema"), Schema) || Schema != TEXT("virtual-pointcloud.context.v1"))
+		{
+			Data->Message = TEXT("PCD 내부 메타데이터 schema 오류");
+			return Data;
+		}
+		const TCHAR* Fields[][2] = {{TEXT("scenario_uuid"), TEXT("x-scenario-uuid")}, {TEXT("run_uuid"), TEXT("x-run-uuid")}, {TEXT("mtl_no"), TEXT("x-mtl-no")}, {TEXT("frame_no"), TEXT("x-slab-frame-no")}, {TEXT("elapsed_sec"), TEXT("x-slab-elapsed-sec")}, {TEXT("session_segment"), TEXT("x-session-segment")}};
 		for (const auto& Field : Fields)
 		{
 			FString Value;
-			if (!Embedded->TryGetStringField(Field[0], Value)) continue;
-			if (const FString* Existing=CombinedHeaders.Find(Field[1]))
-				if (*Existing!=Value) { Data->Message=TEXT("PCD 내부 Slab 정보와 STOMP 헤더가 다릅니다."); return Data; }
-			CombinedHeaders.Add(Field[1],Value);
+			if (!Embedded->TryGetStringField(Field[0], Value))
+				continue;
+			if (const FString* Existing = CombinedHeaders.Find(Field[1]))
+				if (*Existing != Value)
+				{
+					Data->Message = TEXT("PCD 내부 Slab 정보와 STOMP 헤더가 다릅니다.");
+					return Data;
+				}
+			CombinedHeaders.Add(Field[1], Value);
 		}
 	}
-	TMap<FName,FString> Headers;
-	if(!FVirtualSensorPcdReceiveContract::Normalize(CombinedHeaders,Headers,*Data)) return Data;
+	TMap<FName, FString> Headers;
+	if (!FVirtualSensorPcdReceiveContract::Normalize(CombinedHeaders, Headers, *Data))
+		return Data;
 
 	FString ContentType;
 	FString TimestampText;
 	if (!DevicePointCloudReadRequiredHeader(Headers, TEXT("schema"), Data->SchemaVersion) ||
-		!DevicePointCloudReadRequiredHeader(Headers, TEXT("x-sensor-id"), Data->SensorId) ||
-		!DevicePointCloudParseInt64Header(Headers, TEXT("x-frame-id"), Data->FrameId) ||
-		!DevicePointCloudParseInt32Header(Headers, TEXT("x-point-count"), Data->PointCount) ||
-		!DevicePointCloudParseInt32Header(Headers, TEXT("x-source-point-count"), Data->SourcePointCount) ||
-		!DevicePointCloudParseInt32Header(Headers, TEXT("x-filter-revision"), Data->FilterRevision) ||
-		!DevicePointCloudReadRequiredHeader(Headers, TEXT("x-checksum-sha1"), Data->ChecksumSha1) ||
-		!DevicePointCloudReadRequiredHeader(Headers, TEXT("x-acquisition-profile"), Data->ProfileKey) ||
-		!DevicePointCloudReadRequiredHeader(Headers, TEXT("x-utc"), TimestampText) ||
-		!DevicePointCloudReadRequiredHeader(Headers, TEXT("content-type"), ContentType))
+	    !DevicePointCloudReadRequiredHeader(Headers, TEXT("x-sensor-id"), Data->SensorId) ||
+	    !DevicePointCloudParseInt64Header(Headers, TEXT("x-frame-id"), Data->FrameId) ||
+	    !DevicePointCloudParseInt32Header(Headers, TEXT("x-point-count"), Data->PointCount) ||
+	    !DevicePointCloudParseInt32Header(Headers, TEXT("x-source-point-count"), Data->SourcePointCount) ||
+	    !DevicePointCloudParseInt32Header(Headers, TEXT("x-filter-revision"), Data->FilterRevision) ||
+	    !DevicePointCloudReadRequiredHeader(Headers, TEXT("x-checksum-sha1"), Data->ChecksumSha1) ||
+	    !DevicePointCloudReadRequiredHeader(Headers, TEXT("x-acquisition-profile"), Data->ProfileKey) ||
+	    !DevicePointCloudReadRequiredHeader(Headers, TEXT("x-utc"), TimestampText) ||
+	    !DevicePointCloudReadRequiredHeader(Headers, TEXT("content-type"), ContentType))
 	{
 		Data->Message = TEXT("Binary PCD required STOMP headers are missing.");
 		return Data;
@@ -189,23 +210,30 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseBinaryPcd(
 	}
 	Data->DeclaredByteCount = Body.Num();
 	if (Data->SchemaVersion != TEXT("virtual-pointcloud.pcd.v1") ||
-		!ContentType.Equals(TEXT("application/vnd.pcd"), ESearchCase::IgnoreCase) ||
-		Data->FrameId < 0 || Data->PointCount < 0 || Data->SourcePointCount < Data->PointCount)
+	    !ContentType.Equals(TEXT("application/vnd.pcd"), ESearchCase::IgnoreCase) ||
+	    Data->FrameId < 0 || Data->PointCount < 0 || Data->SourcePointCount < Data->PointCount)
 	{
 		Data->Message = FString::Printf(TEXT("Binary PCD contract mismatch: schema=%s contentType=%s frame=%lld points=%d/%d"),
-			*Data->SchemaVersion, *ContentType, Data->FrameId, Data->PointCount, Data->SourcePointCount);
+		                                *Data->SchemaVersion, *ContentType, Data->FrameId, Data->PointCount, Data->SourcePointCount);
 		return Data;
 	}
 
 	if (Embedded.IsValid())
 	{
 		FString Sensor, Frame, Utc;
-		if (!Embedded->TryGetStringField(TEXT("sensor_id"),Sensor) || DeviceIdentityPolicy::Canonical(Sensor)!=Data->SensorId ||
-			!Embedded->TryGetStringField(TEXT("sensor_frame_id"),Frame) || Frame!=LexToString(Data->FrameId) ||
-			!Embedded->TryGetStringField(TEXT("timestamp_utc"),Utc) || Utc!=TimestampText)
-		{ Data->Message=TEXT("PCD 내부 센서 식별 정보와 STOMP 헤더가 다릅니다."); return Data; }
+		if (!Embedded->TryGetStringField(TEXT("sensor_id"), Sensor) || DeviceIdentityPolicy::Canonical(Sensor) != Data->SensorId ||
+		    !Embedded->TryGetStringField(TEXT("sensor_frame_id"), Frame) || Frame != LexToString(Data->FrameId) ||
+		    !Embedded->TryGetStringField(TEXT("timestamp_utc"), Utc) || Utc != TimestampText)
+		{
+			Data->Message = TEXT("PCD 내부 센서 식별 정보와 STOMP 헤더가 다릅니다.");
+			return Data;
+		}
 	}
-	if(Pcd.PointCount!=Data->PointCount){Data->Message=TEXT("PCD POINTS and transport header disagree");return Data;}
+	if (Pcd.PointCount != Data->PointCount)
+	{
+		Data->Message = TEXT("PCD POINTS and transport header disagree");
+		return Data;
+	}
 
 	uint8 Hash[FSHA1::DigestSize];
 	FSHA1::HashBuffer(Body.GetData(), Body.Num(), Hash);
@@ -219,6 +247,6 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseBinaryPcd(
 	Data->bDeepValidated = true;
 	Data->bValid = true;
 	Data->Message = FString::Printf(TEXT("Binary PCD valid · %d/%d points · %d bytes · checksum ok"),
-		Data->PointCount, Data->SourcePointCount, Body.Num());
+	                                Data->PointCount, Data->SourcePointCount, Body.Num());
 	return Data;
 }

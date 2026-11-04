@@ -13,7 +13,11 @@ enum class EVirtualSensorTopicReceiveKind : uint8
 };
 
 UENUM(BlueprintType)
-enum class EVirtualSensorTopicReceiverScope : uint8 { ActiveTransmitOnly, AllTopics };
+enum class EVirtualSensorTopicReceiverScope : uint8
+{
+	ActiveTransmitOnly,
+	AllTopics
+};
 
 UENUM(BlueprintType)
 enum class EVirtualSensorTopicReceiverState : uint8
@@ -86,10 +90,14 @@ struct DEVICERUNTIME_API FVirtualSensorTopicReceiverStatus
 
 	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorReceiver")
 	FString LastMessage;
-	UPROPERTY(BlueprintReadOnly) FString Backend;
-	UPROPERTY(BlueprintReadOnly) FString Schema;
-	UPROPERTY(BlueprintReadOnly) int64 IgnoredCount = 0;
-	UPROPERTY(BlueprintReadOnly) int64 DiagnosticDropCount = 0;
+	UPROPERTY(BlueprintReadOnly)
+	FString Backend;
+	UPROPERTY(BlueprintReadOnly)
+	FString Schema;
+	UPROPERTY(BlueprintReadOnly)
+	int64 IgnoredCount = 0;
+	UPROPERTY(BlueprintReadOnly)
+	int64 DiagnosticDropCount = 0;
 };
 
 USTRUCT(BlueprintType)
@@ -126,14 +134,22 @@ struct DEVICERUNTIME_API FVirtualSensorTopicReceiveLogEntry
 
 	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorReceiver")
 	FString Message;
-	UPROPERTY(BlueprintReadOnly) FString Schema;
-	UPROPERTY(BlueprintReadOnly) FString Backend;
-	UPROPERTY(BlueprintReadOnly) FString RequestId;
-	UPROPERTY(BlueprintReadOnly) FString RunId;
-	UPROPERTY(BlueprintReadOnly) FString MtlNo;
-	UPROPERTY(BlueprintReadOnly) int64 SlabFrameNo = -1;
-	UPROPERTY(BlueprintReadOnly) double SlabElapsedSec = 0;
-	UPROPERTY(BlueprintReadOnly) FString ErrorCode;
+	UPROPERTY(BlueprintReadOnly)
+	FString Schema;
+	UPROPERTY(BlueprintReadOnly)
+	FString Backend;
+	UPROPERTY(BlueprintReadOnly)
+	FString RequestId;
+	UPROPERTY(BlueprintReadOnly)
+	FString RunId;
+	UPROPERTY(BlueprintReadOnly)
+	FString MtlNo;
+	UPROPERTY(BlueprintReadOnly)
+	int64 SlabFrameNo = -1;
+	UPROPERTY(BlueprintReadOnly)
+	double SlabElapsedSec = 0;
+	UPROPERTY(BlueprintReadOnly)
+	FString ErrorCode;
 };
 
 /** 순수 파싱 스레드에서 생성되고 게임 스레드에서 소비되는 공통 결과입니다. */

@@ -3,8 +3,8 @@
 
 namespace
 {
-	FCriticalSection RegistryMutex;
-	TSharedPtr<const IVirtualSensorStreamReceiverCodec, ESPMode::ThreadSafe> RegisteredCodec;
+FCriticalSection RegistryMutex;
+TSharedPtr<const IVirtualSensorStreamReceiverCodec, ESPMode::ThreadSafe> RegisteredCodec;
 }
 
 void VirtualSensorStreamReceiverRegistry::Register(const TSharedRef<const IVirtualSensorStreamReceiverCodec, ESPMode::ThreadSafe>& Codec)

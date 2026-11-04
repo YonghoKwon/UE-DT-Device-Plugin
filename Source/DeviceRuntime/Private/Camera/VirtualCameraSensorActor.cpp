@@ -33,11 +33,11 @@ void AVirtualCameraSensorActor::OnConstruction(const FTransform& Transform)
 	{
 		EditorFrustumComp->FrustumAngle = CaptureComp->FOVAngle;
 		EditorFrustumComp->FrustumEndDist = CaptureComp->GetDeviceSpec().TypicalRangeCm > 0.0f
-			? CaptureComp->GetDeviceSpec().TypicalRangeCm
-			: 600.0f;
+		                                        ? CaptureComp->GetDeviceSpec().TypicalRangeCm
+		                                        : 600.0f;
 		EditorFrustumComp->FrustumAspectRatio = CaptureComp->CaptureResolution.Y > 0
-			? static_cast<float>(CaptureComp->CaptureResolution.X) / static_cast<float>(CaptureComp->CaptureResolution.Y)
-			: 16.0f / 9.0f;
+		                                            ? static_cast<float>(CaptureComp->CaptureResolution.X) / static_cast<float>(CaptureComp->CaptureResolution.Y)
+		                                            : 16.0f / 9.0f;
 	}
 }
 
@@ -74,19 +74,22 @@ bool AVirtualCameraSensorActor::IsSensorRunning() const
 
 void AVirtualCameraSensorActor::StartSensor()
 {
-    ++SensorRunControlRevision;
-	if (CaptureComp) CaptureComp->StartCapture();
+	++SensorRunControlRevision;
+	if (CaptureComp)
+		CaptureComp->StartCapture();
 }
 
 void AVirtualCameraSensorActor::StopSensor()
 {
-    ++SensorRunControlRevision;
-	if (CaptureComp) CaptureComp->StopCapture();
+	++SensorRunControlRevision;
+	if (CaptureComp)
+		CaptureComp->StopCapture();
 }
 
 void AVirtualCameraSensorActor::CaptureSensorOnce()
 {
-	if (CaptureComp) CaptureComp->CaptureAndSendImage();
+	if (CaptureComp)
+		CaptureComp->CaptureAndSendImage();
 }
 
 UTexture* AVirtualCameraSensorActor::GetSensorPreviewTexture() const
@@ -101,7 +104,8 @@ FVirtualSensorRuntimeStatus AVirtualCameraSensorActor::GetSensorRuntimeStatus() 
 
 bool AVirtualCameraSensorActor::SubmitExternalFrame(const FVirtualSensorFrameEnvelope& Frame, bool bSendTransport)
 {
-	if (!CaptureComp || Frame.SensorKind != EVirtualSensorKind::Camera || !Frame.HasJsonPayload()) return false;
+	if (!CaptureComp || Frame.SensorKind != EVirtualSensorKind::Camera || !Frame.HasJsonPayload())
+		return false;
 	PendingExternalSendTransport = bSendTransport;
 	const bool bAccepted = CaptureComp->InjectExternalJsonPayload(*Frame.JsonPayload, false);
 	if (!bAccepted)
@@ -113,7 +117,8 @@ bool AVirtualCameraSensorActor::SubmitExternalFrame(const FVirtualSensorFrameEnv
 
 bool AVirtualCameraSensorActor::ReadEditableState(FVirtualSensorEditableState& OutState) const
 {
-	if (!CaptureComp) return false;
+	if (!CaptureComp)
+		return false;
 	OutState.TargetKind = EVirtualSensorTargetKind::Camera;
 	OutState.OriginalSensorId = CaptureComp->SensorId;
 	OutState.SensorId = CaptureComp->SensorId;
@@ -135,10 +140,13 @@ bool AVirtualCameraSensorActor::ApplyEditableState(const FVirtualSensorEditableS
 	{
 		return false;
 	}
-	const bool bWasRunning=bInteractiveManipulationActive?bWasRunningBeforeInteraction:CaptureComp->IsCaptureRunning();
-	TGuardValue<bool> Transaction(bSettingsTransaction,true);if(bInteractiveManipulationActive)EndInteractiveManipulation();
+	const bool bWasRunning = bInteractiveManipulationActive ? bWasRunningBeforeInteraction : CaptureComp->IsCaptureRunning();
+	TGuardValue<bool> Transaction(bSettingsTransaction, true);
+	if (bInteractiveManipulationActive)
+		EndInteractiveManipulation();
 	SetActorTransform(State.ActorTransform, false, nullptr, ETeleportType::TeleportPhysics);
-	if(CaptureComp->IsCaptureRunning())CaptureComp->StopCapture();
+	if (CaptureComp->IsCaptureRunning())
+		CaptureComp->StopCapture();
 	CaptureComp->ApplyDeviceProfile(State.CameraProfile);
 	CaptureComp->ApplySimulationQuality(State.SimulationQuality);
 	CaptureComp->SensorId = State.SensorId;
@@ -148,30 +156,50 @@ bool AVirtualCameraSensorActor::ApplyEditableState(const FVirtualSensorEditableS
 	CaptureComp->JpegQuality = State.CameraJpegQuality;
 	CaptureComp->CaptureMode = State.CameraCaptureMode;
 	CaptureComp->SetGroundTruthEnabled(State.bCameraGroundTruth);
-	if(bWasRunning) CaptureComp->StartCapture();
+	if (bWasRunning)
+		CaptureComp->StartCapture();
 	++ConfigurationRevision;
 	return true;
 }
 
-bool AVirtualCameraSensorActor::ReadCollectionState(FVirtualSensorEditableState& State,bool& Preview) const
+bool AVirtualCameraSensorActor::ReadCollectionState(FVirtualSensorEditableState& State, bool& Preview) const
 {
-    if(!ReadEditableState(State))return false;
-    Preview=bInteractiveManipulationActive?bWasRunningBeforeInteraction:IsSensorRunning();
-    if(bInteractiveManipulationActive){State.CameraResolution=SavedInteractionResolution;State.CameraCaptureInterval=SavedInteractionInterval;State.CameraCaptureMode=static_cast<EVirtualCameraCaptureMode>(SavedInteractionCaptureMode);}
-    return true;
+	if (!ReadEditableState(State))
+		return false;
+	Preview = bInteractiveManipulationActive ? bWasRunningBeforeInteraction : IsSensorRunning();
+	if (bInteractiveManipulationActive)
+	{
+		State.CameraResolution = SavedInteractionResolution;
+		State.CameraCaptureInterval = SavedInteractionInterval;
+		State.CameraCaptureMode = static_cast<EVirtualCameraCaptureMode>(SavedInteractionCaptureMode);
+	}
+	return true;
 }
-bool AVirtualCameraSensorActor::ApplyDatasetState(const FVirtualSensorEditableState& State,FString& Error)
+bool AVirtualCameraSensorActor::ApplyDatasetState(const FVirtualSensorEditableState& State, FString& Error)
 {
-    if(IsSensorRunning()||!ValidateEditableState(State,Error)||!CanEditSensorPlacement(Error))return false;
-    FVirtualSensorEditableState Allowed;ReadEditableState(Allowed);Allowed.ActorTransform=State.ActorTransform;Allowed.bCameraGroundTruth=State.bCameraGroundTruth;
-    if(!FVirtualSensorEditableState::StaticStruct()->CompareScriptStruct(&Allowed,&State,PPF_None)){Error=TEXT("데이터셋 중 카메라 규격이 변경되었습니다");return false;}
-    SetActorTransform(State.ActorTransform,false,nullptr,ETeleportType::TeleportPhysics);CaptureComp->SetGroundTruthEnabled(State.bCameraGroundTruth);++ConfigurationRevision;return true;
+	if (IsSensorRunning() || !ValidateEditableState(State, Error) || !CanEditSensorPlacement(Error))
+		return false;
+	FVirtualSensorEditableState Allowed;
+	ReadEditableState(Allowed);
+	Allowed.ActorTransform = State.ActorTransform;
+	Allowed.bCameraGroundTruth = State.bCameraGroundTruth;
+	if (!FVirtualSensorEditableState::StaticStruct()->CompareScriptStruct(&Allowed, &State, PPF_None))
+	{
+		Error = TEXT("데이터셋 중 카메라 규격이 변경되었습니다");
+		return false;
+	}
+	SetActorTransform(State.ActorTransform, false, nullptr, ETeleportType::TeleportPhysics);
+	CaptureComp->SetGroundTruthEnabled(State.bCameraGroundTruth);
+	++ConfigurationRevision;
+	return true;
 }
 
 bool AVirtualCameraSensorActor::BeginInteractiveManipulation(const FVirtualSensorInteractionRequest& Request)
 {
-	if (!CaptureComp || bInteractiveManipulationActive) return CaptureComp != nullptr;
-	if(!Super::BeginInteractiveManipulation(Request))return false;
+	if (!CaptureComp || bInteractiveManipulationActive)
+		return CaptureComp != nullptr;
+	if (!Super::BeginInteractiveManipulation(Request))
+		return false;
 	bWasRunningBeforeInteraction = CaptureComp->IsCaptureRunning();
 	SavedInteractionResolution = CaptureComp->CaptureResolution;
 	SavedInteractionInterval = CaptureComp->CaptureInterval;
@@ -180,18 +208,20 @@ bool AVirtualCameraSensorActor::BeginInteractiveManipulation(const FVirtualSenso
 	CaptureComp->CaptureResolution = Request.CameraPreviewResolution;
 	CaptureComp->CaptureInterval = Request.CameraPreviewInterval;
 	CaptureComp->CaptureMode = EVirtualCameraCaptureMode::PreviewOnly;
-	if (bWasRunningBeforeInteraction) CaptureComp->StartCapture();
+	if (bWasRunningBeforeInteraction)
+		CaptureComp->StartCapture();
 	return true;
 }
 
 void AVirtualCameraSensorActor::EndInteractiveManipulation()
 {
-	if (!CaptureComp || !bInteractiveManipulationActive) return;
+	if (!CaptureComp || !bInteractiveManipulationActive)
+		return;
 	CaptureComp->StopCapture();
 	CaptureComp->CaptureResolution = SavedInteractionResolution;
 	CaptureComp->CaptureInterval = SavedInteractionInterval;
 	CaptureComp->CaptureMode = static_cast<EVirtualCameraCaptureMode>(SavedInteractionCaptureMode);
-	if (bWasRunningBeforeInteraction&&!bSettingsTransaction)
+	if (bWasRunningBeforeInteraction && !bSettingsTransaction)
 	{
 		CaptureComp->StartCapture();
 		CaptureComp->RequestImmediateScheduledCapture();
@@ -201,26 +231,33 @@ void AVirtualCameraSensorActor::EndInteractiveManipulation()
 
 bool AVirtualCameraSensorActor::ApplyProfileAndSimulationQuality(const FVirtualSensorEditableState& RequestedState, FVirtualSensorEditableState& OutAppliedState, FString& OutError)
 {
-	if(!CanEditSensorConfiguration(OutError))return false;
+	if (!CanEditSensorConfiguration(OutError))
+		return false;
 	if (!CaptureComp || RequestedState.TargetKind != EVirtualSensorTargetKind::Camera)
 	{
 		OutError = TEXT("선택한 Camera 센서를 사용할 수 없습니다.");
 		return false;
 	}
-	const bool bWasRunning = bInteractiveManipulationActive?bWasRunningBeforeInteraction:CaptureComp->IsCaptureRunning();
-	TGuardValue<bool> Transaction(bSettingsTransaction,true);if(bInteractiveManipulationActive)EndInteractiveManipulation();
-	if(CaptureComp->IsCaptureRunning())CaptureComp->StopCapture();
+	const bool bWasRunning = bInteractiveManipulationActive ? bWasRunningBeforeInteraction : CaptureComp->IsCaptureRunning();
+	TGuardValue<bool> Transaction(bSettingsTransaction, true);
+	if (bInteractiveManipulationActive)
+		EndInteractiveManipulation();
+	if (CaptureComp->IsCaptureRunning())
+		CaptureComp->StopCapture();
 	CaptureComp->ApplyDeviceProfile(RequestedState.CameraProfile);
 	CaptureComp->ApplySimulationQuality(RequestedState.SimulationQuality);
-	if (bWasRunning) CaptureComp->StartCapture();
+	if (bWasRunning)
+		CaptureComp->StartCapture();
 	++ConfigurationRevision;
 	return ReadEditableState(OutAppliedState);
 }
 
 bool AVirtualCameraSensorActor::ValidateEditableState(const FVirtualSensorEditableState& State, FString& OutError) const
 {
-	if(!CanEditSensorConfiguration(OutError))return false;
-	if((State.SensorId!=GetSensorId()||!State.ActorTransform.Equals(GetActorTransform()))&&!CanEditSensorPlacement(OutError))return false;
+	if (!CanEditSensorConfiguration(OutError))
+		return false;
+	if ((State.SensorId != GetSensorId() || !State.ActorTransform.Equals(GetActorTransform())) && !CanEditSensorPlacement(OutError))
+		return false;
 	if (!CaptureComp || State.TargetKind != EVirtualSensorTargetKind::Camera)
 	{
 		OutError = TEXT("선택한 Camera 센서를 사용할 수 없습니다.");
@@ -232,11 +269,11 @@ bool AVirtualCameraSensorActor::ValidateEditableState(const FVirtualSensorEditab
 		return false;
 	}
 	if (!FMath::IsFinite(State.CameraCaptureInterval) || !FMath::IsFinite(State.CameraFov) ||
-		State.CameraResolution.X < 160 || State.CameraResolution.X > 4096 ||
-		State.CameraResolution.Y < 90 || State.CameraResolution.Y > 2160 ||
-		State.CameraCaptureInterval < 0.033f || State.CameraCaptureInterval > 60.0f ||
-		State.CameraFov < 5.0f || State.CameraFov > 170.0f ||
-		State.CameraJpegQuality < 1 || State.CameraJpegQuality > 100)
+	    State.CameraResolution.X < 160 || State.CameraResolution.X > 4096 ||
+	    State.CameraResolution.Y < 90 || State.CameraResolution.Y > 2160 ||
+	    State.CameraCaptureInterval < 0.033f || State.CameraCaptureInterval > 60.0f ||
+	    State.CameraFov < 5.0f || State.CameraFov > 170.0f ||
+	    State.CameraJpegQuality < 1 || State.CameraJpegQuality > 100)
 	{
 		OutError = TEXT("Camera 설정이 지원 범위를 벗어났습니다.");
 		return false;
@@ -246,29 +283,34 @@ bool AVirtualCameraSensorActor::ValidateEditableState(const FVirtualSensorEditab
 
 void AVirtualCameraSensorActor::HandleCameraFrame(const FString& JsonPayload, UTextureRenderTarget2D* RenderTarget)
 {
-	if (!OutputComp || !CaptureComp) return;
+	if (!OutputComp || !CaptureComp)
+		return;
 	const TSharedPtr<const TArray64<uint8>, ESPMode::ThreadSafe> JpegSnapshot = CaptureComp->GetLastJpegSnapshot();
-	if (JsonPayload.IsEmpty() && !JpegSnapshot.IsValid()) return;
+	if (JsonPayload.IsEmpty() && !JpegSnapshot.IsValid())
+		return;
 	FVirtualSensorFrameEnvelope Frame;
 	const FVirtualSensorRuntimeStatus& Status = CaptureComp->GetRuntimeStatus();
 	Frame.SensorId = PendingExternalSendTransport.IsSet() && !Status.SensorId.IsEmpty()
-		? Status.SensorId
-		: CaptureComp->SensorId;
+	                     ? Status.SensorId
+	                     : CaptureComp->SensorId;
 	Frame.SensorKind = EVirtualSensorKind::Camera;
 	Frame.FrameId = Status.FrameId;
-	Frame.SlabContext=CaptureComp->GetLastSlabContext();
+	Frame.SlabContext = CaptureComp->GetLastSlabContext();
 	Frame.TimestampUtc = CaptureComp->GetRuntimeStatus().LastUpdateUtc;
 	Frame.SchemaVersion = TEXT("virtual-camera.v1");
-	if (!JsonPayload.IsEmpty()) Frame.JsonPayload = MakeShared<const FString, ESPMode::ThreadSafe>(JsonPayload);
+	if (!JsonPayload.IsEmpty())
+		Frame.JsonPayload = MakeShared<const FString, ESPMode::ThreadSafe>(JsonPayload);
 	Frame.bSendTransport = PendingExternalSendTransport.IsSet()
-		? PendingExternalSendTransport.GetValue()
-		: CaptureComp->CaptureMode == EVirtualCameraCaptureMode::PayloadAndOutput;
+	                           ? PendingExternalSendTransport.GetValue()
+	                           : CaptureComp->CaptureMode == EVirtualCameraCaptureMode::PayloadAndOutput;
 	Frame.bRecord = true;
 	Frame.BinaryPayload = JpegSnapshot;
 	Frame.CameraJpegMetadata = CaptureComp->GetLastJpegMetadata();
 	PendingExternalSendTransport.Reset();
-	if (Frame.HasJsonPayload()) OutputComp->RouteFrame(Frame);
-	else OutputComp->RouteAcquiredFrame(Frame);
+	if (Frame.HasJsonPayload())
+		OutputComp->RouteFrame(Frame);
+	else
+		OutputComp->RouteAcquiredFrame(Frame);
 }
 
 void AVirtualCameraSensorActor::Tick(float DeltaTime)
@@ -278,10 +320,11 @@ void AVirtualCameraSensorActor::Tick(float DeltaTime)
 
 bool AVirtualCameraSensorActor::RequestGroundTruthSave()
 {
-    auto* Files=GetWorld()?GetWorld()->GetSubsystem<UVirtualSensorFileSaveSubsystem>():nullptr;
-    return !bInteractiveManipulationActive&&Files&&Files->RequestCameraGroundTruthSave(this);
+	auto* Files = GetWorld() ? GetWorld()->GetSubsystem<UVirtualSensorFileSaveSubsystem>() : nullptr;
+	return !bInteractiveManipulationActive && Files && Files->RequestCameraGroundTruthSave(this);
 }
 void AVirtualCameraSensorActor::SetGroundTruthPreviewDemand(bool Enabled)
 {
-    if(CaptureComp)CaptureComp->SetGroundTruthPreviewDemand(Enabled&&!bInteractiveManipulationActive);
+	if (CaptureComp)
+		CaptureComp->SetGroundTruthPreviewDemand(Enabled && !bInteractiveManipulationActive);
 }

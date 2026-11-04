@@ -25,11 +25,16 @@ FString FidelityModeName(EVirtualSensorFidelityMode Mode)
 {
 	switch (Mode)
 	{
-	case EVirtualSensorFidelityMode::IdealTruth: return TEXT("ideal_truth");
-	case EVirtualSensorFidelityMode::PublicSpecBased: return TEXT("public_spec_based");
-	case EVirtualSensorFidelityMode::HardwareCalibrated: return TEXT("hardware_calibrated");
-	case EVirtualSensorFidelityMode::ReplayOrHardwareInput: return TEXT("replay_or_hardware_input");
-	default: return TEXT("unknown");
+		case EVirtualSensorFidelityMode::IdealTruth:
+			return TEXT("ideal_truth");
+		case EVirtualSensorFidelityMode::PublicSpecBased:
+			return TEXT("public_spec_based");
+		case EVirtualSensorFidelityMode::HardwareCalibrated:
+			return TEXT("hardware_calibrated");
+		case EVirtualSensorFidelityMode::ReplayOrHardwareInput:
+			return TEXT("replay_or_hardware_input");
+		default:
+			return TEXT("unknown");
 	}
 }
 
@@ -37,12 +42,18 @@ FString BackendName(EVirtualLidarAcquisitionBackend Backend)
 {
 	switch (Backend)
 	{
-	case EVirtualLidarAcquisitionBackend::AccurateCpuTrace: return TEXT("accurate_cpu_trace");
-	case EVirtualLidarAcquisitionBackend::GpuDepthProjection: return TEXT("gpu_depth_projection");
-	case EVirtualLidarAcquisitionBackend::HardwareRayTracing: return TEXT("hardware_ray_tracing");
-	case EVirtualLidarAcquisitionBackend::ReplayOrExternal: return TEXT("replay_or_external");
-	case EVirtualLidarAcquisitionBackend::Auto: return TEXT("auto");
-	default: return TEXT("unknown");
+		case EVirtualLidarAcquisitionBackend::AccurateCpuTrace:
+			return TEXT("accurate_cpu_trace");
+		case EVirtualLidarAcquisitionBackend::GpuDepthProjection:
+			return TEXT("gpu_depth_projection");
+		case EVirtualLidarAcquisitionBackend::HardwareRayTracing:
+			return TEXT("hardware_ray_tracing");
+		case EVirtualLidarAcquisitionBackend::ReplayOrExternal:
+			return TEXT("replay_or_external");
+		case EVirtualLidarAcquisitionBackend::Auto:
+			return TEXT("auto");
+		default:
+			return TEXT("unknown");
 	}
 }
 
@@ -50,13 +61,20 @@ FString ValidityName(EVirtualLidarPointValidity Validity)
 {
 	switch (Validity)
 	{
-	case EVirtualLidarPointValidity::Valid: return TEXT("valid");
-	case EVirtualLidarPointValidity::NoReturn: return TEXT("no_return");
-	case EVirtualLidarPointValidity::BelowSignalThreshold: return TEXT("below_signal_threshold");
-	case EVirtualLidarPointValidity::Saturated: return TEXT("saturated");
-	case EVirtualLidarPointValidity::OutOfRange: return TEXT("out_of_range");
-	case EVirtualLidarPointValidity::InvalidCalibration: return TEXT("invalid_calibration");
-	default: return TEXT("unknown");
+		case EVirtualLidarPointValidity::Valid:
+			return TEXT("valid");
+		case EVirtualLidarPointValidity::NoReturn:
+			return TEXT("no_return");
+		case EVirtualLidarPointValidity::BelowSignalThreshold:
+			return TEXT("below_signal_threshold");
+		case EVirtualLidarPointValidity::Saturated:
+			return TEXT("saturated");
+		case EVirtualLidarPointValidity::OutOfRange:
+			return TEXT("out_of_range");
+		case EVirtualLidarPointValidity::InvalidCalibration:
+			return TEXT("invalid_calibration");
+		default:
+			return TEXT("unknown");
 	}
 }
 
@@ -64,19 +82,24 @@ FString EchoTypeName(EVirtualLidarEchoType EchoType)
 {
 	switch (EchoType)
 	{
-	case EVirtualLidarEchoType::Single: return TEXT("single");
-	case EVirtualLidarEchoType::First: return TEXT("first");
-	case EVirtualLidarEchoType::Strongest: return TEXT("strongest");
-	case EVirtualLidarEchoType::Last: return TEXT("last");
-	default: return TEXT("none");
+		case EVirtualLidarEchoType::Single:
+			return TEXT("single");
+		case EVirtualLidarEchoType::First:
+			return TEXT("first");
+		case EVirtualLidarEchoType::Strongest:
+			return TEXT("strongest");
+		case EVirtualLidarEchoType::Last:
+			return TEXT("last");
+		default:
+			return TEXT("none");
 	}
 }
 }
 
 FString FVirtualLidarPayloadCodec::EncodeV2Json(
-	const FVirtualLidarFrameSnapshot& Frame,
-	const FVirtualLidarPayloadDescriptor& Descriptor,
-	const FVirtualLidarV2EncodeOptions& Options)
+    const FVirtualLidarFrameSnapshot& Frame,
+    const FVirtualLidarPayloadDescriptor& Descriptor,
+    const FVirtualLidarV2EncodeOptions& Options)
 {
 	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
 	Root->SetStringField(TEXT("schemaVersion"), TEXT("virtual-lidar.v2"));
@@ -115,9 +138,11 @@ FString FVirtualLidarPayloadCodec::EncodeV2Json(
 	{
 		for (int32 PointIndex = 0; PointIndex < Frame.Points->Num(); PointIndex += SafeStride)
 		{
-			if (SafeMaximum > 0 && EncodedPointCount >= SafeMaximum) break;
+			if (SafeMaximum > 0 && EncodedPointCount >= SafeMaximum)
+				break;
 			const FVirtualLidarPoint& Point = (*Frame.Points)[PointIndex];
-			if (!Options.bIncludeInvalidPoints && !Point.bHit) continue;
+			if (!Options.bIncludeInvalidPoints && !Point.bHit)
+				continue;
 
 			TSharedRef<FJsonObject> Physical = MakeShared<FJsonObject>();
 			Physical->SetNumberField(TEXT("pointIndex"), PointIndex);
@@ -165,10 +190,10 @@ FString FVirtualLidarPayloadCodec::EncodeV2Json(
 }
 
 bool FVirtualLidarPayloadCodec::EncodeCompactBinary(
-	const FVirtualLidarFrameSnapshot& Frame,
-	const FVirtualLidarV2EncodeOptions& Options,
-	TArray64<uint8>& OutBytes,
-	int32& OutEncodedPointCount)
+    const FVirtualLidarFrameSnapshot& Frame,
+    const FVirtualLidarV2EncodeOptions& Options,
+    TArray64<uint8>& OutBytes,
+    int32& OutEncodedPointCount)
 {
 	OutBytes.Reset();
 	OutEncodedPointCount = 0;
@@ -182,9 +207,11 @@ bool FVirtualLidarPayloadCodec::EncodeCompactBinary(
 	const int32 SafeMaximum = FMath::Max(0, Options.MaxPoints);
 	for (int32 PointIndex = 0; PointIndex < Frame.Points->Num(); PointIndex += SafeStride)
 	{
-		if (SafeMaximum > 0 && SelectedPoints.Num() >= SafeMaximum) break;
+		if (SafeMaximum > 0 && SelectedPoints.Num() >= SafeMaximum)
+			break;
 		const FVirtualLidarPoint& Point = (*Frame.Points)[PointIndex];
-		if (!Options.bIncludeInvalidPoints && !Point.bHit) continue;
+		if (!Options.bIncludeInvalidPoints && !Point.bHit)
+			continue;
 		SelectedPoints.Add(&Point);
 	}
 

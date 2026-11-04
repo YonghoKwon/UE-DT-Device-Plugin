@@ -18,7 +18,7 @@ class DEVICERUNTIME_API UVirtualLidarSurfaceResponseComp : public UActorComponen
 public:
 	UVirtualLidarSurfaceResponseComp();
 	/** Native opt-in for the existing GPU semantic proxy snapshot; false preserves prior GPU output. */
-	bool bUseGpuReflectivityOverride=false;
+	bool bUseGpuReflectivityOverride = false;
 
 	/** Diffuse reflectivity at the ML-X wavelength. 0.2 means 20 percent. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualLidar|Optical", meta = (ClampMin = "0.001", ClampMax = "1.0"))

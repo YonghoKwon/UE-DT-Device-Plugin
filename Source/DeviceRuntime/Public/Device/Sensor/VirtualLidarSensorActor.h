@@ -15,66 +15,66 @@ class UVirtualLidarGpuDepthProjectionComp;
 UCLASS()
 class DEVICERUNTIME_API AVirtualLidarSensorActor : public AVirtualSensorActorBase
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    AVirtualLidarSensorActor();
+	AVirtualLidarSensorActor();
 #if WITH_EDITOR
-    virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
-    TObjectPtr<UVirtualLidarScanComp> ScanComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
+	TObjectPtr<UVirtualLidarScanComp> ScanComp;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
-    TObjectPtr<UVirtualLidarAnalysisComp> AnalysisComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
+	TObjectPtr<UVirtualLidarAnalysisComp> AnalysisComp;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
-    TObjectPtr<UVirtualLidarVisualizationComp> VisualizationComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
+	TObjectPtr<UVirtualLidarVisualizationComp> VisualizationComp;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
-    TObjectPtr<UVirtualLidarExportComp> ExportComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
+	TObjectPtr<UVirtualLidarExportComp> ExportComp;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
-    TObjectPtr<UVirtualLidarGpuDepthProjectionComp> GpuDepthProjectionComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualLidar")
+	TObjectPtr<UVirtualLidarGpuDepthProjectionComp> GpuDepthProjectionComp;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|EditorVisualization")
-    TObjectPtr<UArrowComponent> EditorForwardArrowComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|EditorVisualization")
+	TObjectPtr<UArrowComponent> EditorForwardArrowComp;
 
 protected:
-    virtual void BeginPlay() override;
+	virtual void BeginPlay() override;
 
 public:
-    virtual FString GetSensorId() const override;
-    virtual EVirtualSensorKind GetSensorKind() const override;
-    virtual bool IsSensorRunning() const override;
-    virtual void StartSensor() override;
-    virtual void StopSensor() override;
-    virtual void CaptureSensorOnce() override;
-    UFUNCTION(BlueprintCallable,Category="DigitalTwin|VirtualLidar")
-    bool SetLidarAcquisitionBackend(EVirtualLidarAcquisitionBackend Backend,FString& OutReason);
-    virtual UTexture* GetSensorPreviewTexture() const override;
-    virtual FVirtualSensorRuntimeStatus GetSensorRuntimeStatus() const override;
-    virtual bool SubmitExternalFrame(const FVirtualSensorFrameEnvelope& Frame, bool bSendTransport) override;
-    virtual bool ReadEditableState(FVirtualSensorEditableState& OutState) const override;
-    virtual bool ReadCollectionState(FVirtualSensorEditableState& OutState,bool& bPreviewEnabled) const override;
-    virtual bool ValidateEditableState(const FVirtualSensorEditableState& State, FString& OutError) const override;
-    virtual bool ApplyEditableState(const FVirtualSensorEditableState& State, FString& OutError) override;
-    /** Transient dataset transaction: preserves backend, calibration and non-editable profile values. */
-    bool ApplyDatasetState(const FVirtualSensorEditableState& State,FString& Error);
-    virtual bool ApplyProfileAndSimulationQuality(const FVirtualSensorEditableState& RequestedState, FVirtualSensorEditableState& OutAppliedState, FString& OutError) override;
+	virtual FString GetSensorId() const override;
+	virtual EVirtualSensorKind GetSensorKind() const override;
+	virtual bool IsSensorRunning() const override;
+	virtual void StartSensor() override;
+	virtual void StopSensor() override;
+	virtual void CaptureSensorOnce() override;
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|VirtualLidar")
+	bool SetLidarAcquisitionBackend(EVirtualLidarAcquisitionBackend Backend, FString& OutReason);
+	virtual UTexture* GetSensorPreviewTexture() const override;
+	virtual FVirtualSensorRuntimeStatus GetSensorRuntimeStatus() const override;
+	virtual bool SubmitExternalFrame(const FVirtualSensorFrameEnvelope& Frame, bool bSendTransport) override;
+	virtual bool ReadEditableState(FVirtualSensorEditableState& OutState) const override;
+	virtual bool ReadCollectionState(FVirtualSensorEditableState& OutState, bool& bPreviewEnabled) const override;
+	virtual bool ValidateEditableState(const FVirtualSensorEditableState& State, FString& OutError) const override;
+	virtual bool ApplyEditableState(const FVirtualSensorEditableState& State, FString& OutError) override;
+	/** Transient dataset transaction: preserves backend, calibration and non-editable profile values. */
+	bool ApplyDatasetState(const FVirtualSensorEditableState& State, FString& Error);
+	virtual bool ApplyProfileAndSimulationQuality(const FVirtualSensorEditableState& RequestedState, FVirtualSensorEditableState& OutAppliedState, FString& OutError) override;
 	virtual bool BeginInteractiveManipulation(const FVirtualSensorInteractionRequest& Request) override;
 	virtual void EndInteractiveManipulation() override;
 
 private:
-    UFUNCTION()
-    void HandleLidarFrameAcquired(int64 FrameId);
+	UFUNCTION()
+	void HandleLidarFrameAcquired(int64 FrameId);
 
-    UFUNCTION()
-    void HandleLidarFrame(const FString& JsonPayload, UTexture2D* ViewTexture);
-    void HandleDerivedLidarFrame(const FVirtualSensorFrameEnvelope& Frame);
+	UFUNCTION()
+	void HandleLidarFrame(const FString& JsonPayload, UTexture2D* ViewTexture);
+	void HandleDerivedLidarFrame(const FVirtualSensorFrameEnvelope& Frame);
 
-    TOptional<bool> PendingExternalSendTransport;
+	TOptional<bool> PendingExternalSendTransport;
 	int32 SavedInteractionHorizontalSamples = 0;
 	int32 SavedInteractionVerticalChannels = 0;
 	float SavedInteractionInterval = 0.25f;

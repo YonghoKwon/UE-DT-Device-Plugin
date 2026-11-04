@@ -8,9 +8,9 @@
 #include "Misc/SecureHash.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorStreamLatestFrameTest,
-	"MA0T10.SensorStream.LatestFrameBackpressure",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorStreamLatestFrameTest,
+    "MA0T10.SensorStream.LatestFrameBackpressure",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorStreamLatestFrameTest::RunTest(const FString& Parameters)
 {
@@ -49,9 +49,9 @@ bool FVirtualSensorStreamLatestFrameTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorStreamFormatRevisionTest,
-	"MA0T10.SensorStream.PointCloudFormatRevision",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorStreamFormatRevisionTest,
+    "MA0T10.SensorStream.PointCloudFormatRevision",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorStreamFormatRevisionTest::RunTest(const FString& Parameters)
 {
@@ -66,7 +66,8 @@ bool FVirtualSensorStreamFormatRevisionTest::RunTest(const FString& Parameters)
 
 	const TArray<FVirtualSensorStreamStatus> Initial = Publisher->GetStreamStatuses();
 	TestEqual(TEXT("one Point Cloud stream is configured"), Initial.Num(), 1);
-	if (Initial.Num() != 1) return false;
+	if (Initial.Num() != 1)
+		return false;
 	const int32 InitialRevision = Initial[0].ConfigRevision;
 
 	Config.PointCloudFormat = EVirtualPointCloudStreamFormat::PCD;
@@ -82,9 +83,9 @@ bool FVirtualSensorStreamFormatRevisionTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorConnectedNoLossQueueTest,
-	"MA0T10.SensorStream.ConnectedNoLossQueue",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorConnectedNoLossQueueTest,
+    "MA0T10.SensorStream.ConnectedNoLossQueue",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorConnectedNoLossQueueTest::RunTest(const FString& Parameters)
 {
@@ -107,7 +108,7 @@ bool FVirtualSensorConnectedNoLossQueueTest::RunTest(const FString& Parameters)
 	Point.SensorLocalPositionMeters = FVector(1.0, 0.0, 0.0);
 	Point.Validity = EVirtualLidarPointValidity::Valid;
 	const TSharedPtr<const TArray<FVirtualLidarPoint>, ESPMode::ThreadSafe> Snapshot =
-		MakeShared<const TArray<FVirtualLidarPoint>, ESPMode::ThreadSafe>(MoveTemp(Points));
+	    MakeShared<const TArray<FVirtualLidarPoint>, ESPMode::ThreadSafe>(MoveTemp(Points));
 
 	for (int64 FrameId = 1; FrameId <= 22; ++FrameId)
 	{
@@ -122,7 +123,8 @@ bool FVirtualSensorConnectedNoLossQueueTest::RunTest(const FString& Parameters)
 
 	const TArray<FVirtualSensorStreamStatus> Statuses = Publisher->GetStreamStatuses();
 	TestEqual(TEXT("one no-loss stream exists"), Statuses.Num(), 1);
-	if (Statuses.Num() != 1) return false;
+	if (Statuses.Num() != 1)
+		return false;
 	TestTrue(TEXT("queue overflow stops the stream explicitly"), Statuses[0].bOverloaded);
 	TestFalse(TEXT("overloaded stream is no longer enabled"), Statuses[0].bEnabled);
 	TestEqual(TEXT("no latest-frame replacement occurs"), Statuses[0].ReplacedPendingFrameCount, static_cast<int64>(0));
@@ -131,14 +133,14 @@ bool FVirtualSensorConnectedNoLossQueueTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorStreamTopicRoutingTest,
-	"MA0T10.SensorStream.TopicRouting",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorStreamTopicRoutingTest,
+    "MA0T10.SensorStream.TopicRouting",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorStreamGlobalControlTest,
-	"MA0T10.SensorStream.GlobalAndPerSensorControl",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorStreamGlobalControlTest,
+    "MA0T10.SensorStream.GlobalAndPerSensorControl",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorStreamTopicRoutingTest::RunTest(const FString& Parameters)
 {
@@ -178,17 +180,19 @@ bool FVirtualSensorStreamGlobalControlTest::RunTest(const FString& Parameters)
 	Publisher->SubmitFrame(Frame);
 	Publisher->PumpPublisherOnce(FPlatformTime::Seconds());
 	int64 TotalSubmitted = 0;
-	for (const FVirtualSensorStreamStatus& Status : Publisher->GetStreamStatuses()) TotalSubmitted += Status.SubmittedFrameCount;
+	for (const FVirtualSensorStreamStatus& Status : Publisher->GetStreamStatuses())
+		TotalSubmitted += Status.SubmittedFrameCount;
 	TestEqual(TEXT("exact stream suppresses duplicate global delivery"), TotalSubmitted, static_cast<int64>(1));
 	Publisher->StopAllStreams(FString());
-	for (const FVirtualSensorStreamStatus& Status : Publisher->GetStreamStatuses()) TestFalse(TEXT("global stop disables every configured stream"), Status.bEnabled);
+	for (const FVirtualSensorStreamStatus& Status : Publisher->GetStreamStatuses())
+		TestFalse(TEXT("global stop disables every configured stream"), Status.bEnabled);
 	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorPointCloudSerializationTest,
-	"MA0T10.SensorStream.PointCloudFormats",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorPointCloudSerializationTest,
+    "MA0T10.SensorStream.PointCloudFormats",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorPointCloudSerializationTest::RunTest(const FString& Parameters)
 {
@@ -219,7 +223,7 @@ bool FVirtualSensorPointCloudSerializationTest::RunTest(const FString& Parameter
 	Miss.bHit = false;
 	Frame.PointSnapshot = MakeShared<const TArray<FVirtualLidarPoint>, ESPMode::ThreadSafe>(MoveTemp(Points));
 	TSharedPtr<FVirtualLidarFrameSnapshot, ESPMode::ThreadSafe> PhysicalFrame =
-		MakeShared<FVirtualLidarFrameSnapshot, ESPMode::ThreadSafe>();
+	    MakeShared<FVirtualLidarFrameSnapshot, ESPMode::ThreadSafe>();
 	PhysicalFrame->FrameId = Frame.FrameId;
 	PhysicalFrame->ProfileKey = TEXT("iyobot-mlx80-native");
 	PhysicalFrame->RequestedRayCount = 2;
@@ -228,10 +232,10 @@ bool FVirtualSensorPointCloudSerializationTest::RunTest(const FString& Parameter
 	Frame.LidarFrameSnapshot = StaticCastSharedPtr<const FVirtualLidarFrameSnapshot>(PhysicalFrame);
 
 	for (const TPair<EVirtualPointCloudStreamFormat, FString>& Case : {
-		TPair<EVirtualPointCloudStreamFormat, FString>(EVirtualPointCloudStreamFormat::CSV, TEXT("csv")),
-		TPair<EVirtualPointCloudStreamFormat, FString>(EVirtualPointCloudStreamFormat::JSONL, TEXT("jsonl")),
-		TPair<EVirtualPointCloudStreamFormat, FString>(EVirtualPointCloudStreamFormat::PCD, TEXT("pcd")),
-		TPair<EVirtualPointCloudStreamFormat, FString>(EVirtualPointCloudStreamFormat::LAS, TEXT("las")) })
+	         TPair<EVirtualPointCloudStreamFormat, FString>(EVirtualPointCloudStreamFormat::CSV, TEXT("csv")),
+	         TPair<EVirtualPointCloudStreamFormat, FString>(EVirtualPointCloudStreamFormat::JSONL, TEXT("jsonl")),
+	         TPair<EVirtualPointCloudStreamFormat, FString>(EVirtualPointCloudStreamFormat::PCD, TEXT("pcd")),
+	         TPair<EVirtualPointCloudStreamFormat, FString>(EVirtualPointCloudStreamFormat::LAS, TEXT("las"))})
 	{
 		FVirtualSensorStreamConfig Config;
 		Config.PointCloudFormat = Case.Key;
@@ -239,7 +243,7 @@ bool FVirtualSensorPointCloudSerializationTest::RunTest(const FString& Parameter
 		TArray<uint8> Bytes;
 		int32 PointCount = 0;
 		TestTrue(FString::Printf(TEXT("%s serialization succeeds"), *Case.Value),
-			UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
+		         UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
 		TestEqual(FString::Printf(TEXT("%s extension"), *Case.Value), Extension, Case.Value);
 		TestEqual(FString::Printf(TEXT("%s includes hit only"), *Case.Value), PointCount, 1);
 		TestTrue(FString::Printf(TEXT("%s has bytes"), *Case.Value), !Bytes.IsEmpty());
@@ -252,7 +256,7 @@ bool FVirtualSensorPointCloudSerializationTest::RunTest(const FString& Parameter
 		TArray<uint8> Bytes;
 		int32 PointCount = 0;
 		TestTrue(TEXT("compact binary serialization succeeds"),
-			UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
+		         UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
 		TestEqual(TEXT("compact binary extension"), Extension, FString(TEXT("vlb2")));
 		TestEqual(TEXT("compact binary includes the valid point"), PointCount, 1);
 		TestTrue(TEXT("compact binary includes a header and point record"), Bytes.Num() > 32);
@@ -264,15 +268,15 @@ bool FVirtualSensorPointCloudSerializationTest::RunTest(const FString& Parameter
 	TArray<uint8> LazBytes;
 	int32 LazPointCount = 0;
 	TestFalse(TEXT("LAZ without a real compressor is rejected"),
-		UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, LazConfig, LazExtension, LazBytes, LazPointCount, LazError));
+	          UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, LazConfig, LazExtension, LazBytes, LazPointCount, LazError));
 	TestTrue(TEXT("LAZ rejection explains the missing compressor"), LazError.Contains(TEXT("LAZ")));
 	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorBinaryPcdContractTest,
-	"MA0T10.SensorStream.BinaryPcdContractAndFilter",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorBinaryPcdContractTest,
+    "MA0T10.SensorStream.BinaryPcdContractAndFilter",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorBinaryPcdContractTest::RunTest(const FString& Parameters)
 {
@@ -325,7 +329,7 @@ bool FVirtualSensorBinaryPcdContractTest::RunTest(const FString& Parameters)
 	TArray<uint8> Bytes;
 	int32 PointCount = 0;
 	TestTrue(TEXT("filtered binary PCD serializes"),
-		UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
+	         UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
 	TestEqual(TEXT("binary PCD extension"), Extension, FString(TEXT("pcd")));
 	TestEqual(TEXT("Tag, semantic and ROI groups are ANDed"), PointCount, 1);
 
@@ -352,7 +356,7 @@ bool FVirtualSensorBinaryPcdContractTest::RunTest(const FString& Parameters)
 	Bytes.Reset();
 	PointCount = -1;
 	TestTrue(TEXT("zero-point binary PCD remains a valid frame"),
-		UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
+	         UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(Frame, Config, Extension, Bytes, PointCount, Error));
 	TestEqual(TEXT("exclude rules take precedence"), PointCount, 0);
 	TestTrue(TEXT("zero-point PCD still carries its header"), Bytes.Num() > 100);
 
@@ -363,8 +367,8 @@ bool FVirtualSensorBinaryPcdContractTest::RunTest(const FString& Parameters)
 		for (int32 Index = 0; Index < ScalePointCount; ++Index)
 		{
 			ScalePoints.Add(MakePoint(
-				FVector(1.0 + (Index % 576) * 0.01, (Index % 56) * 0.01, 0.5),
-				TEXT("ScaleTarget"), {TEXT("PointCloudTarget")}, Index % 576));
+			    FVector(1.0 + (Index % 576) * 0.01, (Index % 56) * 0.01, 0.5),
+			    TEXT("ScaleTarget"), {TEXT("PointCloudTarget")}, Index % 576));
 		}
 		FVirtualSensorFrameEnvelope ScaleFrame;
 		ScaleFrame.SensorId = TEXT("LIDAR-PCD-SCALE");
@@ -378,20 +382,20 @@ bool FVirtualSensorBinaryPcdContractTest::RunTest(const FString& Parameters)
 		Bytes.Reset();
 		PointCount = 0;
 		TestTrue(FString::Printf(TEXT("%d-point binary PCD serializes"), ScalePointCount),
-			UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(
-				ScaleFrame, ScaleConfig, Extension, Bytes, PointCount, Error));
+		         UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(
+		             ScaleFrame, ScaleConfig, Extension, Bytes, PointCount, Error));
 		TestEqual(FString::Printf(TEXT("%d-point PCD preserves every point"), ScalePointCount), PointCount, ScalePointCount);
 		TestTrue(FString::Printf(TEXT("%d-point PCD body stays below 16 MiB"), ScalePointCount), Bytes.Num() < 16 * 1024 * 1024);
 		TestTrue(FString::Printf(TEXT("%d-point PCD contains exactly 33 bytes per record plus header"), ScalePointCount),
-			Bytes.Num() > ScalePointCount * 33 && Bytes.Num() < ScalePointCount * 33 + 1024);
+		         Bytes.Num() > ScalePointCount * 33 && Bytes.Num() < ScalePointCount * 33 + 1024);
 	}
 	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorBinaryPcdReceiverTest,
-	"MA0T10.SensorStream.BinaryPcdReceiverValidation",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorBinaryPcdReceiverTest,
+    "MA0T10.SensorStream.BinaryPcdReceiverValidation",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorBinaryPcdReceiverTest::RunTest(const FString& Parameters)
 {
@@ -420,7 +424,7 @@ bool FVirtualSensorBinaryPcdReceiverTest::RunTest(const FString& Parameters)
 	TArray<uint8> Bytes;
 	int32 PointCount = 0;
 	TestTrue(TEXT("receiver fixture serializes"), UVirtualSensorStreamPublisherComp::SerializePointCloudForTesting(
-		Frame, Config, Extension, Bytes, PointCount, Error));
+	                                                  Frame, Config, Extension, Bytes, PointCount, Error));
 
 	uint8 Hash[FSHA1::DigestSize];
 	FSHA1::HashBuffer(Bytes.GetData(), Bytes.Num(), Hash);
@@ -438,7 +442,7 @@ bool FVirtualSensorBinaryPcdReceiverTest::RunTest(const FString& Parameters)
 
 	UVirtualPointCloudStreamReceiverTC* Receiver = NewObject<UVirtualPointCloudStreamReceiverTC>();
 	TSharedPtr<FVirtualPointCloudStreamReceiverData> Parsed = StaticCastSharedPtr<FVirtualPointCloudStreamReceiverData>(
-		Receiver->ParseBinaryPcdToStruct(Bytes, Headers));
+	    Receiver->ParseBinaryPcdToStruct(Bytes, Headers));
 	TestTrue(TEXT("raw PCD receiver accepts the binary contract"), Parsed.IsValid() && Parsed->bValid);
 	if (Parsed.IsValid())
 	{
@@ -463,13 +467,14 @@ struct FVirtualSensorArtemisSmokeState
 };
 
 DEFINE_LATENT_AUTOMATION_COMMAND_TWO_PARAMETER(
-	FVirtualSensorArtemisSmokeCommand,
-	TSharedPtr<FVirtualSensorArtemisSmokeState>, State,
-	FAutomationTestBase*, Test);
+    FVirtualSensorArtemisSmokeCommand,
+    TSharedPtr<FVirtualSensorArtemisSmokeState>, State,
+    FAutomationTestBase*, Test);
 
 bool FVirtualSensorArtemisSmokeCommand::Update()
 {
-	if (!State.IsValid() || !State->Transport || !State->PublisherComp) return true;
+	if (!State.IsValid() || !State->Transport || !State->PublisherComp)
+		return true;
 	const double Now = FPlatformTime::Seconds();
 	if (Now - State->StartedSeconds > 20.0)
 	{
@@ -517,10 +522,13 @@ bool FVirtualSensorArtemisSmokeCommand::Update()
 	int32 ReceiptStreams = 0;
 	for (const FVirtualSensorStreamStatus& Status : State->PublisherComp->GetStreamStatuses())
 	{
-		if (Status.SubmittedFrameCount > 0) ++SubmittedStreams;
-		if (Status.ReceiptReceivedCount > 0) ++ReceiptStreams;
+		if (Status.SubmittedFrameCount > 0)
+			++SubmittedStreams;
+		if (Status.ReceiptReceivedCount > 0)
+			++ReceiptStreams;
 	}
-	if (SubmittedStreams < 3 || ReceiptStreams < 3) return false;
+	if (SubmittedStreams < 3 || ReceiptStreams < 3)
+		return false;
 	Test->TestEqual(TEXT("Artemis smoke submitted LiDAR, Camera, and Point Cloud streams"), SubmittedStreams, 3);
 	Test->TestEqual(TEXT("Artemis smoke received a broker receipt for every stream"), ReceiptStreams, 3);
 	State->Transport->RemoveFromRoot();
@@ -529,9 +537,9 @@ bool FVirtualSensorArtemisSmokeCommand::Update()
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorArtemisIntegrationSmokeTest,
-	"MA0T10.SensorStream.ArtemisIntegration",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorArtemisIntegrationSmokeTest,
+    "MA0T10.SensorStream.ArtemisIntegration",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorArtemisIntegrationSmokeTest::RunTest(const FString& Parameters)
 {
@@ -549,8 +557,10 @@ bool FVirtualSensorArtemisIntegrationSmokeTest::RunTest(const FString& Parameter
 	const FString Url = FPlatformMisc::GetEnvironmentVariable(TEXT("MA0T10_ARTEMIS_URL"));
 	const FString User = FPlatformMisc::GetEnvironmentVariable(TEXT("MA0T10_ARTEMIS_USER"));
 	const FString Password = FPlatformMisc::GetEnvironmentVariable(TEXT("MA0T10_ARTEMIS_PASSWORD"));
-	if (!Url.IsEmpty()) Profile.BrokerUrl = Url;
-	if (!User.IsEmpty()) Profile.UserName = User;
+	if (!Url.IsEmpty())
+		Profile.BrokerUrl = Url;
+	if (!User.IsEmpty())
+		Profile.UserName = User;
 	Profile.MaxMessageBytes = 8 * 1024 * 1024;
 	State->Transport->ConfigureTransportProfile(Profile);
 	State->Transport->SetSessionCredentials(Password, FString());
@@ -567,8 +577,8 @@ bool FVirtualSensorArtemisIntegrationSmokeTest::RunTest(const FString& Parameter
 		Config.PointCloudFormat = EVirtualPointCloudStreamFormat::PCD;
 		Config.PcdDataMode = EVirtualPcdDataMode::Binary;
 		Config.DeliveryMode = Kind == EVirtualSensorStreamKind::PointCloud
-			? EVirtualPointCloudDeliveryMode::ConnectedNoLoss
-			: EVirtualPointCloudDeliveryMode::LatestFrame;
+		                          ? EVirtualPointCloudDeliveryMode::ConnectedNoLoss
+		                          : EVirtualPointCloudDeliveryMode::LatestFrame;
 		Config.MaxBufferedFrames = 20;
 		State->PublisherComp->ConfigureStream(Config);
 	}

@@ -18,52 +18,52 @@
 
 UVirtualSensorTransportComp::UVirtualSensorTransportComp()
 {
-    PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJson(const FString& SensorId, const FString& SensorType, const FString& JsonText)
 {
-    FVirtualSensorTransportResult Result;
-    Result.DataLength = JsonText.Len();
+	FVirtualSensorTransportResult Result;
+	Result.DataLength = JsonText.Len();
 
-    if (TransportMode == EVirtualSensorTransportMode::None)
-    {
-        Result.bSubmitted = true;
-        Result.bAccepted = true;
-        Result.Message = TEXT("Transport disabled");
-    }
-    else if (TransportMode == EVirtualSensorTransportMode::SaveToFile)
-    {
-        Result = SaveJson(SensorId, SensorType, JsonText);
-    }
-    else if (TransportMode == EVirtualSensorTransportMode::HttpPost)
-    {
-        Result = SendHttp(SensorId, SensorType, JsonText);
-    }
+	if (TransportMode == EVirtualSensorTransportMode::None)
+	{
+		Result.bSubmitted = true;
+		Result.bAccepted = true;
+		Result.Message = TEXT("Transport disabled");
+	}
+	else if (TransportMode == EVirtualSensorTransportMode::SaveToFile)
+	{
+		Result = SaveJson(SensorId, SensorType, JsonText);
+	}
+	else if (TransportMode == EVirtualSensorTransportMode::HttpPost)
+	{
+		Result = SendHttp(SensorId, SensorType, JsonText);
+	}
 	else if (TransportMode == EVirtualSensorTransportMode::StompWebSocket)
 	{
 		Result = SendStomp(SensorId, SensorType, TEXT("frame"), 0, JsonText, false, false);
 	}
-    else
-    {
-        Result.bSubmitted = true;
-        Result.bAccepted = true;
-        Result.Message = FString::Printf(TEXT("[%s:%s] dataLength=%d"), *SensorType, *SensorId, JsonText.Len());
-        UE_LOG(LogTemp, Log, TEXT("%s"), *Result.Message);
-    }
+	else
+	{
+		Result.bSubmitted = true;
+		Result.bAccepted = true;
+		Result.Message = FString::Printf(TEXT("[%s:%s] dataLength=%d"), *SensorType, *SensorId, JsonText.Len());
+		UE_LOG(LogTemp, Log, TEXT("%s"), *Result.Message);
+	}
 
-    LastResult = Result;
-    OnDataSent.Broadcast(Result);
-    return Result;
+	LastResult = Result;
+	OnDataSent.Broadcast(Result);
+	return Result;
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJsonRequest(
-	const FString& SensorId,
-	const FString& SensorType,
-	const FString& DataKind,
-	int64 FrameId,
-	const FString& JsonText,
-	bool bManualRequest)
+    const FString& SensorId,
+    const FString& SensorType,
+    const FString& DataKind,
+    int64 FrameId,
+    const FString& JsonText,
+    bool bManualRequest)
 {
 	if (TransportMode == EVirtualSensorTransportMode::StompWebSocket)
 	{
@@ -79,12 +79,12 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJsonRequest(
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJsonStreamRequest(
-	const FString& SensorId,
-	const FString& SensorType,
-	const FString& DataKind,
-	int64 FrameId,
-	const FString& JsonText,
-	bool bRequestReceipt, const TMap<FString,FString>& AdditionalHeaders)
+    const FString& SensorId,
+    const FString& SensorType,
+    const FString& DataKind,
+    int64 FrameId,
+    const FString& JsonText,
+    bool bRequestReceipt, const TMap<FString, FString>& AdditionalHeaders)
 {
 	if (TransportMode == EVirtualSensorTransportMode::StompWebSocket)
 	{
@@ -101,13 +101,14 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJsonStreamRequest
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStompBinaryStreamRequest(
-	const TArray<uint8>& Bytes,
-	const FVirtualPointCloudBinaryMetadata& Metadata)
+    const TArray<uint8>& Bytes,
+    const FVirtualPointCloudBinaryMetadata& Metadata)
 {
 	FVirtualSensorTransportResult Result;
 	Result.Protocol = TEXT("STOMP/WS");
 	Result.RequestId = FString::Printf(TEXT("%s-%lld-%s"), *Metadata.SensorId, Metadata.FrameId, *Metadata.ChecksumSha1);
-	Result.RunId=Metadata.SlabContext.RunId;Result.FrameId=Metadata.FrameId;
+	Result.RunId = Metadata.SlabContext.RunId;
+	Result.FrameId = Metadata.FrameId;
 	Result.SensorId = Metadata.SensorId;
 	Result.SensorType = TEXT("lidar");
 	Result.DataKind = TEXT("pointcloud-stream-binary-pcd");
@@ -136,9 +137,8 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStompBinaryStream
 
 	const double StartedSeconds = FPlatformTime::Seconds();
 	const TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
-	StompClient->Send(Result.Destination, Bytes, Headers, FStompRequestCompleted::CreateLambda(
-		[WeakThis, SubmittedResult = Result, StartedSeconds](bool bSuccess, const FString& Error)
-		{
+	StompClient->Send(Result.Destination, Bytes, Headers, FStompRequestCompleted::CreateLambda([WeakThis, SubmittedResult = Result, StartedSeconds](bool bSuccess, const FString& Error)
+	                                                                                           {
 			if (!WeakThis.IsValid()) return;
 			FVirtualSensorTransportResult Receipt = SubmittedResult;
 			Receipt.bSubmitted = true;
@@ -149,8 +149,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStompBinaryStream
 			Receipt.Message = bSuccess
 				? TEXT("Binary PCD broker receipt received; consumer processing is tracked separately.")
 				: FString::Printf(TEXT("Binary PCD broker receipt failed: %s"), *Error);
-			WeakThis->OnDataSent.Broadcast(Receipt);
-		}));
+			WeakThis->OnDataSent.Broadcast(Receipt); }));
 	Result.bSubmitted = true;
 	Result.Message = TEXT("Binary PCD submitted through IStompClient; waiting for broker receipt.");
 	LastStompSubmitSeconds = StartedSeconds;
@@ -186,18 +185,18 @@ bool UVirtualSensorTransportComp::IsStompConnected() const
 	return StompClient.IsValid() && (bStompConnected.Load() || StompClient->IsConnected());
 }
 
-void UVirtualSensorTransportComp::GetOutputServerConnection(bool& Connected,bool& Expected) const
+void UVirtualSensorTransportComp::GetOutputServerConnection(bool& Connected, bool& Expected) const
 {
-	const auto* Raw=GetWorld()?GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>():nullptr;
-	const bool CurrentRaw=Raw&&Raw->GetActiveProfile().BrokerUrl==TransportProfile.BrokerUrl&&Raw->GetActiveProfile().UserName==TransportProfile.UserName;
-	Connected=TransportMode==EVirtualSensorTransportMode::StompWebSocket&&(IsStompConnected()||(CurrentRaw&&Raw->IsTransportConnected()));
-	Expected=TransportMode==EVirtualSensorTransportMode::StompWebSocket&&(StompClient.IsValid()||(CurrentRaw&&Raw->IsHighThroughputTransportRunning()));
+	const auto* Raw = GetWorld() ? GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>() : nullptr;
+	const bool CurrentRaw = Raw && Raw->GetActiveProfile().BrokerUrl == TransportProfile.BrokerUrl && Raw->GetActiveProfile().UserName == TransportProfile.UserName;
+	Connected = TransportMode == EVirtualSensorTransportMode::StompWebSocket && (IsStompConnected() || (CurrentRaw && Raw->IsTransportConnected()));
+	Expected = TransportMode == EVirtualSensorTransportMode::StompWebSocket && (StompClient.IsValid() || (CurrentRaw && Raw->IsHighThroughputTransportRunning()));
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::TestConnection()
 {
 	UE_LOG(LogTemp, Display, TEXT("[SensorStreamTransport] connection test owner=%s mode=%d broker=%s"),
-		*GetNameSafe(GetOwner()), static_cast<int32>(TransportMode), *TransportProfile.BrokerUrl);
+	       *GetNameSafe(GetOwner()), static_cast<int32>(TransportMode), *TransportProfile.BrokerUrl);
 	FVirtualSensorTransportResult Result;
 	Result.Protocol = TransportMode == EVirtualSensorTransportMode::StompWebSocket ? TEXT("STOMP/WS") : TEXT("HTTP");
 	Result.RequestId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensLower);
@@ -205,13 +204,16 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::TestConnection()
 	{
 		// Native PCD uses this worker for tcp:// and ws:// endpoints. Never pass
 		// tcp:// to the engine's WebSocket client or send a diagnostic payload.
-		if(UVirtualSensorHighThroughputTransportSubsystem::CanUseRawTcp(TransportProfile.BrokerUrl))
+		if (UVirtualSensorHighThroughputTransportSubsystem::CanUseRawTcp(TransportProfile.BrokerUrl))
 		{
-			auto* Raw=GetWorld()?GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>():nullptr;
-			FString Error;Result.Protocol=TEXT("STOMP/TCP");Result.Destination=TransportProfile.BrokerUrl;
-			Result.bSubmitted=Raw&&Raw->PrepareHighThroughputTransport(UVirtualSensorHighThroughputTransportSubsystem::MakeProfile(TransportProfile),SessionPasscode,Error,true);
-			Result.bAccepted=Result.bSubmitted&&Raw->IsTransportConnected();
-			Result.Message=!Result.bSubmitted?(Error.IsEmpty()?TEXT("전송 서비스를 확인하세요"):Error):Result.bAccepted?TEXT("연결 시험 성공 · 서버 연결됨"):TEXT("연결 시험 중 · 잠시 기다려 주세요");
+			auto* Raw = GetWorld() ? GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>() : nullptr;
+			FString Error;
+			Result.Protocol = TEXT("STOMP/TCP");
+			Result.Destination = TransportProfile.BrokerUrl;
+			Result.bSubmitted = Raw && Raw->PrepareHighThroughputTransport(UVirtualSensorHighThroughputTransportSubsystem::MakeProfile(TransportProfile), SessionPasscode, Error, true);
+			Result.bAccepted = Result.bSubmitted && Raw->IsTransportConnected();
+			Result.Message = !Result.bSubmitted ? (Error.IsEmpty() ? TEXT("전송 서비스를 확인하세요") : Error) : Result.bAccepted ? TEXT("연결 시험 성공 · 서버 연결됨")
+			                                                                                                                      : TEXT("연결 시험 중 · 잠시 기다려 주세요");
 		}
 		else
 		{
@@ -233,9 +235,12 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::TestConnection()
 
 FString UVirtualSensorTransportComp::ResolveTopic(const FString& SensorType, const FString& DataKind) const
 {
-    if(SensorType==TEXT("imu")&&DataKind==TEXT("imu-stream"))return TEXT("topic.virtual.sensor.imu.0");
-	if (DataKind.Contains(TEXT("export"), ESearchCase::IgnoreCase) || DataKind.Contains(TEXT("pointcloud"), ESearchCase::IgnoreCase)) return TransportProfile.ExportTopic;
-	if (SensorType.Contains(TEXT("lidar"), ESearchCase::IgnoreCase)) return TransportProfile.LidarTopic;
+	if (SensorType == TEXT("imu") && DataKind == TEXT("imu-stream"))
+		return TEXT("topic.virtual.sensor.imu.0");
+	if (DataKind.Contains(TEXT("export"), ESearchCase::IgnoreCase) || DataKind.Contains(TEXT("pointcloud"), ESearchCase::IgnoreCase))
+		return TransportProfile.ExportTopic;
+	if (SensorType.Contains(TEXT("lidar"), ESearchCase::IgnoreCase))
+		return TransportProfile.LidarTopic;
 	return TransportProfile.CameraTopic;
 }
 
@@ -255,17 +260,25 @@ void UVirtualSensorTransportComp::RequestStompReconnect()
 bool UVirtualSensorTransportComp::PrepareStompConnection(FString& Error)
 {
 	Error.Reset();
-	if(TransportMode!=EVirtualSensorTransportMode::StompWebSocket || TransportProfile.BrokerUrl.IsEmpty())
-	{Error=TEXT("STOMP 서버 설정이 필요합니다.");return false;}
+	if (TransportMode != EVirtualSensorTransportMode::StompWebSocket || TransportProfile.BrokerUrl.IsEmpty())
+	{
+		Error = TEXT("STOMP 서버 설정이 필요합니다.");
+		return false;
+	}
 	EnsureStompClient();
-	if(!StompClient.IsValid()){Error=LastResult.Message.IsEmpty()?TEXT("STOMP 연결 준비 실패"):LastResult.Message;return false;}
+	if (!StompClient.IsValid())
+	{
+		Error = LastResult.Message.IsEmpty() ? TEXT("STOMP 연결 준비 실패") : LastResult.Message;
+		return false;
+	}
 	return true;
 }
 
 bool UVirtualSensorTransportComp::BuildStompConnectHeaders(const FString& User, const FString& Passcode,
-	const FString& UpgradeToken, TMap<FName, FString>& OutHeaders, FString& OutError)
+                                                           const FString& UpgradeToken, TMap<FName, FString>& OutHeaders, FString& OutError)
 {
-	OutHeaders.Reset(); OutError.Reset();
+	OutHeaders.Reset();
+	OutError.Reset();
 	if (!UpgradeToken.IsEmpty() && (!User.IsEmpty() || !Passcode.IsEmpty()))
 	{
 		OutError = TEXT("STOMP 인증 설정 충돌: 사용자/비밀번호와 WebSocket Bearer 인증 중 하나만 사용하십시오.");
@@ -286,18 +299,22 @@ void UVirtualSensorTransportComp::EnsureStompClient()
 	FString AuthError;
 	if (!BuildStompConnectHeaders(TransportProfile.UserName, SessionPasscode, SessionBearerToken, Headers, AuthError))
 	{
-		LastResult.bSubmitted = false; LastResult.bAccepted = false; LastResult.Message = AuthError;
+		LastResult.bSubmitted = false;
+		LastResult.bAccepted = false;
+		LastResult.Message = AuthError;
 		return;
 	}
 	if (StompClient.IsValid())
 	{
-		if (StompClient->IsConnected() || bStompConnecting.Load()) return;
+		if (StompClient->IsConnected() || bStompConnecting.Load())
+			return;
 		// Recreate to avoid duplicate socket callbacks and restore credentials.
 		StompClient.Reset();
 	}
-	if (TransportProfile.BrokerUrl.IsEmpty()) return;
+	if (TransportProfile.BrokerUrl.IsEmpty())
+		return;
 	UE_LOG(LogTemp, Display, TEXT("[SensorStreamTransport] creating STOMP client owner=%s broker=%s"),
-		*GetNameSafe(GetOwner()), *TransportProfile.BrokerUrl);
+	       *GetNameSafe(GetOwner()), *TransportProfile.BrokerUrl);
 	StompClient = FStompModule::Get().CreateClient(TransportProfile.BrokerUrl, SessionBearerToken);
 	StompClient->OnConnected().AddUObject(this, &UVirtualSensorTransportComp::HandleStompConnected);
 	StompClient->OnConnectionError().AddUObject(this, &UVirtualSensorTransportComp::HandleStompFailure);
@@ -309,12 +326,12 @@ void UVirtualSensorTransportComp::EnsureStompClient()
 
 void UVirtualSensorTransportComp::HandleStompConnected(const FString& ProtocolVersion, const FString& SessionId, const FString& ServerString)
 {
-	LastResult=FVirtualSensorTransportResult();
+	LastResult = FVirtualSensorTransportResult();
 	++StompConnectionRevision;
 	bStompConnected.Store(true);
 	bStompConnecting.Store(false);
 	UE_LOG(LogTemp, Display, TEXT("[SensorStreamTransport] STOMP connected owner=%s protocol=%s session=%s"),
-		*GetNameSafe(GetOwner()), *ProtocolVersion, *SessionId);
+	       *GetNameSafe(GetOwner()), *ProtocolVersion, *SessionId);
 	LastResult.Protocol = TEXT("STOMP/WS");
 	LastResult.bSubmitted = true;
 	LastResult.bAccepted = true;
@@ -326,12 +343,12 @@ void UVirtualSensorTransportComp::HandleStompConnected(const FString& ProtocolVe
 
 void UVirtualSensorTransportComp::HandleStompFailure(const FString& Error)
 {
-	LastResult=FVirtualSensorTransportResult();
+	LastResult = FVirtualSensorTransportResult();
 	++StompConnectionRevision;
 	bStompConnected.Store(false);
 	bStompConnecting.Store(false);
 	UE_LOG(LogTemp, Warning, TEXT("[SensorStreamTransport] STOMP connection lost owner=%s error=%s"),
-		*GetNameSafe(GetOwner()), *Error);
+	       *GetNameSafe(GetOwner()), *Error);
 	AckSubscriptionId.Reset();
 	LastResult.Protocol = TEXT("STOMP/WS");
 	LastResult.bAccepted = false;
@@ -341,16 +358,16 @@ void UVirtualSensorTransportComp::HandleStompFailure(const FString& Error)
 
 void UVirtualSensorTransportComp::SubscribeToAckTopic()
 {
-	if (!StompClient.IsValid() || !StompClient->IsConnected() || TransportProfile.AckTopic.IsEmpty() || !AckSubscriptionId.IsEmpty()) return;
+	if (!StompClient.IsValid() || !StompClient->IsConnected() || TransportProfile.AckTopic.IsEmpty() || !AckSubscriptionId.IsEmpty())
+		return;
 	TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
 	AckSubscriptionId = StompClient->Subscribe(
-		TransportProfile.AckTopic,
-		FStompSubscriptionEvent::CreateLambda([WeakThis](const IStompMessage& Message)
-		{
-			if (WeakThis.IsValid()) WeakThis->HandleAckMessage(Message);
-		}),
-		FStompRequestCompleted::CreateLambda([WeakThis](bool bSuccess, const FString& Error)
-		{
+	    TransportProfile.AckTopic,
+	    FStompSubscriptionEvent::CreateLambda([WeakThis](const IStompMessage& Message)
+	                                          {
+			if (WeakThis.IsValid()) WeakThis->HandleAckMessage(Message); }),
+	    FStompRequestCompleted::CreateLambda([WeakThis](bool bSuccess, const FString& Error)
+	                                         {
 			if (!WeakThis.IsValid()) return;
 			FVirtualSensorTransportResult Result;
 			Result.Protocol = TEXT("STOMP/WS");
@@ -359,20 +376,21 @@ void UVirtualSensorTransportComp::SubscribeToAckTopic()
 			Result.bAccepted = bSuccess;
 			Result.DataKind = TEXT("ack-subscription");
 			Result.Message = bSuccess ? TEXT("소비자 ACK Topic 구독 완료") : FString::Printf(TEXT("ACK Topic 구독 실패: %s"), *Error);
-			WeakThis->OnDataSent.Broadcast(Result);
-		}));
+			WeakThis->OnDataSent.Broadcast(Result); }));
 }
 
 void UVirtualSensorTransportComp::HandleAckMessage(const IStompMessage& Message)
 {
 	FString RequestId;
 	const FStompHeader& Headers = Message.GetHeader();
-	if (const FString* HeaderRequestId = Headers.Find(TEXT("x-request-id"))) RequestId = *HeaderRequestId;
+	if (const FString* HeaderRequestId = Headers.Find(TEXT("x-request-id")))
+		RequestId = *HeaderRequestId;
 	if (RequestId.IsEmpty())
 	{
 		TSharedPtr<FJsonObject> Root;
 		const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Message.GetBodyAsString());
-		if (FJsonSerializer::Deserialize(Reader, Root) && Root.IsValid()) Root->TryGetStringField(TEXT("requestId"), RequestId);
+		if (FJsonSerializer::Deserialize(Reader, Root) && Root.IsValid())
+			Root->TryGetStringField(TEXT("requestId"), RequestId);
 	}
 	FVirtualSensorTransportResult Result;
 	Result.Protocol = TEXT("STOMP/WS");
@@ -387,13 +405,13 @@ void UVirtualSensorTransportComp::HandleAckMessage(const IStompMessage& Message)
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStomp(
-	const FString& SensorId,
-	const FString& SensorType,
-	const FString& DataKind,
-	int64 FrameId,
-	const FString& JsonText,
-	bool bManualRequest,
-	bool bRequestReceipt, const TMap<FString,FString>& AdditionalHeaders)
+    const FString& SensorId,
+    const FString& SensorType,
+    const FString& DataKind,
+    int64 FrameId,
+    const FString& JsonText,
+    bool bManualRequest,
+    bool bRequestReceipt, const TMap<FString, FString>& AdditionalHeaders)
 {
 	FVirtualSensorTransportResult Result;
 	Result.Protocol = TEXT("STOMP/WS");
@@ -401,7 +419,8 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStomp(
 	Result.SensorId = SensorId;
 	Result.SensorType = SensorType;
 	Result.DataKind = DataKind;
-	Result.FrameId=FrameId;Result.RunId=AdditionalHeaders.FindRef(TEXT("x-run-uuid"));
+	Result.FrameId = FrameId;
+	Result.RunId = AdditionalHeaders.FindRef(TEXT("x-run-uuid"));
 	Result.bManualRequest = bManualRequest;
 	Result.bReceiptRequested = bRequestReceipt;
 	Result.Destination = ResolveTopic(SensorType, DataKind);
@@ -427,7 +446,9 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStomp(
 	Headers.Add(TEXT("x-frame-id"), LexToString(FrameId));
 	Headers.Add(TEXT("x-request-id"), Result.RequestId);
 	const double StartedSeconds = FPlatformTime::Seconds();
-	for (const auto& Pair : AdditionalHeaders) if (Pair.Key.StartsWith(TEXT("x-"))) Headers.Add(FName(*Pair.Key),Pair.Value);
+	for (const auto& Pair : AdditionalHeaders)
+		if (Pair.Key.StartsWith(TEXT("x-")))
+			Headers.Add(FName(*Pair.Key), Pair.Value);
 	const FString RequestId = Result.RequestId;
 	const FString Destination = Result.Destination;
 	TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
@@ -439,9 +460,8 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStomp(
 		LastStompSubmitSeconds = StartedSeconds;
 		return Result;
 	}
-	StompClient->Send(Result.Destination, JsonText, Headers, FStompRequestCompleted::CreateLambda(
-		[WeakThis, SubmittedResult = Result, RequestId, Destination, StartedSeconds](bool bSuccess, const FString& Error)
-		{
+	StompClient->Send(Result.Destination, JsonText, Headers, FStompRequestCompleted::CreateLambda([WeakThis, SubmittedResult = Result, RequestId, Destination, StartedSeconds](bool bSuccess, const FString& Error)
+	                                                                                              {
 			if (!WeakThis.IsValid()) return;
 			FVirtualSensorTransportResult Receipt = SubmittedResult;
 			Receipt.Protocol = TEXT("STOMP/WS");
@@ -459,8 +479,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStomp(
 			{
 				WeakThis->LastResult = Receipt;
 			}
-			WeakThis->OnDataSent.Broadcast(Receipt);
-		}));
+			WeakThis->OnDataSent.Broadcast(Receipt); }));
 	Result.bSubmitted = true;
 	Result.Message = TEXT("STOMP 전송 제출됨 · Broker receipt 대기");
 	LastStompSubmitSeconds = StartedSeconds;
@@ -484,40 +503,40 @@ void UVirtualSensorTransportComp::EndPlay(const EEndPlayReason::Type EndPlayReas
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::SendBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes)
 {
-    FVirtualSensorTransportResult Result;
-    Result.DataLength = Bytes.Num();
+	FVirtualSensorTransportResult Result;
+	Result.DataLength = Bytes.Num();
 
-    if (TransportMode == EVirtualSensorTransportMode::None)
-    {
-        Result.bSubmitted = true;
-        Result.bAccepted = true;
-        Result.Message = TEXT("Transport disabled");
-    }
-    else if (TransportMode == EVirtualSensorTransportMode::SaveToFile)
-    {
-        Result = SaveBinary(SensorId, SensorType, Extension, Bytes);
-    }
-    else if (TransportMode == EVirtualSensorTransportMode::HttpPost)
-    {
-        Result = SendHttpBinary(SensorId, SensorType, Extension, Bytes);
-    }
-    else if (TransportMode == EVirtualSensorTransportMode::StompWebSocket)
-    {
-        const FString Encoded = FBase64::Encode(Bytes);
-        const FString Envelope = FString::Printf(TEXT("{\"extension\":\"%s\",\"encoding\":\"base64\",\"data\":\"%s\"}"), *Extension, *Encoded);
-        Result = SendStomp(SensorId, SensorType, TEXT("manual-export"), 0, Envelope, true, true);
-    }
-    else
-    {
-        Result.bSubmitted = true;
-        Result.bAccepted = true;
-        Result.Message = FString::Printf(TEXT("[%s:%s] binaryLength=%d"), *SensorType, *SensorId, Bytes.Num());
-        UE_LOG(LogTemp, Log, TEXT("%s"), *Result.Message);
-    }
+	if (TransportMode == EVirtualSensorTransportMode::None)
+	{
+		Result.bSubmitted = true;
+		Result.bAccepted = true;
+		Result.Message = TEXT("Transport disabled");
+	}
+	else if (TransportMode == EVirtualSensorTransportMode::SaveToFile)
+	{
+		Result = SaveBinary(SensorId, SensorType, Extension, Bytes);
+	}
+	else if (TransportMode == EVirtualSensorTransportMode::HttpPost)
+	{
+		Result = SendHttpBinary(SensorId, SensorType, Extension, Bytes);
+	}
+	else if (TransportMode == EVirtualSensorTransportMode::StompWebSocket)
+	{
+		const FString Encoded = FBase64::Encode(Bytes);
+		const FString Envelope = FString::Printf(TEXT("{\"extension\":\"%s\",\"encoding\":\"base64\",\"data\":\"%s\"}"), *Extension, *Encoded);
+		Result = SendStomp(SensorId, SensorType, TEXT("manual-export"), 0, Envelope, true, true);
+	}
+	else
+	{
+		Result.bSubmitted = true;
+		Result.bAccepted = true;
+		Result.Message = FString::Printf(TEXT("[%s:%s] binaryLength=%d"), *SensorType, *SensorId, Bytes.Num());
+		UE_LOG(LogTemp, Log, TEXT("%s"), *Result.Message);
+	}
 
-    LastResult = Result;
-    OnDataSent.Broadcast(Result);
-    return Result;
+	LastResult = Result;
+	OnDataSent.Broadcast(Result);
+	return Result;
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::SendHttpBinary(
@@ -526,50 +545,51 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendHttpBinary(
     const FString& Extension,
     const TArray<uint8>& Bytes)
 {
-    FVirtualSensorTransportResult Result;
-    Result.Protocol = TEXT("HTTP");
-    Result.RequestId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensLower);
-    Result.SensorId = SensorId;
-    Result.SensorType = SensorType;
-    Result.DataKind = TEXT("manual-export");
-    Result.Destination = HttpEndpoint;
-    Result.DataLength = Bytes.Num();
-    if (HttpEndpoint.IsEmpty())
-    {
-        Result.Message = TEXT("HTTP endpoint가 비어 있습니다.");
-        return Result;
-    }
-    if (Bytes.Num() > TransportProfile.MaxMessageBytes)
-    {
-        Result.Message = FString::Printf(TEXT("HTTP binary가 제한을 초과했습니다: %d / %d bytes"), Bytes.Num(), TransportProfile.MaxMessageBytes);
-        return Result;
-    }
-    if (InFlightHttpRequestCount >= FMath::Max(1, MaxInFlightHttpRequests))
-    {
-        Result.bBackpressureRejected = true;
-        ++BackpressureRejectedRequestCount;
-        Result.Message = TEXT("HTTP binary 전송이 backpressure 제한으로 거부되었습니다.");
-        return Result;
-    }
+	FVirtualSensorTransportResult Result;
+	Result.Protocol = TEXT("HTTP");
+	Result.RequestId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensLower);
+	Result.SensorId = SensorId;
+	Result.SensorType = SensorType;
+	Result.DataKind = TEXT("manual-export");
+	Result.Destination = HttpEndpoint;
+	Result.DataLength = Bytes.Num();
+	if (HttpEndpoint.IsEmpty())
+	{
+		Result.Message = TEXT("HTTP endpoint가 비어 있습니다.");
+		return Result;
+	}
+	if (Bytes.Num() > TransportProfile.MaxMessageBytes)
+	{
+		Result.Message = FString::Printf(TEXT("HTTP binary가 제한을 초과했습니다: %d / %d bytes"), Bytes.Num(), TransportProfile.MaxMessageBytes);
+		return Result;
+	}
+	if (InFlightHttpRequestCount >= FMath::Max(1, MaxInFlightHttpRequests))
+	{
+		Result.bBackpressureRejected = true;
+		++BackpressureRejectedRequestCount;
+		Result.Message = TEXT("HTTP binary 전송이 backpressure 제한으로 거부되었습니다.");
+		return Result;
+	}
 
-    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-    Request->SetURL(HttpEndpoint);
-    Request->SetVerb(TEXT("POST"));
-    Request->SetHeader(TEXT("Content-Type"), TEXT("application/octet-stream"));
-    Request->SetHeader(TEXT("X-Sensor-Id"), SensorId);
-    Request->SetHeader(TEXT("X-Sensor-Type"), SensorType);
-    Request->SetHeader(TEXT("X-Data-Kind"), TEXT("manual-export"));
-    Request->SetHeader(TEXT("X-File-Extension"), Extension);
-    Request->SetHeader(TEXT("X-Request-Id"), Result.RequestId);
-    if (!SessionBearerToken.IsEmpty()) Request->SetHeader(TEXT("Authorization"), TEXT("Bearer ") + SessionBearerToken);
-    Request->SetTimeout(static_cast<float>(FMath::Max(1, HttpTimeoutSeconds)));
-    Request->SetContent(Bytes);
-    const double StartedSeconds = FPlatformTime::Seconds();
-    const TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
-    const FString RequestId = Result.RequestId;
-    ++InFlightHttpRequestCount;
-    Request->OnProcessRequestComplete().BindLambda([WeakThis, RequestId, StartedSeconds](FHttpRequestPtr, FHttpResponsePtr Response, bool bSucceeded)
-    {
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(HttpEndpoint);
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/octet-stream"));
+	Request->SetHeader(TEXT("X-Sensor-Id"), SensorId);
+	Request->SetHeader(TEXT("X-Sensor-Type"), SensorType);
+	Request->SetHeader(TEXT("X-Data-Kind"), TEXT("manual-export"));
+	Request->SetHeader(TEXT("X-File-Extension"), Extension);
+	Request->SetHeader(TEXT("X-Request-Id"), Result.RequestId);
+	if (!SessionBearerToken.IsEmpty())
+		Request->SetHeader(TEXT("Authorization"), TEXT("Bearer ") + SessionBearerToken);
+	Request->SetTimeout(static_cast<float>(FMath::Max(1, HttpTimeoutSeconds)));
+	Request->SetContent(Bytes);
+	const double StartedSeconds = FPlatformTime::Seconds();
+	const TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
+	const FString RequestId = Result.RequestId;
+	++InFlightHttpRequestCount;
+	Request->OnProcessRequestComplete().BindLambda([WeakThis, RequestId, StartedSeconds](FHttpRequestPtr, FHttpResponsePtr Response, bool bSucceeded)
+	                                               {
         if (!WeakThis.IsValid()) return;
         UVirtualSensorTransportComp* Self = WeakThis.Get();
         Self->InFlightHttpRequestCount = FMath::Max(0, Self->InFlightHttpRequestCount - 1);
@@ -584,56 +604,56 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendHttpBinary(
             ? FString::Printf(TEXT("HTTP binary 수락: %d"), Completed.HttpStatusCode)
             : FString::Printf(TEXT("HTTP binary 실패: %d"), Completed.HttpStatusCode);
         Self->LastResult = Completed;
-        Self->OnDataSent.Broadcast(Completed);
-    });
-    Result.bSubmitted = Request->ProcessRequest();
-    Result.Message = Result.bSubmitted ? TEXT("HTTP binary 전송 제출됨") : TEXT("HTTP binary 전송 제출 실패");
-    if (!Result.bSubmitted) InFlightHttpRequestCount = FMath::Max(0, InFlightHttpRequestCount - 1);
-    return Result;
+        Self->OnDataSent.Broadcast(Completed); });
+	Result.bSubmitted = Request->ProcessRequest();
+	Result.Message = Result.bSubmitted ? TEXT("HTTP binary 전송 제출됨") : TEXT("HTTP binary 전송 제출 실패");
+	if (!Result.bSubmitted)
+		InFlightHttpRequestCount = FMath::Max(0, InFlightHttpRequestCount - 1);
+	return Result;
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::SendHttp(const FString& SensorId, const FString& SensorType, const FString& JsonText)
 {
-    FVirtualSensorTransportResult Result;
-    Result.DataLength = JsonText.Len();
+	FVirtualSensorTransportResult Result;
+	Result.DataLength = JsonText.Len();
 
-    if (HttpEndpoint.IsEmpty())
-    {
-        Result.bSubmitted = false;
-        Result.Message = FString::Printf(TEXT("[%s:%s] HttpEndpoint is empty"), *SensorType, *SensorId);
-        UE_LOG(LogTemp, Warning, TEXT("%s"), *Result.Message);
-        return Result;
-    }
+	if (HttpEndpoint.IsEmpty())
+	{
+		Result.bSubmitted = false;
+		Result.Message = FString::Printf(TEXT("[%s:%s] HttpEndpoint is empty"), *SensorType, *SensorId);
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *Result.Message);
+		return Result;
+	}
 
-    const int32 SafeMaxInFlightRequests = FMath::Max(1, MaxInFlightHttpRequests);
-    if (InFlightHttpRequestCount >= SafeMaxInFlightRequests)
-    {
-        Result.bSubmitted = false;
-        Result.bAccepted = false;
-        Result.bBackpressureRejected = true;
-        ++BackpressureRejectedRequestCount;
-        Result.Message = FString::Printf(TEXT("[%s:%s] HTTP backpressure rejected inFlight=%d max=%d rejected=%d"),
-            *SensorType,
-            *SensorId,
-            InFlightHttpRequestCount,
-            SafeMaxInFlightRequests,
-            BackpressureRejectedRequestCount);
-        UE_LOG(LogTemp, Warning, TEXT("%s"), *Result.Message);
-        return Result;
-    }
+	const int32 SafeMaxInFlightRequests = FMath::Max(1, MaxInFlightHttpRequests);
+	if (InFlightHttpRequestCount >= SafeMaxInFlightRequests)
+	{
+		Result.bSubmitted = false;
+		Result.bAccepted = false;
+		Result.bBackpressureRejected = true;
+		++BackpressureRejectedRequestCount;
+		Result.Message = FString::Printf(TEXT("[%s:%s] HTTP backpressure rejected inFlight=%d max=%d rejected=%d"),
+		                                 *SensorType,
+		                                 *SensorId,
+		                                 InFlightHttpRequestCount,
+		                                 SafeMaxInFlightRequests,
+		                                 BackpressureRejectedRequestCount);
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *Result.Message);
+		return Result;
+	}
 
-    const int32 SubmittedDataLength = JsonText.Len();
-    ++InFlightHttpRequestCount;
-    Result.bSubmitted = SubmitHttpAttempt(SensorId, SensorType, JsonText, 0, SubmittedDataLength);
-    if (!Result.bSubmitted)
-    {
-        InFlightHttpRequestCount = FMath::Max(0, InFlightHttpRequestCount - 1);
-    }
-    Result.bAccepted = false;
-    Result.Message = Result.bSubmitted
-        ? FString::Printf(TEXT("[%s:%s] HTTP request submitted"), *SensorType, *SensorId)
-        : FString::Printf(TEXT("[%s:%s] HTTP request submit failed"), *SensorType, *SensorId);
-    return Result;
+	const int32 SubmittedDataLength = JsonText.Len();
+	++InFlightHttpRequestCount;
+	Result.bSubmitted = SubmitHttpAttempt(SensorId, SensorType, JsonText, 0, SubmittedDataLength);
+	if (!Result.bSubmitted)
+	{
+		InFlightHttpRequestCount = FMath::Max(0, InFlightHttpRequestCount - 1);
+	}
+	Result.bAccepted = false;
+	Result.Message = Result.bSubmitted
+	                     ? FString::Printf(TEXT("[%s:%s] HTTP request submitted"), *SensorType, *SensorId)
+	                     : FString::Printf(TEXT("[%s:%s] HTTP request submit failed"), *SensorType, *SensorId);
+	return Result;
 }
 
 bool UVirtualSensorTransportComp::SubmitHttpAttempt(
@@ -643,19 +663,20 @@ bool UVirtualSensorTransportComp::SubmitHttpAttempt(
     int32 AttemptIndex,
     int32 SubmittedDataLength)
 {
-    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-    Request->SetURL(HttpEndpoint);
-    Request->SetVerb(TEXT("POST"));
-    Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-    Request->SetHeader(TEXT("X-Sensor-Id"), SensorId);
-    Request->SetHeader(TEXT("X-Sensor-Type"), SensorType);
-	if (!SessionBearerToken.IsEmpty()) Request->SetHeader(TEXT("Authorization"), TEXT("Bearer ") + SessionBearerToken);
-    Request->SetTimeout(static_cast<float>(FMath::Max(1, HttpTimeoutSeconds)));
-    Request->SetContentAsString(JsonText);
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(HttpEndpoint);
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Request->SetHeader(TEXT("X-Sensor-Id"), SensorId);
+	Request->SetHeader(TEXT("X-Sensor-Type"), SensorType);
+	if (!SessionBearerToken.IsEmpty())
+		Request->SetHeader(TEXT("Authorization"), TEXT("Bearer ") + SessionBearerToken);
+	Request->SetTimeout(static_cast<float>(FMath::Max(1, HttpTimeoutSeconds)));
+	Request->SetContentAsString(JsonText);
 
-    const TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
-    Request->OnProcessRequestComplete().BindLambda([WeakThis, SensorId, SensorType, JsonText, AttemptIndex, SubmittedDataLength](FHttpRequestPtr /*RequestPtr*/, FHttpResponsePtr Response, bool bSucceeded)
-    {
+	const TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
+	Request->OnProcessRequestComplete().BindLambda([WeakThis, SensorId, SensorType, JsonText, AttemptIndex, SubmittedDataLength](FHttpRequestPtr /*RequestPtr*/, FHttpResponsePtr Response, bool bSucceeded)
+	                                               {
         if (!WeakThis.IsValid())
         {
             return;
@@ -718,43 +739,42 @@ bool UVirtualSensorTransportComp::SubmitHttpAttempt(
         }
 
         TransportComp->LastResult = CallbackResult;
-        TransportComp->OnDataSent.Broadcast(CallbackResult);
-    });
+        TransportComp->OnDataSent.Broadcast(CallbackResult); });
 
-    return Request->ProcessRequest();
+	return Request->ProcessRequest();
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::SaveJson(const FString& SensorId, const FString& SensorType, const FString& JsonText) const
 {
-    FVirtualSensorTransportResult Result;
-    Result.DataLength = JsonText.Len();
-    const FString Path = BuildSavePath(SensorId, SensorType, TEXT("json"));
-    Result.bSubmitted = FFileHelper::SaveStringToFile(JsonText, *Path);
-    Result.bAccepted = Result.bSubmitted;
-    Result.SavedFilePath = Path;
-    Result.Message = Result.bSubmitted ? FString::Printf(TEXT("Saved: %s"), *Path) : FString::Printf(TEXT("Save failed: %s"), *Path);
-    return Result;
+	FVirtualSensorTransportResult Result;
+	Result.DataLength = JsonText.Len();
+	const FString Path = BuildSavePath(SensorId, SensorType, TEXT("json"));
+	Result.bSubmitted = FFileHelper::SaveStringToFile(JsonText, *Path);
+	Result.bAccepted = Result.bSubmitted;
+	Result.SavedFilePath = Path;
+	Result.Message = Result.bSubmitted ? FString::Printf(TEXT("Saved: %s"), *Path) : FString::Printf(TEXT("Save failed: %s"), *Path);
+	return Result;
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::SaveBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes) const
 {
-    FVirtualSensorTransportResult Result;
-    Result.DataLength = Bytes.Num();
-    const FString Path = BuildSavePath(SensorId, SensorType, Extension.IsEmpty() ? TEXT("bin") : Extension);
-    Result.bSubmitted = FFileHelper::SaveArrayToFile(Bytes, *Path);
-    Result.bAccepted = Result.bSubmitted;
-    Result.SavedFilePath = Path;
-    Result.Message = Result.bSubmitted ? FString::Printf(TEXT("Saved: %s"), *Path) : FString::Printf(TEXT("Save failed: %s"), *Path);
-    return Result;
+	FVirtualSensorTransportResult Result;
+	Result.DataLength = Bytes.Num();
+	const FString Path = BuildSavePath(SensorId, SensorType, Extension.IsEmpty() ? TEXT("bin") : Extension);
+	Result.bSubmitted = FFileHelper::SaveArrayToFile(Bytes, *Path);
+	Result.bAccepted = Result.bSubmitted;
+	Result.SavedFilePath = Path;
+	Result.Message = Result.bSubmitted ? FString::Printf(TEXT("Saved: %s"), *Path) : FString::Printf(TEXT("Save failed: %s"), *Path);
+	return Result;
 }
 
 FString UVirtualSensorTransportComp::BuildSavePath(const FString& SensorId, const FString& SensorType, const FString& Extension) const
 {
-    const FString SafeSensorId = SensorId.IsEmpty() ? TEXT("UNKNOWN_SENSOR") : SensorId;
-    const FString Directory = FPaths::Combine(FPaths::ProjectSavedDir(), SaveSubDirectory, SafeSensorId);
-    IFileManager::Get().MakeDirectory(*Directory, true);
+	const FString SafeSensorId = SensorId.IsEmpty() ? TEXT("UNKNOWN_SENSOR") : SensorId;
+	const FString Directory = FPaths::Combine(FPaths::ProjectSavedDir(), SaveSubDirectory, SafeSensorId);
+	IFileManager::Get().MakeDirectory(*Directory, true);
 
-    const FString Timestamp = FString::Printf(TEXT("%s_%lld"), *FDateTime::UtcNow().ToString(TEXT("%Y%m%d_%H%M%S")), FDateTime::UtcNow().GetTicks());
-    const FString FileName = FString::Printf(TEXT("%s_%s_%s.%s"), *SafeSensorId, *SensorType, *Timestamp, *Extension);
-    return FPaths::Combine(Directory, FileName);
+	const FString Timestamp = FString::Printf(TEXT("%s_%lld"), *FDateTime::UtcNow().ToString(TEXT("%Y%m%d_%H%M%S")), FDateTime::UtcNow().GetTicks());
+	const FString FileName = FString::Printf(TEXT("%s_%s_%s.%s"), *SafeSensorId, *SensorType, *Timestamp, *Extension);
+	return FPaths::Combine(Directory, FileName);
 }

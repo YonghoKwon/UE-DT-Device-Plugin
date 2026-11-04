@@ -27,7 +27,6 @@ bool DeviceLidarReadRequiredInt64(const TSharedPtr<FJsonObject>& Root, const TCH
 }
 }
 
-
 TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseLidarJson(const FString& JsonString)
 {
 	TSharedPtr<FVirtualLidarStreamReceiverData> Data = MakeShared<FVirtualLidarStreamReceiverData>();
@@ -41,8 +40,8 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseLidarJson(con
 		return Data;
 	}
 	if (!DeviceLidarReadRequiredString(Root, TEXT("schemaVersion"), Data->SchemaVersion, Data->Message) ||
-		!DeviceLidarReadRequiredString(Root, TEXT("sensorId"), Data->SensorId, Data->Message) ||
-		!DeviceLidarReadRequiredInt64(Root, TEXT("frameId"), Data->FrameId, Data->Message))
+	    !DeviceLidarReadRequiredString(Root, TEXT("sensorId"), Data->SensorId, Data->Message) ||
+	    !DeviceLidarReadRequiredInt64(Root, TEXT("frameId"), Data->FrameId, Data->Message))
 	{
 		return Data;
 	}
@@ -54,12 +53,12 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseLidarJson(con
 	double Horizontal = 0.0, Vertical = 0.0, Ray = 0.0, Total = 0.0, Hit = 0.0, Payload = 0.0;
 	const TArray<TSharedPtr<FJsonValue>>* Points = nullptr;
 	if (!Root->TryGetNumberField(TEXT("horizontalSamples"), Horizontal) ||
-		!Root->TryGetNumberField(TEXT("verticalChannels"), Vertical) ||
-		!Root->TryGetNumberField(TEXT("rayCount"), Ray) ||
-		!Root->TryGetNumberField(TEXT("totalPointCount"), Total) ||
-		!Root->TryGetNumberField(TEXT("hitPointCount"), Hit) ||
-		!Root->TryGetNumberField(TEXT("payloadPointCount"), Payload) ||
-		!Root->TryGetArrayField(TEXT("points"), Points) || !Points)
+	    !Root->TryGetNumberField(TEXT("verticalChannels"), Vertical) ||
+	    !Root->TryGetNumberField(TEXT("rayCount"), Ray) ||
+	    !Root->TryGetNumberField(TEXT("totalPointCount"), Total) ||
+	    !Root->TryGetNumberField(TEXT("hitPointCount"), Hit) ||
+	    !Root->TryGetNumberField(TEXT("payloadPointCount"), Payload) ||
+	    !Root->TryGetArrayField(TEXT("points"), Points) || !Points)
 	{
 		Data->Message = TEXT("LiDAR 측정 카운터 또는 points 배열이 없습니다.");
 		return Data;
@@ -71,12 +70,12 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseLidarJson(con
 	Data->HitPointCount = static_cast<int32>(Hit);
 	Data->PayloadPointCount = static_cast<int32>(Payload);
 	if (Data->HorizontalSamples <= 0 || Data->VerticalChannels <= 0 ||
-		Data->RayCount != Data->HorizontalSamples * Data->VerticalChannels ||
-		Data->TotalPointCount < 0 || Data->HitPointCount < 0 || Data->HitPointCount > Data->TotalPointCount ||
-		Data->PayloadPointCount != Points->Num() || Data->PayloadPointCount > Data->TotalPointCount)
+	    Data->RayCount != Data->HorizontalSamples * Data->VerticalChannels ||
+	    Data->TotalPointCount < 0 || Data->HitPointCount < 0 || Data->HitPointCount > Data->TotalPointCount ||
+	    Data->PayloadPointCount != Points->Num() || Data->PayloadPointCount > Data->TotalPointCount)
 	{
 		Data->Message = FString::Printf(TEXT("LiDAR 카운터 불일치: rays=%d total=%d hit=%d payload=%d array=%d"),
-			Data->RayCount, Data->TotalPointCount, Data->HitPointCount, Data->PayloadPointCount, Points->Num());
+		                                Data->RayCount, Data->TotalPointCount, Data->HitPointCount, Data->PayloadPointCount, Points->Num());
 		return Data;
 	}
 	Data->bDeepValidated = Data->FrameId >= 0 && (Data->FrameId % 10) == 0;
@@ -88,9 +87,9 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseLidarJson(con
 			bool bHit = false;
 			double Distance = 0.0, Row = 0.0, Col = 0.0;
 			if (!Point.IsValid() || !Point->TryGetBoolField(TEXT("hit"), bHit) ||
-				!Point->TryGetNumberField(TEXT("distance"), Distance) ||
-				!Point->TryGetNumberField(TEXT("row"), Row) || !Point->TryGetNumberField(TEXT("col"), Col) ||
-				!FMath::IsFinite(Distance) || Distance < 0.0)
+			    !Point->TryGetNumberField(TEXT("distance"), Distance) ||
+			    !Point->TryGetNumberField(TEXT("row"), Row) || !Point->TryGetNumberField(TEXT("col"), Col) ||
+			    !FMath::IsFinite(Distance) || Distance < 0.0)
 			{
 				Data->Message = TEXT("LiDAR points 상세 검증 실패");
 				return Data;
@@ -99,7 +98,7 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseLidarJson(con
 	}
 	Data->bValid = true;
 	Data->Message = FString::Printf(TEXT("LiDAR 수신 정상 · %dx%d · 측정 %d · 검출 %d · Payload %d%s"),
-		Data->HorizontalSamples, Data->VerticalChannels, Data->TotalPointCount, Data->HitPointCount,
-		Data->PayloadPointCount, Data->bDeepValidated ? TEXT(" · 상세 검증") : TEXT(""));
+	                                Data->HorizontalSamples, Data->VerticalChannels, Data->TotalPointCount, Data->HitPointCount,
+	                                Data->PayloadPointCount, Data->bDeepValidated ? TEXT(" · 상세 검증") : TEXT(""));
 	return Data;
 }

@@ -32,7 +32,7 @@ AVirtualSensorExternalSourceHostActor::AVirtualSensorExternalSourceHostActor()
 	LidarHttpJsonComp = CreateDefaultSubobject<ULidarHttpJsonLiveSourceComp>(TEXT("LidarHttpJson"));
 	LidarUdpJsonComp = CreateDefaultSubobject<ULidarUdpJsonLiveSourceComp>(TEXT("LidarUdpJson"));
 	CameraBufferedJsonComp = CreateDefaultSubobject<UCameraJsonLiveSourceComp>(TEXT("CameraBufferedJson"));
-	for (URealSensorSourceComp* Source : { static_cast<URealSensorSourceComp*>(LidarCsvReplayComp), static_cast<URealSensorSourceComp*>(LidarJsonLinesReplayComp), static_cast<URealSensorSourceComp*>(LidarBufferedJsonComp), static_cast<URealSensorSourceComp*>(LidarHttpJsonComp), static_cast<URealSensorSourceComp*>(LidarUdpJsonComp), static_cast<URealSensorSourceComp*>(CameraBufferedJsonComp) })
+	for (URealSensorSourceComp* Source : {static_cast<URealSensorSourceComp*>(LidarCsvReplayComp), static_cast<URealSensorSourceComp*>(LidarJsonLinesReplayComp), static_cast<URealSensorSourceComp*>(LidarBufferedJsonComp), static_cast<URealSensorSourceComp*>(LidarHttpJsonComp), static_cast<URealSensorSourceComp*>(LidarUdpJsonComp), static_cast<URealSensorSourceComp*>(CameraBufferedJsonComp)})
 	{
 		Source->SetupAttachment(Root);
 		Source->bAutoStartSource = false;
@@ -58,9 +58,17 @@ void AVirtualSensorExternalSourceHostActor::BeginPlay()
 	bEndingPlay = false;
 	AVirtualLidarSensorActor* Lidar = nullptr;
 	AVirtualCameraSensorActor* Camera = nullptr;
-	for (TActorIterator<AVirtualLidarSensorActor> It(GetWorld()); It; ++It) { Lidar = *It; break; }
-	for (TActorIterator<AVirtualCameraSensorActor> It(GetWorld()); It; ++It) { Camera = *It; break; }
-	for (URealSensorSourceComp* Source : { static_cast<URealSensorSourceComp*>(LidarCsvReplayComp), static_cast<URealSensorSourceComp*>(LidarJsonLinesReplayComp), static_cast<URealSensorSourceComp*>(LidarBufferedJsonComp), static_cast<URealSensorSourceComp*>(LidarHttpJsonComp), static_cast<URealSensorSourceComp*>(LidarUdpJsonComp) })
+	for (TActorIterator<AVirtualLidarSensorActor> It(GetWorld()); It; ++It)
+	{
+		Lidar = *It;
+		break;
+	}
+	for (TActorIterator<AVirtualCameraSensorActor> It(GetWorld()); It; ++It)
+	{
+		Camera = *It;
+		break;
+	}
+	for (URealSensorSourceComp* Source : {static_cast<URealSensorSourceComp*>(LidarCsvReplayComp), static_cast<URealSensorSourceComp*>(LidarJsonLinesReplayComp), static_cast<URealSensorSourceComp*>(LidarBufferedJsonComp), static_cast<URealSensorSourceComp*>(LidarHttpJsonComp), static_cast<URealSensorSourceComp*>(LidarUdpJsonComp)})
 	{
 		Source->TargetSensorActor = Lidar;
 		Source->TargetLidarComp = Lidar ? Lidar->ScanComp : nullptr;
@@ -73,11 +81,11 @@ void AVirtualSensorExternalSourceHostActor::BeginPlay()
 	{
 		bTopicReceiversRequested = true;
 		GetWorldTimerManager().SetTimer(
-			TopicReceiverRetryTimer,
-			this,
-			&AVirtualSensorExternalSourceHostActor::AttemptTopicSubscriptions,
-			FMath::Max(0.01f, InitialSubscribeDelaySeconds),
-			false);
+		    TopicReceiverRetryTimer,
+		    this,
+		    &AVirtualSensorExternalSourceHostActor::AttemptTopicSubscriptions,
+		    FMath::Max(0.01f, InitialSubscribeDelaySeconds),
+		    false);
 	}
 }
 
@@ -86,7 +94,9 @@ void AVirtualSensorExternalSourceHostActor::EndPlay(const EEndPlayReason::Type E
 	bEndingPlay = true;
 	StopTopicReceivers();
 	GetWorldTimerManager().ClearTimer(ReceiverRefreshTimer);
-	if(BoundPublisher.IsValid()) BoundPublisher->OnStreamConfigurationChanged.Remove(PublisherChangeHandle);
-	if(auto* Raw=GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>()) Raw->OnReceived.Remove(SharedReceiveHandle);
+	if (BoundPublisher.IsValid())
+		BoundPublisher->OnStreamConfigurationChanged.Remove(PublisherChangeHandle);
+	if (auto* Raw = GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>())
+		Raw->OnReceived.Remove(SharedReceiveHandle);
 	Super::EndPlay(EndPlayReason);
 }

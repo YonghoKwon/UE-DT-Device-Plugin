@@ -7,19 +7,19 @@
 #include "Device/Transport/VirtualPointCloudStreamReceiverTC.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualLidarTopicReceiverParserTest,
-	"MA0T10.SensorReceiver.LidarPayloadValidation",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualLidarTopicReceiverParserTest,
+    "MA0T10.SensorReceiver.LidarPayloadValidation",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualCameraTopicReceiverParserTest,
-	"MA0T10.SensorReceiver.CameraPayloadValidation",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualCameraTopicReceiverParserTest,
+    "MA0T10.SensorReceiver.CameraPayloadValidation",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualPointCloudTopicReceiverParserTest,
-	"MA0T10.SensorReceiver.PointCloudFormatValidation",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualPointCloudTopicReceiverParserTest,
+    "MA0T10.SensorReceiver.PointCloudFormatValidation",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualLidarTopicReceiverParserTest::RunTest(const FString& Parameters)
 {
@@ -40,10 +40,10 @@ bool FVirtualLidarTopicReceiverParserTest::RunTest(const FString& Parameters)
 bool FVirtualCameraTopicReceiverParserTest::RunTest(const FString& Parameters)
 {
 	UVirtualCameraStreamReceiverTC* Handler = NewObject<UVirtualCameraStreamReceiverTC>();
-	const TArray<uint8> JpegBytes = { 0xff, 0xd8, 0xff, 0xd9 };
+	const TArray<uint8> JpegBytes = {0xff, 0xd8, 0xff, 0xd9};
 	const FString Payload = FString::Printf(
-		TEXT("{\"schemaVersion\":\"virtual-camera.v1\",\"sensorId\":\"CAM-RX-01\",\"frameId\":10,\"width\":640,\"height\":360,\"byteSize\":4,\"encoding\":\"jpeg/base64\",\"image\":\"%s\"}"),
-		*FBase64::Encode(JpegBytes));
+	    TEXT("{\"schemaVersion\":\"virtual-camera.v1\",\"sensorId\":\"CAM-RX-01\",\"frameId\":10,\"width\":640,\"height\":360,\"byteSize\":4,\"encoding\":\"jpeg/base64\",\"image\":\"%s\"}"),
+	    *FBase64::Encode(JpegBytes));
 	const TSharedPtr<FVirtualCameraStreamReceiverData> Data = StaticCastSharedPtr<FVirtualCameraStreamReceiverData>(Handler->ParseToStruct(Payload));
 	TestTrue(TEXT("Camera JPEG envelope validates"), Data.IsValid() && Data->bValid);
 	TestTrue(TEXT("Camera frame 10 decodes Base64"), Data.IsValid() && Data->bDeepValidated);
@@ -64,18 +64,17 @@ bool FVirtualPointCloudTopicReceiverParserTest::RunTest(const FString& Parameter
 		TArray<uint8> Bytes;
 	};
 	const TArray<FFormatFixture> Fixtures = {
-		{ TEXT("CSV"), TArray<uint8>({ 'x', ',', 'y', ',', 'z', ',', 'd', 'i', 's', 't', 'a', 'n', 'c', 'e', ',', 'h', 'i', 't', '\n' }) },
-		{ TEXT("JSONL"), TArray<uint8>({ '{', '"', 'x', '"', ':', '1', '}', '\n' }) },
-		{ TEXT("PCD"), TArray<uint8>({ '#', ' ', '.', 'P', 'C', 'D', ' ', 'v', '0', '.', '7', '\n' }) },
-		{ TEXT("LAS"), TArray<uint8>({ 'L', 'A', 'S', 'F', 0, 0, 0, 0 }) },
-		{ TEXT("LAZ"), TArray<uint8>({ 'L', 'A', 'S', 'F', 1, 2, 3, 4 }) },
-		{ TEXT("VLB2"), TArray<uint8>({ 'V', 'L', 'D', 'R', '2', 0, 0, 0 }) }
-	};
+	    {TEXT("CSV"), TArray<uint8>({'x', ',', 'y', ',', 'z', ',', 'd', 'i', 's', 't', 'a', 'n', 'c', 'e', ',', 'h', 'i', 't', '\n'})},
+	    {TEXT("JSONL"), TArray<uint8>({'{', '"', 'x', '"', ':', '1', '}', '\n'})},
+	    {TEXT("PCD"), TArray<uint8>({'#', ' ', '.', 'P', 'C', 'D', ' ', 'v', '0', '.', '7', '\n'})},
+	    {TEXT("LAS"), TArray<uint8>({'L', 'A', 'S', 'F', 0, 0, 0, 0})},
+	    {TEXT("LAZ"), TArray<uint8>({'L', 'A', 'S', 'F', 1, 2, 3, 4})},
+	    {TEXT("VLB2"), TArray<uint8>({'V', 'L', 'D', 'R', '2', 0, 0, 0})}};
 	for (const FFormatFixture& Fixture : Fixtures)
 	{
 		const FString Payload = FString::Printf(
-			TEXT("{\"schema\":\"virtual-pointcloud.v1\",\"sensorId\":\"LIDAR-RX-01\",\"frameId\":10,\"format\":\"%s\",\"encoding\":\"base64\",\"pointCount\":1,\"byteCount\":%d,\"data\":\"%s\"}"),
-			Fixture.Format, Fixture.Bytes.Num(), *FBase64::Encode(Fixture.Bytes));
+		    TEXT("{\"schema\":\"virtual-pointcloud.v1\",\"sensorId\":\"LIDAR-RX-01\",\"frameId\":10,\"format\":\"%s\",\"encoding\":\"base64\",\"pointCount\":1,\"byteCount\":%d,\"data\":\"%s\"}"),
+		    Fixture.Format, Fixture.Bytes.Num(), *FBase64::Encode(Fixture.Bytes));
 		const TSharedPtr<FVirtualPointCloudStreamReceiverData> Data = StaticCastSharedPtr<FVirtualPointCloudStreamReceiverData>(Handler->ParseToStruct(Payload));
 		TestTrue(FString::Printf(TEXT("%s point-cloud signature validates"), Fixture.Format), Data.IsValid() && Data->bValid);
 		TestTrue(FString::Printf(TEXT("%s frame 10 is deeply validated"), Fixture.Format), Data.IsValid() && Data->bDeepValidated);

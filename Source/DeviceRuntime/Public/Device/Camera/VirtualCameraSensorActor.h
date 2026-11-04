@@ -40,16 +40,16 @@ public:
 	virtual FVirtualSensorRuntimeStatus GetSensorRuntimeStatus() const override;
 	virtual bool SubmitExternalFrame(const FVirtualSensorFrameEnvelope& Frame, bool bSendTransport) override;
 	virtual bool ReadEditableState(FVirtualSensorEditableState& OutState) const override;
-	virtual bool ReadCollectionState(FVirtualSensorEditableState& OutState,bool& bPreviewEnabled) const override;
+	virtual bool ReadCollectionState(FVirtualSensorEditableState& OutState, bool& bPreviewEnabled) const override;
 	virtual bool ValidateEditableState(const FVirtualSensorEditableState& State, FString& OutError) const override;
 	virtual bool ApplyEditableState(const FVirtualSensorEditableState& State, FString& OutError) override;
-    bool ApplyDatasetState(const FVirtualSensorEditableState& State,FString& Error);
+	bool ApplyDatasetState(const FVirtualSensorEditableState& State, FString& Error);
 	virtual bool ApplyProfileAndSimulationQuality(const FVirtualSensorEditableState& RequestedState, FVirtualSensorEditableState& OutAppliedState, FString& OutError) override;
 	virtual bool BeginInteractiveManipulation(const FVirtualSensorInteractionRequest& Request) override;
 	virtual void EndInteractiveManipulation() override;
 
-    bool RequestGroundTruthSave();
-    void SetGroundTruthPreviewDemand(bool bEnabled);
+	bool RequestGroundTruthSave();
+	void SetGroundTruthPreviewDemand(bool bEnabled);
 
 private:
 	UFUNCTION()

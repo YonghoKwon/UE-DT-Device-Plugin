@@ -17,10 +17,15 @@ namespace VirtualSensorCaptureRendering
 inline void Prepare(USceneCaptureComponent2D& Capture, bool bDiscardHistory = false)
 {
 	Capture.bAlwaysPersistRenderingState = true;
-	if (bDiscardHistory) Capture.bCameraCutThisFrame = true;
-    // Debug arrows/rings use the world's line batchers. Exclude them from this
-    // measurement view without changing their visibility in the player's view.
-    if(UWorld* World=Capture.GetWorld())
-    {Capture.HideComponent(World->LineBatcher);Capture.HideComponent(World->PersistentLineBatcher);Capture.HideComponent(World->ForegroundLineBatcher);}
+	if (bDiscardHistory)
+		Capture.bCameraCutThisFrame = true;
+	// Debug arrows/rings use the world's line batchers. Exclude them from this
+	// measurement view without changing their visibility in the player's view.
+	if (UWorld* World = Capture.GetWorld())
+	{
+		Capture.HideComponent(World->LineBatcher);
+		Capture.HideComponent(World->PersistentLineBatcher);
+		Capture.HideComponent(World->ForegroundLineBatcher);
+	}
 }
 }

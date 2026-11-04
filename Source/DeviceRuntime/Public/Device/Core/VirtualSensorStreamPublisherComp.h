@@ -24,17 +24,17 @@ class DEVICERUNTIME_API UVirtualSensorStreamPublisherComp : public UActorCompone
 
 public:
 	FSimpleMulticastDelegate OnStreamConfigurationChanged;
-	DECLARE_MULTICAST_DELEGATE_FourParams(FPcdEncoded,const FString&,int64,float,int32);
+	DECLARE_MULTICAST_DELEGATE_FourParams(FPcdEncoded, const FString&, int64, float, int32);
 	FPcdEncoded OnPcdEncoded;
-	UFUNCTION(BlueprintCallable, Category="DigitalTwin|VirtualSensor|PCD")
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|VirtualSensor|PCD")
 	bool SetPcdSendOptions(const FString& SensorId, const FVirtualPcdSendOptions& Options, bool bApplyToAll, FString& Error);
-	UFUNCTION(BlueprintPure, Category="DigitalTwin|VirtualSensor|PCD")
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|VirtualSensor|PCD")
 	FVirtualPcdSendOptions GetPcdSendOptions(const FString& SensorId) const;
 	/** Measured transmission default. Explicit per-sensor/SaveGame choices win. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="DigitalTwin|VirtualSensor|PCD")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|PCD")
 	bool bDefaultPcdCompression = true;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="DigitalTwin|VirtualSensor|PCD")
-	TMap<FString,FVirtualPcdSendOptions> PcdSendOptionsBySensor;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PCD")
+	TMap<FString, FVirtualPcdSendOptions> PcdSendOptionsBySensor;
 	UVirtualSensorStreamPublisherComp();
 
 	virtual void BeginPlay() override;
@@ -43,35 +43,35 @@ public:
 
 	void SetTransportComponent(UVirtualSensorTransportComp* InTransportComponent);
 	void SubmitFrame(const FVirtualSensorFrameEnvelope& Frame);
-    void SubmitImuBatch(const FString& Id,int64 Batch,FDateTime Utc,const FString& Json);
+	void SubmitImuBatch(const FString& Id, int64 Batch, FDateTime Utc, const FString& Json);
 	bool NeedsCompatibilityLidarOutput(const FString& SensorId) const;
-    bool NeedsCompatibilityLidarOutput(const FString& SensorId,const FVirtualSlabFrameContext& Context) const;
-    bool NeedsCompatibilityLidarOutputForContext(const FString& SensorId,const FVirtualSensorAcquisitionContext& Context) const;
+	bool NeedsCompatibilityLidarOutput(const FString& SensorId, const FVirtualSlabFrameContext& Context) const;
+	bool NeedsCompatibilityLidarOutputForContext(const FString& SensorId, const FVirtualSensorAcquisitionContext& Context) const;
 	void PumpPublisherOnce(double NowSeconds);
-    FVirtualSensorResourceSnapshot GetResourceSnapshot() const;
+	FVirtualSensorResourceSnapshot GetResourceSnapshot() const;
 	/** Local publisher work only; Raw TCP owns its own run-scoped pending counters. */
 	int64 GetPendingSlabRunCount(const FString& RunId) const;
-    int64 GetPendingRunCount(const FString& RunId) const;
-	void GatherPendingSlabRunKeys(const FString& RunId,TSet<FString>& Outputs,TSet<FString>& SensorFrames,int64* Preparation=nullptr,int64* Receipts=nullptr) const;
-    void GatherPendingRunKeys(const FString& RunId,TSet<FString>& Outputs,TSet<FString>& SensorFrames,int64* Preparation=nullptr,int64* Receipts=nullptr) const;
+	int64 GetPendingRunCount(const FString& RunId) const;
+	void GatherPendingSlabRunKeys(const FString& RunId, TSet<FString>& Outputs, TSet<FString>& SensorFrames, int64* Preparation = nullptr, int64* Receipts = nullptr) const;
+	void GatherPendingRunKeys(const FString& RunId, TSet<FString>& Outputs, TSet<FString>& SensorFrames, int64* Preparation = nullptr, int64* Receipts = nullptr) const;
 	int64 GetFailedSlabRunCount(const FString& RunId) const;
-    int64 GetFailedRunCount(const FString& RunId) const;
+	int64 GetFailedRunCount(const FString& RunId) const;
 	void RefreshSessionOutputDemand() { UpdateCameraStreamDemand(); }
 	static bool SerializePointCloudFrame(
-		const FVirtualSensorFrameEnvelope& Frame,
-		const FVirtualSensorStreamConfig& Config,
-		FString& OutExtension,
-		TArray<uint8>& OutBytes,
-		int32& OutPointCount,
-		FString& OutError);
+	    const FVirtualSensorFrameEnvelope& Frame,
+	    const FVirtualSensorStreamConfig& Config,
+	    FString& OutExtension,
+	    TArray<uint8>& OutBytes,
+	    int32& OutPointCount,
+	    FString& OutError);
 #if WITH_DEV_AUTOMATION_TESTS
 	static bool SerializePointCloudForTesting(
-		const FVirtualSensorFrameEnvelope& Frame,
-		const FVirtualSensorStreamConfig& Config,
-		FString& OutExtension,
-		TArray<uint8>& OutBytes,
-		int32& OutPointCount,
-		FString& OutError);
+	    const FVirtualSensorFrameEnvelope& Frame,
+	    const FVirtualSensorStreamConfig& Config,
+	    FString& OutExtension,
+	    TArray<uint8>& OutBytes,
+	    int32& OutPointCount,
+	    FString& OutError);
 #endif
 
 	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|VirtualSensor|Stream")
@@ -80,14 +80,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "DigitalTwin|VirtualSensor|Stream")
 	FVirtualSensorStreamConfig GetEffectiveStreamConfig(EVirtualSensorStreamKind Kind, const FString& SensorId) const;
 	/** Actual enabled route: an enabled exact stream shadows the wildcard, a disabled exact does not. */
-	bool ResolveActiveStreamForSensor(EVirtualSensorStreamKind Kind,const FString& SensorId,FVirtualSensorStreamConfig& OutConfig) const;
+	bool ResolveActiveStreamForSensor(EVirtualSensorStreamKind Kind, const FString& SensorId, FVirtualSensorStreamConfig& OutConfig) const;
 	static FVirtualSensorStreamConfig NormalizeLiveConfig(FVirtualSensorStreamConfig Config);
 	static bool ValidateBinaryBodySize(int64 Bytes, int64 Limit, FString& Error);
 	bool CanUseHighThroughputTransport() const;
 	/** Temporary per-sensor admission hold; configurations and other sensors remain live. */
-	void SetLocalCaptureSuspended(const FString& SensorId,bool Suspended);
+	void SetLocalCaptureSuspended(const FString& SensorId, bool Suspended);
 	bool IsLocalCaptureSuspended(const FString& SensorId) const { return !LocalCaptureSuspensions.IsEmpty() && LocalCaptureSuspensions.Contains(SensorId); }
-	bool HasSensorPlacementWork(const FString& SensorId,EVirtualSensorKind Kind) const;
+	bool HasSensorPlacementWork(const FString& SensorId, EVirtualSensorKind Kind) const;
 
 	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|VirtualSensor|Stream")
 	void StartStream(EVirtualSensorStreamKind StreamKind, const FString& SensorId);
@@ -156,15 +156,15 @@ public:
 private:
 	TSet<FString> LocalCaptureSuspensions;
 #if WITH_DEV_AUTOMATION_TESTS
-    friend class FArchitectureWireGoldenTest;
-    friend struct FPointCloudOverloadTestAccess;
-    friend struct FPcdRateControlTestAccess;
-    friend struct FPcdFairBudgetTestAccess;
-    friend struct FPcdBandwidthTestAccess;
-    friend class FUxr15OptionBindingsTest;
+	friend class FArchitectureWireGoldenTest;
+	friend struct FPointCloudOverloadTestAccess;
+	friend struct FPcdRateControlTestAccess;
+	friend struct FPcdFairBudgetTestAccess;
+	friend struct FPcdBandwidthTestAccess;
+	friend class FUxr15OptionBindingsTest;
 #endif
 	friend class FSensorPlacementGateTest;
-    friend class FWildcardSequenceTest;
+	friend class FWildcardSequenceTest;
 	struct FPreparedMessage
 	{
 		FVirtualSensorAcquisitionContext SlabContext;
@@ -212,26 +212,28 @@ private:
 		double AdmissionRatio = 1, LastAdmissionUpdate = 0, PreviousPressure = 0;
 		double LastRateLogSeconds = 0;
 		int64 LastRateLogSkipped = 0;
-		double NextPcdConsoleLogSeconds=0;
-		int64 PendingPcdConsoleLogs=0;
+		double NextPcdConsoleLogSeconds = 0;
+		int64 PendingPcdConsoleLogs = 0;
 		bool bSerializationInFlight = false;
 		FVirtualSensorAcquisitionContext LastInputContext;
 		FString LastInputSensorId;
 		FString SerializationRunId;
 		FString SerializationSensorId;
-		int64 SerializationFrameId=0;
+		int64 SerializationFrameId = 0;
 		int64 SerializationCompletedCount = 0;
 		TArray<float> SerializationLatencySamples;
 		FString LastRunSegment;
-		bool bHasInputFrameInSegment=false;
+		bool bHasInputFrameInSegment = false;
 		struct FSensorSequence
 		{
-			FString Segment;int64 Frame=0,InputCount=0;bool bHave=false;
-			double LastInputSeconds=0,InputPeriod=0,AdmissionCredit=0;
+			FString Segment;
+			int64 Frame = 0, InputCount = 0;
+			bool bHave = false;
+			double LastInputSeconds = 0, InputPeriod = 0, AdmissionCredit = 0;
 			// Measured encoded body, including the header; no second point scan.
-			double FrameBytes=0,FairBytesPerSecond=0,BandwidthTokens=0,BandwidthUpdated=0;
+			double FrameBytes = 0, FairBytesPerSecond = 0, BandwidthTokens = 0, BandwidthUpdated = 0;
 		};
-		TMap<FString,FSensorSequence> SensorSequences;
+		TMap<FString, FSensorSequence> SensorSequences;
 		int32 ConfigRevision = 0;
 	};
 
@@ -243,7 +245,7 @@ private:
 	};
 
 	FString MakeStreamKey(EVirtualSensorStreamKind StreamKind, const FString& SensorId) const;
-	bool PrepareCollectionTargets(EVirtualSensorStreamKind Kind,const FString& SensorId,FString& Error);
+	bool PrepareCollectionTargets(EVirtualSensorStreamKind Kind, const FString& SensorId, FString& Error);
 	FStreamRuntime& FindOrAddRuntime(EVirtualSensorStreamKind StreamKind, const FString& SensorId);
 	void QueueFrameForRuntime(const FString& StreamKey, FStreamRuntime& Runtime, const FVirtualSensorFrameEnvelope& Frame);
 	void StartPointCloudSerialization(const FString& StreamKey, FStreamRuntime& Runtime, const FVirtualSensorFrameEnvelope& Frame);
@@ -257,22 +259,22 @@ private:
 	void UpdatePointCloudDeliveryProgress(FStreamRuntime& Runtime, double NowSeconds, bool bConnected);
 	void StopForBodyLimit(const FString& StreamKey, FStreamRuntime& Runtime, const FString& Reason, int64 FrameId);
 	void RefreshQueueTelemetry(FStreamRuntime& Runtime);
-	void UpdatePointCloudRateControl(FStreamRuntime& Runtime,double Now,const FVirtualSensorHighThroughputProfile& Profile);
+	void UpdatePointCloudRateControl(FStreamRuntime& Runtime, double Now, const FVirtualSensorHighThroughputProfile& Profile);
 	void UpdatePointCloudFairBudgets(double Now);
-	bool OmitPointCloudForRateControl(const FString& Key,FStreamRuntime& Runtime,const FVirtualSensorFrameEnvelope& Frame,double Now);
-	void LogPointCloudTransition(const FString& Key,FStreamRuntime& Runtime,const FString& Message,double Now);
+	bool OmitPointCloudForRateControl(const FString& Key, FStreamRuntime& Runtime, const FVirtualSensorFrameEnvelope& Frame, double Now);
+	void LogPointCloudTransition(const FString& Key, FStreamRuntime& Runtime, const FString& Message, double Now);
 	bool RequeueReceiptForRetry(const FReceiptWait& Wait, const FString& Error);
 	void PumpPreparedMessages(double NowSeconds);
 	void CheckReceiptTimeouts(double NowSeconds);
 	void AddLog(const FString& StreamKey, const FString& State, const FString& Message, const FVirtualSensorTransportResult* Result = nullptr, int64 FrameId = 0);
 	void HandleTransportResult(const FVirtualSensorTransportResult& Result);
 	void UpdateCameraStreamDemand();
-	void RecordRunFailure(const FString& RunId, const FString& SensorId, EVirtualSensorStreamKind Kind, int64 FrameId,const FString& Reason=TEXT("파생 처리·직렬화·전송 결과 폐기 또는 실패"));
+	void RecordRunFailure(const FString& RunId, const FString& SensorId, EVirtualSensorStreamKind Kind, int64 FrameId, const FString& Reason = TEXT("파생 처리·직렬화·전송 결과 폐기 또는 실패"));
 	void RecordDiscardedRunFrames(const FStreamRuntime& Runtime);
 	bool EnsureHighThroughputTransport(FString& OutError);
 	bool TrySubmitHighThroughput(const FPreparedMessage& Message, const FStreamRuntime& Runtime, FString& OutError);
 	void MergeHighThroughputTelemetry();
-    void MergeHighThroughputTelemetry(const TArray<FVirtualSensorStreamTelemetry>& Telemetry);
+	void MergeHighThroughputTelemetry(const TArray<FVirtualSensorStreamTelemetry>& Telemetry);
 	static bool StreamMatchesFrame(EVirtualSensorStreamKind StreamKind, EVirtualSensorKind SensorKind);
 
 	UFUNCTION()

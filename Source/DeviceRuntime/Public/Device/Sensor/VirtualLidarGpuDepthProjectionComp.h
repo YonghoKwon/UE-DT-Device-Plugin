@@ -19,8 +19,8 @@ class FVirtualLidarSemanticScene;
  */
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
 class DEVICERUNTIME_API UVirtualLidarGpuDepthProjectionComp
-	: public USceneCaptureComponent2D
-	, public IVirtualSensorAcquisitionBackend
+    : public USceneCaptureComponent2D,
+      public IVirtualSensorAcquisitionBackend
 {
 	GENERATED_BODY()
 
@@ -38,13 +38,13 @@ public:
 	virtual bool BeginAcquisition(const FVirtualLidarDepthAcquisitionRequest& Request) override;
 	virtual EVirtualSensorBackendPollResult PollAcquisition(FVirtualLidarDepthAcquisitionFrame& OutFrame) override;
 	virtual void CancelAcquisition() override;
-    void CancelDatasetAcquisition();
+	void CancelDatasetAcquisition();
 	virtual FString GetBackendStatusMessage() const override { return StatusMessage; }
 	/** Diagnostic count: staging objects are retained between serial acquisitions. */
 	uint64 GetReadbackAllocationCount() const { return ReadbackAllocationCount; }
-    FVirtualSensorResourceSnapshot GetResourceSnapshot() const;
+	FVirtualSensorResourceSnapshot GetResourceSnapshot() const;
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
-    void SetSemanticPsoPendingForTests(bool bPending);
+	void SetSemanticPsoPendingForTests(bool bPending);
 #endif
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualLidar|GPU", meta = (ClampMin = "64", ClampMax = "2048"))
@@ -54,7 +54,7 @@ public:
 	bool bUsePerformanceOptimizedShowFlags = true;
 
 private:
-    void CancelAcquisitionInternal(bool KeepReadbacks);
+	void CancelAcquisitionInternal(bool KeepReadbacks);
 	bool EnsureRenderTarget(const FVirtualLidarDepthAcquisitionRequest& Request);
 	void QueueReadback();
 	void ReleaseReadbackOnRenderThread();
@@ -67,11 +67,11 @@ private:
 	FIntPoint ReadbackDimensions = FIntPoint::ZeroValue;
 	uint64 ReadbackAllocationCount = 0;
 	bool bPendingSemanticReadback = false;
-    // A cold semantic scene gets one bounded grace period. After expiry,
-    // subsequent acquisitions keep depth cadence until semantics become ready.
-    bool bSemanticPsoWaitExpired = false;
+	// A cold semantic scene gets one bounded grace period. After expiry,
+	// subsequent acquisitions keep depth cadence until semantics become ready.
+	bool bSemanticPsoWaitExpired = false;
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
-    bool bForceSemanticPsoPendingForTests = false;
+	bool bForceSemanticPsoPendingForTests = false;
 #endif
 	FRenderCommandFence ReadbackSubmissionFence;
 	TUniquePtr<FVirtualLidarSemanticScene> SemanticScene;

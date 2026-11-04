@@ -10,27 +10,44 @@ USTRUCT(BlueprintType)
 struct DEVICERUNTIME_API FVirtualSlabSensorOutputSelection
 {
 	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bPointCloud = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bCameraImage = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bLidarTelemetry = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bPointCloud = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bCameraImage = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bLidarTelemetry = false;
 	bool HasAnyOutput() const { return bPointCloud || bCameraImage || bLidarTelemetry; }
-	static FVirtualSlabSensorOutputSelection ObservationOnly() { FVirtualSlabSensorOutputSelection V; V.bPointCloud=false; return V; }
+	static FVirtualSlabSensorOutputSelection ObservationOnly()
+	{
+		FVirtualSlabSensorOutputSelection V;
+		V.bPointCloud = false;
+		return V;
+	}
 };
 
 USTRUCT(BlueprintType)
 struct DEVICERUNTIME_API FVirtualSlabFrameContext
 {
 	GENERATED_BODY()
-	UPROPERTY(BlueprintReadOnly) FString RunId;
-	UPROPERTY(BlueprintReadOnly) FString ScenarioUUID;
-	UPROPERTY(BlueprintReadOnly) FString MtlNo;
-	UPROPERTY(BlueprintReadOnly) int64 SlabFrameNo = -1;
-	UPROPERTY(BlueprintReadOnly) double ElapsedSec = 0;
-	UPROPERTY(BlueprintReadOnly) int32 Generation = 0;
-	UPROPERTY(BlueprintReadOnly) int32 Segment = 0;
-	UPROPERTY(BlueprintReadOnly) bool bEligible = false;
-	UPROPERTY(BlueprintReadOnly) int64 AcquisitionUtcTicks = 0;
-	TMap<FString,FString> ToHeaders() const;
+	UPROPERTY(BlueprintReadOnly)
+	FString RunId;
+	UPROPERTY(BlueprintReadOnly)
+	FString ScenarioUUID;
+	UPROPERTY(BlueprintReadOnly)
+	FString MtlNo;
+	UPROPERTY(BlueprintReadOnly)
+	int64 SlabFrameNo = -1;
+	UPROPERTY(BlueprintReadOnly)
+	double ElapsedSec = 0;
+	UPROPERTY(BlueprintReadOnly)
+	int32 Generation = 0;
+	UPROPERTY(BlueprintReadOnly)
+	int32 Segment = 0;
+	UPROPERTY(BlueprintReadOnly)
+	bool bEligible = false;
+	UPROPERTY(BlueprintReadOnly)
+	int64 AcquisitionUtcTicks = 0;
+	TMap<FString, FString> ToHeaders() const;
 	FVirtualSlabFrameContext() = default;
 	FVirtualSlabFrameContext(const FVirtualSensorAcquisitionContext& Context)
 	{
@@ -58,5 +75,4 @@ struct DEVICERUNTIME_API FVirtualSlabFrameContext
 		Context.AcquisitionUtcTicks = AcquisitionUtcTicks;
 		return Context;
 	}
-
 };

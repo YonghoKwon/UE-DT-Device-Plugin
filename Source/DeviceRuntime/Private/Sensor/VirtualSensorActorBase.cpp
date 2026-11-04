@@ -34,12 +34,12 @@ bool AVirtualSensorActorBase::IsSensorRunning() const
 
 void AVirtualSensorActorBase::StartSensor()
 {
-    ++SensorRunControlRevision;
+	++SensorRunControlRevision;
 }
 
 void AVirtualSensorActorBase::StopSensor()
 {
-    ++SensorRunControlRevision;
+	++SensorRunControlRevision;
 }
 
 void AVirtualSensorActorBase::CaptureSensorOnce()
@@ -96,11 +96,21 @@ void AVirtualSensorActorBase::Click()
 }
 void AVirtualSensorActorBase::SetPlacementPickingEnabled(bool Enabled)
 {
-	if(!Enabled){if(PlacementPickMarker){PlacementPickMarker->DestroyComponent();PlacementPickMarker=nullptr;RefreshCachedMeshes();}return;}
-	if(PlacementPickMarker||!GetRootComponent()||IsActorBeingDestroyed())return;
-	PlacementPickMarker=NewObject<UStaticMeshComponent>(this,TEXT("SensorPlacementPickMarker"),RF_Transient);
+	if (!Enabled)
+	{
+		if (PlacementPickMarker)
+		{
+			PlacementPickMarker->DestroyComponent();
+			PlacementPickMarker = nullptr;
+			RefreshCachedMeshes();
+		}
+		return;
+	}
+	if (PlacementPickMarker || !GetRootComponent() || IsActorBeingDestroyed())
+		return;
+	PlacementPickMarker = NewObject<UStaticMeshComponent>(this, TEXT("SensorPlacementPickMarker"), RF_Transient);
 	PlacementPickMarker->SetupAttachment(GetRootComponent());
-	PlacementPickMarker->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere")));
+	PlacementPickMarker->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere")));
 	PlacementPickMarker->SetRelativeScale3D(FVector(.3));
 	// Preserve object-query size. DTCore custom-depth hover highlight remains
 	// available without an ordinary white sphere in the player's scene.
@@ -109,76 +119,113 @@ void AVirtualSensorActorBase::SetPlacementPickingEnabled(bool Enabled)
 	PlacementPickMarker->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	PlacementPickMarker->SetCollisionObjectType(ECC_WorldDynamic);
 	PlacementPickMarker->SetCollisionResponseToAllChannels(ECR_Ignore); // DTCore object queries still pick; channel-based sensors never hit it.
-	PlacementPickMarker->SetGenerateOverlapEvents(false);PlacementPickMarker->SetCastShadow(false);
-	PlacementPickMarker->SetHiddenInSceneCapture(true);PlacementPickMarker->SetAffectDynamicIndirectLighting(false);
-	PlacementPickMarker->SetAffectDistanceFieldLighting(false);PlacementPickMarker->SetAffectIndirectLightingWhileHidden(false);
-	PlacementPickMarker->SetVisibleInRayTracing(false);PlacementPickMarker->bVisibleInReflectionCaptures=false;PlacementPickMarker->bVisibleInRealTimeSkyCaptures=false;
+	PlacementPickMarker->SetGenerateOverlapEvents(false);
+	PlacementPickMarker->SetCastShadow(false);
+	PlacementPickMarker->SetHiddenInSceneCapture(true);
+	PlacementPickMarker->SetAffectDynamicIndirectLighting(false);
+	PlacementPickMarker->SetAffectDistanceFieldLighting(false);
+	PlacementPickMarker->SetAffectIndirectLightingWhileHidden(false);
+	PlacementPickMarker->SetVisibleInRayTracing(false);
+	PlacementPickMarker->bVisibleInReflectionCaptures = false;
+	PlacementPickMarker->bVisibleInRealTimeSkyCaptures = false;
 	PlacementPickMarker->RegisterComponent();
 	RefreshCachedMeshes();
 }
 
 bool AVirtualSensorActorBase::BeginInteractiveManipulation(const FVirtualSensorInteractionRequest& Request)
 {
-	FString Reason;if(!CanEditSensorConfiguration(Reason)||!CanEditSensorPlacement(Reason))return false;
+	FString Reason;
+	if (!CanEditSensorConfiguration(Reason) || !CanEditSensorPlacement(Reason))
+		return false;
 	bInteractiveManipulationActive = true;
 	return true;
 }
 
-bool AVirtualSensorActorBase::ReadCollectionState(FVirtualSensorEditableState& State,bool& Preview) const
+bool AVirtualSensorActorBase::ReadCollectionState(FVirtualSensorEditableState& State, bool& Preview) const
 {
-    Preview=IsSensorRunning();
-    return ReadEditableState(State);
+	Preview = IsSensorRunning();
+	return ReadEditableState(State);
 }
 bool AVirtualSensorActorBase::CanEditSensorConfiguration(FString& OutReason) const
 {
 	OutReason.Reset();
-	if(GetWorld())if(const auto* Session=FVirtualSensorAcquisitionContextProviders::Get(GetWorld()))
-		if(Session->IsSensorConfigurationLocked(GetSensorId())){OutReason=TEXT("데이터 필수 실행의 준비·실행·송신 정리가 끝난 뒤 센서 규격을 편집할 수 있습니다.");return false;}
+	if (GetWorld())
+		if (const auto* Session = FVirtualSensorAcquisitionContextProviders::Get(GetWorld()))
+			if (Session->IsSensorConfigurationLocked(GetSensorId()))
+			{
+				OutReason = TEXT("데이터 필수 실행의 준비·실행·송신 정리가 끝난 뒤 센서 규격을 편집할 수 있습니다.");
+				return false;
+			}
 	return true;
 }
 
 bool AVirtualSensorActorBase::UpdateInteractiveTransform(const FTransform& Transform)
 {
 	FString Reason;
-	if (!bInteractiveManipulationActive || Transform.ContainsNaN() || !CanEditSensorPlacement(Reason)) return false;
+	if (!bInteractiveManipulationActive || Transform.ContainsNaN() || !CanEditSensorPlacement(Reason))
+		return false;
 	return SetActorTransform(Transform, false, nullptr, ETeleportType::TeleportPhysics);
 }
 
 bool AVirtualSensorActorBase::ApplyEditableTransform(const FTransform& Transform, FString& OutError)
 {
 	OutError.Reset();
-	if (!CanEditSensorPlacement(OutError)) return false;
+	if (!CanEditSensorPlacement(OutError))
+		return false;
 	if (Transform.ContainsNaN())
 	{
 		OutError = TEXT("Transform 값이 유효하지 않습니다.");
 		return false;
 	}
-	if (bInteractiveManipulationActive) return UpdateInteractiveTransform(Transform);
+	if (bInteractiveManipulationActive)
+		return UpdateInteractiveTransform(Transform);
 	return SetActorTransform(Transform, false, nullptr, ETeleportType::TeleportPhysics);
 }
 
 bool AVirtualSensorActorBase::CanEditSensorPlacement(FString& Reason) const
 {
 	Reason.Reset();
-	if (IsActorBeingDestroyed()) { Reason=TEXT("센서가 종료 중입니다."); return false; }
-	const FString Id=GetSensorId();
+	if (IsActorBeingDestroyed())
+	{
+		Reason = TEXT("센서가 종료 중입니다.");
+		return false;
+	}
+	const FString Id = GetSensorId();
 	if (GetWorld())
 	{
-		if (const auto* Session=FVirtualSensorAcquisitionContextProviders::Get(GetWorld());Session&&Session->IsSensorPlacementLocked(Id))
-		{ Reason=TEXT("시나리오 수집·송신 정리가 끝난 뒤 위치를 변경할 수 있습니다."); return false; }
-		if (const auto* Files=GetWorld()->GetSubsystem<UVirtualSensorFileSaveSubsystem>();Files&&Files->HasPendingSave(const_cast<AVirtualSensorActorBase*>(this)))
-		{ Reason=TEXT("파일 저장을 마무리한 뒤 위치를 변경할 수 있습니다."); return false; }
-		if (const auto* Periodic=GetWorld()->GetSubsystem<UVirtualSensorPeriodicFileSaveSubsystem>();Periodic&&Periodic->HasSensorWork(this))
-		{ Reason=TEXT("주기 저장을 중지하고 마지막 파일이 저장된 뒤 위치를 변경할 수 있습니다."); return false; }
-		if (const auto* Raw=GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>();Raw&&Raw->GetOutstandingSensorFrameCount(Id)>0)
-		{ Reason=TEXT("미확인 송신 프레임을 마무리한 뒤 위치를 변경할 수 있습니다."); return false; }
+		if (const auto* Session = FVirtualSensorAcquisitionContextProviders::Get(GetWorld()); Session && Session->IsSensorPlacementLocked(Id))
+		{
+			Reason = TEXT("시나리오 수집·송신 정리가 끝난 뒤 위치를 변경할 수 있습니다.");
+			return false;
+		}
+		if (const auto* Files = GetWorld()->GetSubsystem<UVirtualSensorFileSaveSubsystem>(); Files && Files->HasPendingSave(const_cast<AVirtualSensorActorBase*>(this)))
+		{
+			Reason = TEXT("파일 저장을 마무리한 뒤 위치를 변경할 수 있습니다.");
+			return false;
+		}
+		if (const auto* Periodic = GetWorld()->GetSubsystem<UVirtualSensorPeriodicFileSaveSubsystem>(); Periodic && Periodic->HasSensorWork(this))
+		{
+			Reason = TEXT("주기 저장을 중지하고 마지막 파일이 저장된 뒤 위치를 변경할 수 있습니다.");
+			return false;
+		}
+		if (const auto* Raw = GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>(); Raw && Raw->GetOutstandingSensorFrameCount(Id) > 0)
+		{
+			Reason = TEXT("미확인 송신 프레임을 마무리한 뒤 위치를 변경할 수 있습니다.");
+			return false;
+		}
 	}
 	if (OutputComp)
 	{
-		if (OutputComp->StreamPublisherComp&&OutputComp->StreamPublisherComp->HasSensorPlacementWork(Id,GetSensorKind()))
-		{ Reason=TEXT("실시간 송신을 중지하고 정리가 끝난 뒤 위치를 변경할 수 있습니다."); return false; }
-		if (OutputComp->RecorderComp&&OutputComp->RecorderComp->IsRecordingSensor(Id))
-		{ Reason=TEXT("센서 녹화를 종료한 뒤 위치를 변경할 수 있습니다."); return false; }
+		if (OutputComp->StreamPublisherComp && OutputComp->StreamPublisherComp->HasSensorPlacementWork(Id, GetSensorKind()))
+		{
+			Reason = TEXT("실시간 송신을 중지하고 정리가 끝난 뒤 위치를 변경할 수 있습니다.");
+			return false;
+		}
+		if (OutputComp->RecorderComp && OutputComp->RecorderComp->IsRecordingSensor(Id))
+		{
+			Reason = TEXT("센서 녹화를 종료한 뒤 위치를 변경할 수 있습니다.");
+			return false;
+		}
 	}
 	return true;
 }
@@ -186,13 +233,22 @@ bool AVirtualSensorActorBase::CanEditSensorPlacement(FString& Reason) const
 bool AVirtualSensorActorBase::PrepareForDataCollection(FString& Reason)
 {
 	Reason.Reset();
-	if (IsActorBeingDestroyed()) { Reason=TEXT("센서가 종료 중입니다."); return false; }
+	if (IsActorBeingDestroyed())
+	{
+		Reason = TEXT("센서가 종료 중입니다.");
+		return false;
+	}
 	if (bInteractiveManipulationActive)
 	{
 		OnDataCollectionStarting.Broadcast();
-		if(bInteractiveManipulationActive)EndInteractiveManipulation();
+		if (bInteractiveManipulationActive)
+			EndInteractiveManipulation();
 	}
-	if(bInteractiveManipulationActive){Reason=TEXT("센서 조작·원래 규격 복원이 끝나지 않았습니다.");return false;}
+	if (bInteractiveManipulationActive)
+	{
+		Reason = TEXT("센서 조작·원래 규격 복원이 끝나지 않았습니다.");
+		return false;
+	}
 	return true;
 }
 
@@ -202,9 +258,9 @@ void AVirtualSensorActorBase::EndInteractiveManipulation()
 }
 
 void AVirtualSensorActorBase::SetSharedOutputServices(
-	UVirtualSensorTransportComp* Transport,
-	UVirtualSensorRecorderComp* Recorder,
-	UVirtualSensorStreamPublisherComp* StreamPublisher)
+    UVirtualSensorTransportComp* Transport,
+    UVirtualSensorRecorderComp* Recorder,
+    UVirtualSensorStreamPublisherComp* StreamPublisher)
 {
 	if (OutputComp)
 	{

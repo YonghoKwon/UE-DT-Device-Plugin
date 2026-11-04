@@ -13,7 +13,7 @@ class UVirtualSensorTransportComp;
 class UVirtualSensorStreamPublisherComp;
 class AVirtualSensorActorBase;
 class UStaticMeshComponent;
-DECLARE_MULTICAST_DELEGATE_OneParam(FVirtualSensorActivated,AVirtualSensorActorBase*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FVirtualSensorActivated, AVirtualSensorActorBase*);
 struct FVirtualSensorEditableState;
 
 UCLASS(Abstract, BlueprintType)
@@ -36,12 +36,16 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "DigitalTwin|Sensor")
 	virtual bool IsSensorRunning() const;
-	UFUNCTION(BlueprintPure,Category="DigitalTwin|Sensor") bool CanEditSensorConfiguration(FString& OutReason) const;
-	UFUNCTION(BlueprintPure,Category="DigitalTwin|Sensor|Placement") bool CanEditSensorPlacement(FString& OutReason) const;
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|Sensor")
+	bool CanEditSensorConfiguration(FString& OutReason) const;
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|Sensor|Placement")
+	bool CanEditSensorPlacement(FString& OutReason) const;
 	/** Commits the operator gesture and restores acquisition settings before data admission. */
-	UFUNCTION(BlueprintCallable,Category="DigitalTwin|Sensor|Placement") bool PrepareForDataCollection(FString& OutReason);
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|Sensor|Placement")
+	bool PrepareForDataCollection(FString& OutReason);
 	FSimpleMulticastDelegate OnDataCollectionStarting;
-	UFUNCTION(BlueprintPure,Category="DigitalTwin|Sensor") int32 GetConfigurationRevision() const { return ConfigurationRevision; }
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|Sensor")
+	int32 GetConfigurationRevision() const { return ConfigurationRevision; }
 
 	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|Sensor")
 	virtual void StartSensor();
@@ -90,9 +94,10 @@ public:
 	TObjectPtr<UVirtualSensorOutputComp> OutputComp;
 
 protected:
-	uint64 SensorRunControlRevision=0;
-	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> PlacementPickMarker;
-	int32 ConfigurationRevision=0;
-	bool bSettingsTransaction=false;
+	uint64 SensorRunControlRevision = 0;
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> PlacementPickMarker;
+	int32 ConfigurationRevision = 0;
+	bool bSettingsTransaction = false;
 	bool bInteractiveManipulationActive = false;
 };

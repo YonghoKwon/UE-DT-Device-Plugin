@@ -45,22 +45,21 @@ UVirtualLidarGpuDepthProjectionComp::~UVirtualLidarGpuDepthProjectionComp() = de
 
 FVirtualSensorResourceSnapshot UVirtualLidarGpuDepthProjectionComp::GetResourceSnapshot() const
 {
-    check(IsInGameThread());
-    FVirtualSensorResourceSnapshot S; S.Owner=GetName()+TEXT("/gpu-depth");
-    S.Counts={{TEXT("readback_allocations"),int64(ReadbackAllocationCount)},{TEXT("depth_readbacks"),Readback.IsValid()},
-        {TEXT("semantic_readbacks"),SemanticReadback.IsValid()},{TEXT("in_flight"),bAcquisitionActive},
-        {TEXT("semantic_identities"),PendingSemanticIdentities.Num()},{TEXT("completed_frame"),CompletedFrame.IsSet()}};
-    S.OwnedCpuBytes.Add(TEXT("semantic_identity_container"),PendingSemanticIdentities.GetAllocatedSize());
-    S.EstimatedGpuBytes.Add(TEXT("depth_target_unpadded"),DepthRenderTarget?int64(DepthRenderTarget->SizeX)*DepthRenderTarget->SizeY*16:0);
-    S.EstimatedGpuBytes.Add(TEXT("depth_staging_unpadded"),Readback.IsValid()?int64(ReadbackDimensions.X)*ReadbackDimensions.Y*16:0);
-    return S;
+	check(IsInGameThread());
+	FVirtualSensorResourceSnapshot S;
+	S.Owner = GetName() + TEXT("/gpu-depth");
+	S.Counts = {{TEXT("readback_allocations"), int64(ReadbackAllocationCount)}, {TEXT("depth_readbacks"), Readback.IsValid()}, {TEXT("semantic_readbacks"), SemanticReadback.IsValid()}, {TEXT("in_flight"), bAcquisitionActive}, {TEXT("semantic_identities"), PendingSemanticIdentities.Num()}, {TEXT("completed_frame"), CompletedFrame.IsSet()}};
+	S.OwnedCpuBytes.Add(TEXT("semantic_identity_container"), PendingSemanticIdentities.GetAllocatedSize());
+	S.EstimatedGpuBytes.Add(TEXT("depth_target_unpadded"), DepthRenderTarget ? int64(DepthRenderTarget->SizeX) * DepthRenderTarget->SizeY * 16 : 0);
+	S.EstimatedGpuBytes.Add(TEXT("depth_staging_unpadded"), Readback.IsValid() ? int64(ReadbackDimensions.X) * ReadbackDimensions.Y * 16 : 0);
+	return S;
 }
 
 void UVirtualLidarGpuDepthProjectionComp::EndPlay(const EEndPlayReason::Type Reason)
 {
-    CancelAcquisition();
-    SemanticScene.Reset();
-    Super::EndPlay(Reason);
+	CancelAcquisition();
+	SemanticScene.Reset();
+	Super::EndPlay(Reason);
 }
 
 bool UVirtualLidarGpuDepthProjectionComp::IsAvailable() const
@@ -70,9 +69,9 @@ bool UVirtualLidarGpuDepthProjectionComp::IsAvailable() const
 
 void UVirtualLidarGpuDepthProjectionComp::OnUnregister()
 {
-    CancelAcquisition();
-    SemanticScene.Reset();
-    Super::OnUnregister();
+	CancelAcquisition();
+	SemanticScene.Reset();
+	Super::OnUnregister();
 }
 
 bool UVirtualLidarGpuDepthProjectionComp::EnsureRenderTarget(const FVirtualLidarDepthAcquisitionRequest& Request)
@@ -80,16 +79,16 @@ bool UVirtualLidarGpuDepthProjectionComp::EnsureRenderTarget(const FVirtualLidar
 	// Each depth frame measures the current scene, not a temporal image history.
 	VirtualSensorCaptureRendering::Prepare(*this, true);
 	const float VerticalFovDegrees = FMath::Max(
-		1.0f,
-		Request.MaxVerticalAngleDegrees - Request.MinVerticalAngleDegrees);
+	    1.0f,
+	    Request.MaxVerticalAngleDegrees - Request.MinVerticalAngleDegrees);
 	const float HorizontalTan = FMath::Tan(FMath::DegreesToRadians(FMath::Clamp(Request.HorizontalFovDegrees, 1.0f, 170.0f) * 0.5f));
 	const float VerticalTan = FMath::Tan(FMath::DegreesToRadians(FMath::Clamp(VerticalFovDegrees, 1.0f, 170.0f) * 0.5f));
 	const float PerspectiveAspect = HorizontalTan / FMath::Max(0.001f, VerticalTan);
 	PendingCaptureWidth = FMath::Max(1, Request.HorizontalSamples);
 	PendingCaptureHeight = FMath::Clamp(
-		FMath::Max(Request.VerticalChannels, FMath::CeilToInt(static_cast<float>(PendingCaptureWidth) / PerspectiveAspect)),
-		1,
-		FMath::Max(64, MaximumCaptureHeight));
+	    FMath::Max(Request.VerticalChannels, FMath::CeilToInt(static_cast<float>(PendingCaptureWidth) / PerspectiveAspect)),
+	    1,
+	    FMath::Max(64, MaximumCaptureHeight));
 
 	if (!DepthRenderTarget)
 	{
@@ -117,8 +116,8 @@ bool UVirtualLidarGpuDepthProjectionComp::BeginAcquisition(const FVirtualLidarDe
 	if (bAcquisitionActive || !IsAvailable())
 	{
 		StatusMessage = bAcquisitionActive
-			? TEXT("GPU depth acquisition already in flight")
-			: TEXT("GPU depth backend unavailable for this RHI/world");
+		                    ? TEXT("GPU depth acquisition already in flight")
+		                    : TEXT("GPU depth backend unavailable for this RHI/world");
 		return false;
 	}
 	if (!EnsureRenderTarget(Request))
@@ -146,50 +145,56 @@ bool UVirtualLidarGpuDepthProjectionComp::BeginAcquisition(const FVirtualLidarDe
 	{
 		if (auto* Scan = GetOwner() ? GetOwner()->FindComponentByClass<UVirtualLidarScanComp>() : nullptr)
 		{
-			if (!SemanticScene) SemanticScene = MakeUnique<FVirtualLidarSemanticScene>();
+			if (!SemanticScene)
+				SemanticScene = MakeUnique<FVirtualLidarSemanticScene>();
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
-            SemanticScene->bForcePsoPendingForTests=bForceSemanticPsoPendingForTests;
+			SemanticScene->bForcePsoPendingForTests = bForceSemanticPsoPendingForTests;
 #endif
 			if (SemanticScene->Capture(*Scan, Request, PendingCaptureWidth, PendingCaptureHeight))
-            {
-                PendingSemanticIdentities = SemanticScene->Identities;
-                if(!SemanticScene->IsCapturePending())bSemanticPsoWaitExpired=false;
-            }
+			{
+				PendingSemanticIdentities = SemanticScene->Identities;
+				if (!SemanticScene->IsCapturePending())
+					bSemanticPsoWaitExpired = false;
+			}
 			PendingSemanticStatus = SemanticScene->Status;
 		}
 	}
 	QueueReadback();
 	StatusMessage = bReadbackQueued
-		? TEXT("GPU SceneDepth capture and readback submitted")
-		: TEXT("GPU SceneDepth capture submitted; readback pending");
+	                    ? TEXT("GPU SceneDepth capture and readback submitted")
+	                    : TEXT("GPU SceneDepth capture submitted; readback pending");
 	return true;
 }
 
 void UVirtualLidarGpuDepthProjectionComp::QueueReadback()
 {
-    MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
-	if (!DepthRenderTarget || bReadbackQueued) return;
-    if(SemanticScene&&SemanticScene->IsCapturePending())
-    {
-        if(!SemanticScene->PollPendingCapture())
-        {
-            // Optional labels must never terminate a valid depth acquisition.
-            // Reuse the existing 1s texture-initialization ceiling for the first
-            // cold PSO episode, rather than paying that delay on every frame.
-            constexpr double SemanticPsoGraceSeconds=1.0;
-            if(!bSemanticPsoWaitExpired&&FPlatformTime::Seconds()-AcquisitionSubmittedSeconds<SemanticPsoGraceSeconds)
-            {StatusMessage=TEXT("GPU semantic PSO initialization pending");return;}
-            bSemanticPsoWaitExpired=true;
-            SemanticScene->CancelPendingCapture();
-            PendingSemanticIdentities.Reset();
-            PendingSemanticStatus=TEXT("GPU 의미 분류: 미분류 (PSO 대기 초과, 깊이 측정 유지)");
-        }
-        else
-        {
-            bSemanticPsoWaitExpired=false;
-            PendingSemanticStatus=SemanticScene->Status;
-        }
-    }
+	MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
+	if (!DepthRenderTarget || bReadbackQueued)
+		return;
+	if (SemanticScene && SemanticScene->IsCapturePending())
+	{
+		if (!SemanticScene->PollPendingCapture())
+		{
+			// Optional labels must never terminate a valid depth acquisition.
+			// Reuse the existing 1s texture-initialization ceiling for the first
+			// cold PSO episode, rather than paying that delay on every frame.
+			constexpr double SemanticPsoGraceSeconds = 1.0;
+			if (!bSemanticPsoWaitExpired && FPlatformTime::Seconds() - AcquisitionSubmittedSeconds < SemanticPsoGraceSeconds)
+			{
+				StatusMessage = TEXT("GPU semantic PSO initialization pending");
+				return;
+			}
+			bSemanticPsoWaitExpired = true;
+			SemanticScene->CancelPendingCapture();
+			PendingSemanticIdentities.Reset();
+			PendingSemanticStatus = TEXT("GPU 의미 분류: 미분류 (PSO 대기 초과, 깊이 측정 유지)");
+		}
+		else
+		{
+			bSemanticPsoWaitExpired = false;
+			PendingSemanticStatus = SemanticScene->Status;
+		}
+	}
 	FTextureRenderTargetResource* Resource = DepthRenderTarget->GameThread_GetRenderTargetResource();
 	const FTextureRHIRef Texture = Resource ? Resource->GetRenderTargetTexture() : FTextureRHIRef();
 	if (!Texture.IsValid())
@@ -209,7 +214,8 @@ void UVirtualLidarGpuDepthProjectionComp::QueueReadback()
 	// UE 5.3 readback reuse assumes identical format/extent. A new acquisition
 	// is admitted only after the previous render-thread Lock/Unlock completed.
 	const FIntPoint Dimensions(PendingCaptureWidth, PendingCaptureHeight);
-	if (ReadbackDimensions != Dimensions) ReleaseReadbackOnRenderThread();
+	if (ReadbackDimensions != Dimensions)
+		ReleaseReadbackOnRenderThread();
 	ReadbackDimensions = Dimensions;
 	if (!Readback.IsValid())
 	{
@@ -222,34 +228,38 @@ void UVirtualLidarGpuDepthProjectionComp::QueueReadback()
 	{
 		SemanticTexture = SemanticScene->GetTarget()->GameThread_GetRenderTargetResource()->GetRenderTargetTexture();
 		if (!SemanticTexture.IsValid())
-        {
-            if(!bSemanticPsoWaitExpired&&FPlatformTime::Seconds()-AcquisitionSubmittedSeconds<1.0)
-            {StatusMessage=TEXT("GPU semantic target initialization pending");return;}
-            PendingSemanticIdentities.Reset();
-            PendingSemanticStatus=TEXT("GPU 의미 분류: 미분류 (대상 준비 중, 깊이 측정 유지)");
-        }
+		{
+			if (!bSemanticPsoWaitExpired && FPlatformTime::Seconds() - AcquisitionSubmittedSeconds < 1.0)
+			{
+				StatusMessage = TEXT("GPU semantic target initialization pending");
+				return;
+			}
+			PendingSemanticIdentities.Reset();
+			PendingSemanticStatus = TEXT("GPU 의미 분류: 미분류 (대상 준비 중, 깊이 측정 유지)");
+		}
 		else
-        {
-            if (!SemanticReadback.IsValid())
-            {
-                SemanticReadback = MakeShared<FRHIGPUTextureReadback, ESPMode::ThreadSafe>(TEXT("VirtualLidarSemanticReadback"));
-                ++ReadbackAllocationCount;
-            }
-            bPendingSemanticReadback = true;
-        }
+		{
+			if (!SemanticReadback.IsValid())
+			{
+				SemanticReadback = MakeShared<FRHIGPUTextureReadback, ESPMode::ThreadSafe>(TEXT("VirtualLidarSemanticReadback"));
+				++ReadbackAllocationCount;
+			}
+			bPendingSemanticReadback = true;
+		}
 	}
 	const auto CapturedSemanticReadback = bPendingSemanticReadback ? SemanticReadback : nullptr;
 	const TSharedPtr<FRHIGPUTextureReadback, ESPMode::ThreadSafe> CapturedReadback = Readback;
 	ENQUEUE_RENDER_COMMAND(VirtualLidarGpuDepthReadback)(
-		[CapturedReadback, Texture, CapturedSemanticReadback, SemanticTexture](FRHICommandListImmediate& RHICmdList)
-		{
-            MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
-			if (CapturedReadback.IsValid() && Texture.IsValid())
-			{
-				VirtualSensorTextureReadback::Enqueue(RHICmdList,*CapturedReadback,Texture);
-			}
-			if (CapturedSemanticReadback.IsValid() && SemanticTexture.IsValid()) VirtualSensorTextureReadback::Enqueue(RHICmdList,*CapturedSemanticReadback,SemanticTexture);
-		});
+	    [CapturedReadback, Texture, CapturedSemanticReadback, SemanticTexture](FRHICommandListImmediate& RHICmdList)
+	    {
+		    MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
+		    if (CapturedReadback.IsValid() && Texture.IsValid())
+		    {
+			    VirtualSensorTextureReadback::Enqueue(RHICmdList, *CapturedReadback, Texture);
+		    }
+		    if (CapturedSemanticReadback.IsValid() && SemanticTexture.IsValid())
+			    VirtualSensorTextureReadback::Enqueue(RHICmdList, *CapturedSemanticReadback, SemanticTexture);
+	    });
 	// A retained readback still has the previous GPU fence signalled until the
 	// render thread executes EnqueueCopy. Do not poll that old fence meanwhile.
 	ReadbackSubmissionFence.BeginFence();
@@ -260,15 +270,16 @@ void UVirtualLidarGpuDepthProjectionComp::QueueReadback()
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 void UVirtualLidarGpuDepthProjectionComp::SetSemanticPsoPendingForTests(bool bPending)
 {
-    bForceSemanticPsoPendingForTests=bPending;
-    if(SemanticScene)SemanticScene->bForcePsoPendingForTests=bPending;
+	bForceSemanticPsoPendingForTests = bPending;
+	if (SemanticScene)
+		SemanticScene->bForcePsoPendingForTests = bPending;
 }
 #endif
 
 EVirtualSensorBackendPollResult UVirtualLidarGpuDepthProjectionComp::PollAcquisition(
-	FVirtualLidarDepthAcquisitionFrame& OutFrame)
+    FVirtualLidarDepthAcquisitionFrame& OutFrame)
 {
-    MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
+	MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
 	if (CompletedFrame.IsSet())
 	{
 		OutFrame = MoveTemp(CompletedFrame.GetValue());
@@ -281,8 +292,8 @@ EVirtualSensorBackendPollResult UVirtualLidarGpuDepthProjectionComp::PollAcquisi
 	if (!bAcquisitionActive)
 	{
 		return StatusMessage.Contains(TEXT("failed")) || StatusMessage.Contains(TEXT("unavailable"))
-			? EVirtualSensorBackendPollResult::Failed
-			: EVirtualSensorBackendPollResult::Idle;
+		           ? EVirtualSensorBackendPollResult::Failed
+		           : EVirtualSensorBackendPollResult::Idle;
 	}
 	if (!bReadbackQueued)
 	{
@@ -310,79 +321,87 @@ EVirtualSensorBackendPollResult UVirtualLidarGpuDepthProjectionComp::PollAcquisi
 	// thread in UE 5.3. Keeping that work off the game-thread scheduler avoids
 	// forced RHI command-list flushes and the associated FullSpec hitch.
 	ENQUEUE_RENDER_COMMAND(VirtualLidarConsumeGpuDepthReadback)(
-		[CapturedReadback = MoveTemp(CapturedReadback), CapturedSemanticReadback = MoveTemp(CapturedSemanticReadback), Identities = MoveTemp(Identities), SemanticStatus, WeakThis, Request, Width, Height, Generation](FRHICommandListImmediate& RHICmdList) mutable
-		{
-            MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
-			FVirtualLidarDepthAcquisitionFrame Frame;
-			Frame.Request = Request;
-			Frame.CaptureWidth = Width;
-			Frame.CaptureHeight = Height;
-			Frame.SemanticIdentities = MoveTemp(Identities);
-			Frame.SemanticStatus = SemanticStatus;
-			bool bCopySucceeded = false;
-			int32 RowPitchInPixels = 0;
-			void* LockedData = CapturedReadback.IsValid() ? CapturedReadback->Lock(RowPitchInPixels) : nullptr;
-			if (LockedData && RowPitchInPixels >= Width && Width > 0 && Height > 0)
-			{
-				Frame.ForwardDepthCentimeters.SetNumUninitialized(Width * Height);
-				const FLinearColor* Source = static_cast<const FLinearColor*>(LockedData);
-				for (int32 Y = 0; Y < Height; ++Y)
-				{
-					for (int32 X = 0; X < Width; ++X)
-					{
-						Frame.ForwardDepthCentimeters[Y * Width + X] = Source[Y * RowPitchInPixels + X].R;
-					}
-				}
-				bCopySucceeded = true;
-			}
-			if (LockedData)
-			{
-				CapturedReadback->Unlock();
-			}
-			if (CapturedSemanticReadback.IsValid())
-			{
-				int32 Pitch = 0;
-				const FLinearColor* Pixels = static_cast<const FLinearColor*>(CapturedSemanticReadback->Lock(Pitch));
-				if (Pixels && Pitch >= Width)
-				{
-					Frame.SemanticIdDepth.SetNumUninitialized(Width * Height);
-					for (int32 Y = 0; Y < Height; ++Y) FMemory::Memcpy(Frame.SemanticIdDepth.GetData() + Y * Width, Pixels + Y * Pitch, Width * sizeof(FLinearColor));
-				}
-				if (Pixels) CapturedSemanticReadback->Unlock();
-			}
-			Frame.AcquisitionEndUnixNanoseconds = GpuDepthUtcNowUnixNanoseconds();
+	    [CapturedReadback = MoveTemp(CapturedReadback), CapturedSemanticReadback = MoveTemp(CapturedSemanticReadback), Identities = MoveTemp(Identities), SemanticStatus, WeakThis, Request, Width, Height, Generation](FRHICommandListImmediate& RHICmdList) mutable
+	    {
+		    MA0T10_LLM_SCOPE_BYTAG(MA0T10_LidarReadback);
+		    FVirtualLidarDepthAcquisitionFrame Frame;
+		    Frame.Request = Request;
+		    Frame.CaptureWidth = Width;
+		    Frame.CaptureHeight = Height;
+		    Frame.SemanticIdentities = MoveTemp(Identities);
+		    Frame.SemanticStatus = SemanticStatus;
+		    bool bCopySucceeded = false;
+		    int32 RowPitchInPixels = 0;
+		    void* LockedData = CapturedReadback.IsValid() ? CapturedReadback->Lock(RowPitchInPixels) : nullptr;
+		    if (LockedData && RowPitchInPixels >= Width && Width > 0 && Height > 0)
+		    {
+			    Frame.ForwardDepthCentimeters.SetNumUninitialized(Width * Height);
+			    const FLinearColor* Source = static_cast<const FLinearColor*>(LockedData);
+			    for (int32 Y = 0; Y < Height; ++Y)
+			    {
+				    for (int32 X = 0; X < Width; ++X)
+				    {
+					    Frame.ForwardDepthCentimeters[Y * Width + X] = Source[Y * RowPitchInPixels + X].R;
+				    }
+			    }
+			    bCopySucceeded = true;
+		    }
+		    if (LockedData)
+		    {
+			    CapturedReadback->Unlock();
+		    }
+		    if (CapturedSemanticReadback.IsValid())
+		    {
+			    int32 Pitch = 0;
+			    const FLinearColor* Pixels = static_cast<const FLinearColor*>(CapturedSemanticReadback->Lock(Pitch));
+			    if (Pixels && Pitch >= Width)
+			    {
+				    Frame.SemanticIdDepth.SetNumUninitialized(Width * Height);
+				    for (int32 Y = 0; Y < Height; ++Y)
+					    FMemory::Memcpy(Frame.SemanticIdDepth.GetData() + Y * Width, Pixels + Y * Pitch, Width * sizeof(FLinearColor));
+			    }
+			    if (Pixels)
+				    CapturedSemanticReadback->Unlock();
+		    }
+		    Frame.AcquisitionEndUnixNanoseconds = GpuDepthUtcNowUnixNanoseconds();
 
-			AsyncTask(ENamedThreads::GameThread,
-				[WeakThis, Generation, bCopySucceeded, Frame = MoveTemp(Frame)]() mutable
-				{
-					if (!WeakThis.IsValid() || WeakThis->AcquisitionGeneration != Generation)
-					{
-						return;
-					}
-					WeakThis->bReadbackCopyInFlight = false;
-					if (!bCopySucceeded)
-					{
-						WeakThis->bAcquisitionActive = false;
-						WeakThis->bReadbackQueued = false;
-						WeakThis->StatusMessage = TEXT("GPU SceneDepth readback failed");
-						return;
-					}
-					WeakThis->CompletedFrame = MoveTemp(Frame);
-					WeakThis->StatusMessage = TEXT("GPU SceneDepth staging copy completed");
-				});
-		});
+		    AsyncTask(ENamedThreads::GameThread,
+		              [WeakThis, Generation, bCopySucceeded, Frame = MoveTemp(Frame)]() mutable
+		              {
+			              if (!WeakThis.IsValid() || WeakThis->AcquisitionGeneration != Generation)
+			              {
+				              return;
+			              }
+			              WeakThis->bReadbackCopyInFlight = false;
+			              if (!bCopySucceeded)
+			              {
+				              WeakThis->bAcquisitionActive = false;
+				              WeakThis->bReadbackQueued = false;
+				              WeakThis->StatusMessage = TEXT("GPU SceneDepth readback failed");
+				              return;
+			              }
+			              WeakThis->CompletedFrame = MoveTemp(Frame);
+			              WeakThis->StatusMessage = TEXT("GPU SceneDepth staging copy completed");
+		              });
+	    });
 	return EVirtualSensorBackendPollResult::Pending;
 }
 
 void UVirtualLidarGpuDepthProjectionComp::CancelAcquisition()
-{CancelAcquisitionInternal(false);}
+{
+	CancelAcquisitionInternal(false);
+}
 void UVirtualLidarGpuDepthProjectionComp::CancelDatasetAcquisition()
-{CancelAcquisitionInternal(!bAcquisitionActive&&!bReadbackCopyInFlight);}
+{
+	CancelAcquisitionInternal(!bAcquisitionActive && !bReadbackCopyInFlight);
+}
 void UVirtualLidarGpuDepthProjectionComp::CancelAcquisitionInternal(bool KeepReadbacks)
 {
 	++AcquisitionGeneration;
-    if(SemanticScene)SemanticScene->CancelPendingCapture();
-	if(!KeepReadbacks)ReleaseReadbackOnRenderThread();
+	if (SemanticScene)
+		SemanticScene->CancelPendingCapture();
+	if (!KeepReadbacks)
+		ReleaseReadbackOnRenderThread();
 	CompletedFrame.Reset();
 	bAcquisitionActive = false;
 	bReadbackQueued = false;
@@ -395,15 +414,17 @@ void UVirtualLidarGpuDepthProjectionComp::ReleaseReadbackOnRenderThread()
 {
 	ReadbackDimensions = FIntPoint::ZeroValue;
 	auto Semantic = MoveTemp(SemanticReadback);
-	if (Semantic.IsValid()) ENQUEUE_RENDER_COMMAND(ReleaseLidarSemantic)([Semantic = MoveTemp(Semantic)](FRHICommandListImmediate&) mutable { Semantic.Reset(); });
+	if (Semantic.IsValid())
+		ENQUEUE_RENDER_COMMAND(ReleaseLidarSemantic)([Semantic = MoveTemp(Semantic)](FRHICommandListImmediate&) mutable
+		                                             { Semantic.Reset(); });
 	if (!Readback.IsValid())
 	{
 		return;
 	}
 	TSharedPtr<FRHIGPUTextureReadback, ESPMode::ThreadSafe> CapturedReadback = MoveTemp(Readback);
 	ENQUEUE_RENDER_COMMAND(VirtualLidarReleaseGpuDepthReadback)(
-		[CapturedReadback = MoveTemp(CapturedReadback)](FRHICommandListImmediate& RHICmdList) mutable
-		{
-			CapturedReadback.Reset();
-		});
+	    [CapturedReadback = MoveTemp(CapturedReadback)](FRHICommandListImmediate& RHICmdList) mutable
+	    {
+		    CapturedReadback.Reset();
+	    });
 }

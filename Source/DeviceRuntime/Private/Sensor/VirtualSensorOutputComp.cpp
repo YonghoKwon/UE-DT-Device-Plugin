@@ -10,9 +10,9 @@ UVirtualSensorOutputComp::UVirtualSensorOutputComp()
 }
 
 void UVirtualSensorOutputComp::SetSharedServices(
-	UVirtualSensorTransportComp* InTransport,
-	UVirtualSensorRecorderComp* InRecorder,
-	UVirtualSensorStreamPublisherComp* InStreamPublisher)
+    UVirtualSensorTransportComp* InTransport,
+    UVirtualSensorRecorderComp* InRecorder,
+    UVirtualSensorStreamPublisherComp* InStreamPublisher)
 {
 	TransportComp = InTransport;
 	RecorderComp = InRecorder;

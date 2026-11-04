@@ -3,7 +3,6 @@
 #include "Json.h"
 #include "Misc/Base64.h"
 
-
 TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseCameraJson(const FString& JsonString)
 {
 	TSharedPtr<FVirtualCameraStreamReceiverData> Data = MakeShared<FVirtualCameraStreamReceiverData>();
@@ -19,12 +18,12 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseCameraJson(co
 	double Frame = -1.0, Width = 0.0, Height = 0.0, ByteSize = -1.0;
 	FString Image;
 	if (!Root->TryGetStringField(TEXT("schemaVersion"), Data->SchemaVersion) ||
-		!Root->TryGetStringField(TEXT("sensorId"), Data->SensorId) || Data->SensorId.IsEmpty() ||
-		!Root->TryGetNumberField(TEXT("frameId"), Frame) ||
-		!Root->TryGetNumberField(TEXT("width"), Width) || !Root->TryGetNumberField(TEXT("height"), Height) ||
-		!Root->TryGetNumberField(TEXT("byteSize"), ByteSize) ||
-		!Root->TryGetStringField(TEXT("encoding"), Data->Encoding) ||
-		!Root->TryGetStringField(TEXT("image"), Image) || Image.IsEmpty())
+	    !Root->TryGetStringField(TEXT("sensorId"), Data->SensorId) || Data->SensorId.IsEmpty() ||
+	    !Root->TryGetNumberField(TEXT("frameId"), Frame) ||
+	    !Root->TryGetNumberField(TEXT("width"), Width) || !Root->TryGetNumberField(TEXT("height"), Height) ||
+	    !Root->TryGetNumberField(TEXT("byteSize"), ByteSize) ||
+	    !Root->TryGetStringField(TEXT("encoding"), Data->Encoding) ||
+	    !Root->TryGetStringField(TEXT("image"), Image) || Image.IsEmpty())
 	{
 		Data->Message = TEXT("Camera 필수 필드 또는 image가 없습니다.");
 		return Data;
@@ -34,10 +33,10 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseCameraJson(co
 	Data->Height = static_cast<int32>(Height);
 	Data->DeclaredByteSize = static_cast<int32>(ByteSize);
 	if (Data->SchemaVersion != TEXT("virtual-camera.v1") || Data->Encoding != TEXT("jpeg/base64") ||
-		Data->Width <= 0 || Data->Height <= 0 || Data->DeclaredByteSize <= 0)
+	    Data->Width <= 0 || Data->Height <= 0 || Data->DeclaredByteSize <= 0)
 	{
 		Data->Message = FString::Printf(TEXT("Camera 계약 불일치: schema=%s encoding=%s size=%dx%d bytes=%d"),
-			*Data->SchemaVersion, *Data->Encoding, Data->Width, Data->Height, Data->DeclaredByteSize);
+		                                *Data->SchemaVersion, *Data->Encoding, Data->Width, Data->Height, Data->DeclaredByteSize);
 		return Data;
 	}
 	Data->bDeepValidated = Data->FrameId >= 0 && (Data->FrameId % 10) == 0;
@@ -51,16 +50,16 @@ TSharedPtr<FTransactionCodeDataBase> DeviceSensorStreamCodec::ParseCameraJson(co
 		}
 		Data->DecodedByteSize = Decoded.Num();
 		const bool bJpegSignature = Decoded.Num() >= 4 && Decoded[0] == 0xff && Decoded[1] == 0xd8 &&
-			Decoded[Decoded.Num() - 2] == 0xff && Decoded[Decoded.Num() - 1] == 0xd9;
+		                            Decoded[Decoded.Num() - 2] == 0xff && Decoded[Decoded.Num() - 1] == 0xd9;
 		if (!bJpegSignature || Data->DecodedByteSize != Data->DeclaredByteSize)
 		{
 			Data->Message = FString::Printf(TEXT("Camera JPEG 검증 실패: declared=%d decoded=%d signature=%s"),
-				Data->DeclaredByteSize, Data->DecodedByteSize, bJpegSignature ? TEXT("true") : TEXT("false"));
+			                                Data->DeclaredByteSize, Data->DecodedByteSize, bJpegSignature ? TEXT("true") : TEXT("false"));
 			return Data;
 		}
 	}
 	Data->bValid = true;
 	Data->Message = FString::Printf(TEXT("Camera 수신 정상 · %dx%d · JPEG %d bytes%s"), Data->Width, Data->Height,
-		Data->DeclaredByteSize, Data->bDeepValidated ? TEXT(" · 상세 검증") : TEXT(""));
+	                                Data->DeclaredByteSize, Data->bDeepValidated ? TEXT(" · 상세 검증") : TEXT(""));
 	return Data;
 }

@@ -7,28 +7,28 @@
 #include "Device/Sensor/VirtualLidarSurfaceResponseComp.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualLidarNativeProfileContractTest,
-	"MA0T10.SensorV2.Physical.NativeProfileContract",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualLidarNativeProfileContractTest,
+    "MA0T10.SensorV2.Physical.NativeProfileContract",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualLidarV2CodecContractTest,
-	"MA0T10.SensorV2.Physical.V2CodecContract",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualLidarV2CodecContractTest,
+    "MA0T10.SensorV2.Physical.V2CodecContract",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualLidarSurfaceResponseDefaultsTest,
-	"MA0T10.SensorV2.Physical.SurfaceResponseDefaults",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualLidarSurfaceResponseDefaultsTest,
+    "MA0T10.SensorV2.Physical.SurfaceResponseDefaults",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualLidarNativeProfileContractTest::RunTest(const FString& Parameters)
 {
 	const FVirtualLidarProfilePreset Integration = UVirtualLidarScanComp::ResolveProfilePreset(
-		EVirtualLidarDeviceProfile::IYOBOT_MLX80,
-		EVirtualSensorSimulationQuality::FullSpec);
+	    EVirtualLidarDeviceProfile::IYOBOT_MLX80,
+	    EVirtualSensorSimulationQuality::FullSpec);
 	const FVirtualLidarProfilePreset Native = UVirtualLidarScanComp::ResolveProfilePreset(
-		EVirtualLidarDeviceProfile::IYOBOT_MLX80_NATIVE,
-		EVirtualSensorSimulationQuality::FullSpec);
+	    EVirtualLidarDeviceProfile::IYOBOT_MLX80_NATIVE,
+	    EVirtualSensorSimulationQuality::FullSpec);
 
 	TestEqual(TEXT("integration contract remains 200 columns"), Integration.HorizontalSamples, 200);
 	TestEqual(TEXT("integration contract remains 56 rows"), Integration.VerticalChannels, 56);

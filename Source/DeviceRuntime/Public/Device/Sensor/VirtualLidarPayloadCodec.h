@@ -54,15 +54,15 @@ class DEVICERUNTIME_API FVirtualLidarPayloadCodec
 {
 public:
 	static FString EncodeV2Json(
-		const FVirtualLidarFrameSnapshot& Frame,
-		const FVirtualLidarPayloadDescriptor& Descriptor,
-		const FVirtualLidarV2EncodeOptions& Options = FVirtualLidarV2EncodeOptions());
+	    const FVirtualLidarFrameSnapshot& Frame,
+	    const FVirtualLidarPayloadDescriptor& Descriptor,
+	    const FVirtualLidarV2EncodeOptions& Options = FVirtualLidarV2EncodeOptions());
 
 	static bool EncodeCompactBinary(
-		const FVirtualLidarFrameSnapshot& Frame,
-		const FVirtualLidarV2EncodeOptions& Options,
-		TArray64<uint8>& OutBytes,
-		int32& OutEncodedPointCount);
+	    const FVirtualLidarFrameSnapshot& Frame,
+	    const FVirtualLidarV2EncodeOptions& Options,
+	    TArray64<uint8>& OutBytes,
+	    int32& OutEncodedPointCount);
 
 	static FString GetCompactBinaryContentType()
 	{

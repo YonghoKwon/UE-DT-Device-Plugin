@@ -12,18 +12,18 @@ class URealSensorSourceComp;
 UINTERFACE(MinimalAPI, meta = (CannotImplementInterfaceInBlueprint))
 class UVirtualSensorMonitorView : public UInterface
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 };
 
 /** Native presentation boundary; no widget types or measurement side effects. */
 class DEVICERUNTIME_API IVirtualSensorMonitorView
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 public:
-    virtual void BindMonitorCamera(UVirtualCameraCaptureComp* Camera) = 0;
-    virtual void BindMonitorLidar(UVirtualLidarScanComp* Lidar) = 0;
-    virtual void BindMonitorExternalSource(URealSensorSourceComp* Source) = 0;
-    virtual void ShowMonitorCamera() = 0;
-    virtual void ShowMonitorLidar() = 0;
-    virtual APlayerController* GetMonitorViewController() const = 0;
+	virtual void BindMonitorCamera(UVirtualCameraCaptureComp* Camera) = 0;
+	virtual void BindMonitorLidar(UVirtualLidarScanComp* Lidar) = 0;
+	virtual void BindMonitorExternalSource(URealSensorSourceComp* Source) = 0;
+	virtual void ShowMonitorCamera() = 0;
+	virtual void ShowMonitorLidar() = 0;
+	virtual APlayerController* GetMonitorViewController() const = 0;
 };

@@ -7,20 +7,20 @@
 
 struct FLidarJsonLiveFrameTCData : FTransactionCodeDataBase
 {
-    FString SourceId;
-    FString JsonLines;
-    bool bSendTransport = true;
-    bool bPushFrame = true;
+	FString SourceId;
+	FString JsonLines;
+	bool bSendTransport = true;
+	bool bPushFrame = true;
 };
 
 UCLASS()
 class DEVICERUNTIME_API ULidarJsonLiveFrameTC : public UTransactionCodeMessage, public FTransactionCodeDataBase
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    ULidarJsonLiveFrameTC();
+	ULidarJsonLiveFrameTC();
 
-    virtual TSharedPtr<FTransactionCodeDataBase> ParseToStruct(const FString& JsonString) const override;
-    virtual void ProcessStructData(const TSharedPtr<FTransactionCodeDataBase>& Data) override;
+	virtual TSharedPtr<FTransactionCodeDataBase> ParseToStruct(const FString& JsonString) const override;
+	virtual void ProcessStructData(const TSharedPtr<FTransactionCodeDataBase>& Data) override;
 };

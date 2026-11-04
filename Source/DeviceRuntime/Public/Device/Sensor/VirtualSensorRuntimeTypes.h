@@ -25,15 +25,19 @@ enum class EVirtualSensorStreamKind : uint8
 /** Explicit mapping to the neutral provider contract. */
 inline EVirtualSensorAcquisitionOutput VirtualSensorAcquisitionOutput(EVirtualSensorStreamKind Kind)
 {
-    switch (Kind)
-    {
-    case EVirtualSensorStreamKind::LidarPayload: return EVirtualSensorAcquisitionOutput::LidarTelemetry;
-    case EVirtualSensorStreamKind::CameraImage: return EVirtualSensorAcquisitionOutput::CameraImage;
-    case EVirtualSensorStreamKind::PointCloud: return EVirtualSensorAcquisitionOutput::PointCloud;
-    case EVirtualSensorStreamKind::Imu: return EVirtualSensorAcquisitionOutput::Imu;
-    }
-    checkNoEntry();
-    return EVirtualSensorAcquisitionOutput::LidarTelemetry;
+	switch (Kind)
+	{
+		case EVirtualSensorStreamKind::LidarPayload:
+			return EVirtualSensorAcquisitionOutput::LidarTelemetry;
+		case EVirtualSensorStreamKind::CameraImage:
+			return EVirtualSensorAcquisitionOutput::CameraImage;
+		case EVirtualSensorStreamKind::PointCloud:
+			return EVirtualSensorAcquisitionOutput::PointCloud;
+		case EVirtualSensorStreamKind::Imu:
+			return EVirtualSensorAcquisitionOutput::Imu;
+	}
+	checkNoEntry();
+	return EVirtualSensorAcquisitionOutput::LidarTelemetry;
 }
 
 UENUM(BlueprintType)
@@ -111,18 +115,29 @@ USTRUCT(BlueprintType)
 struct DEVICERUNTIME_API FVirtualPointCloudBinaryMetadata
 {
 	GENERATED_BODY()
-	UPROPERTY(BlueprintReadOnly) FVirtualSlabFrameContext SlabContext;
+	UPROPERTY(BlueprintReadOnly)
+	FVirtualSlabFrameContext SlabContext;
 
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud") FString Schema = TEXT("virtual-pointcloud.pcd.v1");
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud") FString SensorId;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud") int64 FrameId = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud") FString TimestampUtc;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud") FString ProfileKey;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud") int32 SourcePointCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud") int32 PointCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud") int32 ByteCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud") int32 FilterRevision = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud") FString ChecksumSha1;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud")
+	FString Schema = TEXT("virtual-pointcloud.pcd.v1");
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud")
+	FString SensorId;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud")
+	int64 FrameId = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud")
+	FString TimestampUtc;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud")
+	FString ProfileKey;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud")
+	int32 SourcePointCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud")
+	int32 PointCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud")
+	int32 ByteCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud")
+	int32 FilterRevision = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|PointCloud")
+	FString ChecksumSha1;
 };
 
 USTRUCT(BlueprintType)
@@ -130,12 +145,18 @@ struct DEVICERUNTIME_API FVirtualCameraJpegMetadata
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera") FString Schema = TEXT("virtual-camera.jpeg.v1");
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera") int32 Width = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera") int32 Height = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera") int32 JpegQuality = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera") int32 ByteCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera") FString ChecksumSha1;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera")
+	FString Schema = TEXT("virtual-camera.jpeg.v1");
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera")
+	int32 Width = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera")
+	int32 Height = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera")
+	int32 JpegQuality = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera")
+	int32 ByteCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Camera")
+	FString ChecksumSha1;
 };
 
 USTRUCT(BlueprintType)
@@ -143,24 +164,42 @@ struct DEVICERUNTIME_API FVirtualLidarTelemetryFrame
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") FString Schema = TEXT("virtual-lidar.telemetry.v1");
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") FString ProfileKey;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") FString AcquisitionBackend;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") int32 HorizontalSamples = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") int32 VerticalChannels = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") int32 RequestedRayCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") int32 ValidPointCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") int32 InvalidPointCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") int32 FirstEchoCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") int32 SecondEchoCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") float MinRangeMeters = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") float MaxRangeMeters = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") float MeanRangeMeters = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") float MinIntensity = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") float MaxIntensity = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") float MeanIntensity = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") int64 AcquisitionStartUnixNanoseconds = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR") int64 AcquisitionEndUnixNanoseconds = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	FString Schema = TEXT("virtual-lidar.telemetry.v1");
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	FString ProfileKey;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	FString AcquisitionBackend;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	int32 HorizontalSamples = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	int32 VerticalChannels = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	int32 RequestedRayCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	int32 ValidPointCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	int32 InvalidPointCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	int32 FirstEchoCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	int32 SecondEchoCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	float MinRangeMeters = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	float MaxRangeMeters = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	float MeanRangeMeters = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	float MinIntensity = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	float MaxIntensity = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	float MeanIntensity = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	int64 AcquisitionStartUnixNanoseconds = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|LiDAR")
+	int64 AcquisitionEndUnixNanoseconds = 0;
 };
 
 USTRUCT(BlueprintType)
@@ -198,10 +237,10 @@ struct DEVICERUNTIME_API FVirtualSensorStreamConfig
 	FVirtualPointCloudFilterConfig PointCloudFilter;
 
 	/** Explicit live Config override; otherwise the publisher's measured default applies. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="DigitalTwin|VirtualSensor|Stream")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|Stream")
 	bool bOverridePcdSendOptions = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="DigitalTwin|VirtualSensor|Stream")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|Stream")
 	FVirtualPcdSendOptions PcdSendOptions;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|Stream", meta = (ClampMin = "1", ClampMax = "120"))
@@ -254,7 +293,7 @@ struct DEVICERUNTIME_API FVirtualSensorStreamStatus
 	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
 	int64 InputFrameCount = 0;
 
-	UPROPERTY(BlueprintReadOnly, Category="DigitalTwin|VirtualSensor|Stream")
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
 	int64 ConfiguredDivisorSkippedCount = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
@@ -276,8 +315,10 @@ struct DEVICERUNTIME_API FVirtualSensorStreamStatus
 	/** Receipt failure after the transport has no retry left for this frame. */
 	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
 	int64 DeliveryFailureCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 RawDeliveryFailureCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") FString LastRawDeliveryFailureMessage;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 RawDeliveryFailureCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	FString LastRawDeliveryFailureMessage;
 
 	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
 	int64 StaleResultDiscardCount = 0;
@@ -312,52 +353,93 @@ struct DEVICERUNTIME_API FVirtualSensorStreamStatus
 	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
 	FString Message;
 
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int32 InputQueueDepth = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int32 PreparedQueueDepth = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int32 ReceiptQueueDepth = 0;
-	UPROPERTY(BlueprintReadOnly, Category="DigitalTwin|VirtualSensor|Stream") int32 RawOutstandingFrameCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category="DigitalTwin|VirtualSensor|Stream") int64 RawOutstandingBytes = 0;
-	UPROPERTY(BlueprintReadOnly, Category="DigitalTwin|VirtualSensor|Stream") int64 RawGlobalOutstandingBytes = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 FrameGapCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 RetryCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 DuplicateReceiptCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 OverloadCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int32 LastPointCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int32 LastSourcePointCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int32 LastFrameBytes = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float SerializationHz = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 SerializedFrameCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float LastSerializationLatencyMs = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float SerializationP95LatencyMs = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float SubmittedMegabytesPerSecond = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") bool bOverloaded = false;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int32 InputQueueDepth = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int32 PreparedQueueDepth = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int32 ReceiptQueueDepth = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int32 RawOutstandingFrameCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 RawOutstandingBytes = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 RawGlobalOutstandingBytes = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 FrameGapCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 RetryCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 DuplicateReceiptCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 OverloadCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int32 LastPointCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int32 LastSourcePointCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int32 LastFrameBytes = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float SerializationHz = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 SerializedFrameCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float LastSerializationLatencyMs = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float SerializationP95LatencyMs = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float SubmittedMegabytesPerSecond = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	bool bOverloaded = false;
 	/** Transient recovery state; never changes the session SaveGame contract. */
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") bool bOverloadSuspended = false;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 ResumeCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 OverloadDiscardedFrameCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	bool bOverloadSuspended = false;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 ResumeCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 OverloadDiscardedFrameCount = 0;
 	/** Explicit admission omissions; accepted FIFO frames are never replaced. */
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 RateControlSkippedFrameCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") bool bRateControlActive = false;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float RateControlHz = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 RateControlSkippedFrameCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	bool bRateControlActive = false;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float RateControlHz = 0;
 	/** Live estimates from encoded bytes / requested acquisition period, never persisted. */
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float PcdRequiredMiBPerSecond = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float PcdBudgetMiBPerSecond = VirtualSensorDefaults::PointCloudBandwidthMiBPerSecond;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float PcdFairShareMiBPerSecond = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float PcdRequiredMiBPerSecond = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float PcdBudgetMiBPerSecond = VirtualSensorDefaults::PointCloudBandwidthMiBPerSecond;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float PcdFairShareMiBPerSecond = 0;
 	/** Socket submissions in the most recent approximately one-second sample. */
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float RecentSubmittedHz = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 SuppressedConsoleLogCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float OverloadResumeDelaySeconds = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float RecentSubmittedHz = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 SuppressedConsoleLogCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float OverloadResumeDelaySeconds = 0.0f;
 	/** Earliest eligible time; connection and drain may postpone recovery. */
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") FDateTime EarliestOverloadResumeUtc;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") EVirtualSensorStreamTransportBackend ActiveTransportBackend = EVirtualSensorStreamTransportBackend::EngineStompCompatibility;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 ConsumerReceivedCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 ConsumerValidationFailureCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 ConsumerFrameGapCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") int64 ConsumerDuplicateCount = 0;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float ConsumerReceivedHz = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float LastSocketWriteLatencyMs = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float LastConsumerLatencyMs = 0.0f;
-	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream") float EndToEndP95LatencyMs = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	FDateTime EarliestOverloadResumeUtc;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	EVirtualSensorStreamTransportBackend ActiveTransportBackend = EVirtualSensorStreamTransportBackend::EngineStompCompatibility;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 ConsumerReceivedCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 ConsumerValidationFailureCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 ConsumerFrameGapCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	int64 ConsumerDuplicateCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float ConsumerReceivedHz = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float LastSocketWriteLatencyMs = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float LastConsumerLatencyMs = 0.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|VirtualSensor|Stream")
+	float EndToEndP95LatencyMs = 0.0f;
 };
 
 USTRUCT(BlueprintType)

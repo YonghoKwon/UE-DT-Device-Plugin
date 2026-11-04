@@ -5,20 +5,30 @@
 #include "VirtualPcdCodec.generated.h"
 
 UENUM(BlueprintType)
-enum class EVirtualPcdFieldProfile : uint8 { Full, Compact, Minimal, Custom };
+enum class EVirtualPcdFieldProfile : uint8
+{
+	Full,
+	Compact,
+	Minimal,
+	Custom
+};
 
 /** Transmission only. XYZ are mandatory; custom bits follow the canonical FIELDS order. */
 USTRUCT(BlueprintType)
 struct DEVICERUNTIME_API FVirtualPcdSendOptions
 {
 	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) EVirtualPcdFieldProfile Profile = EVirtualPcdFieldProfile::Full;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, meta=(ClampMin="0", ClampMax="2047")) int32 CustomFieldMask = 2047;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) bool bCompressed = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, meta=(ClampMin="1", ClampMax="4")) int32 SendDivisor = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame)
+	EVirtualPcdFieldProfile Profile = EVirtualPcdFieldProfile::Full;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, meta = (ClampMin = "0", ClampMax = "2047"))
+	int32 CustomFieldMask = 2047;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame)
+	bool bCompressed = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, meta = (ClampMin = "1", ClampMax = "4"))
+	int32 SendDivisor = 1;
 	int32 FieldMask() const;
 	int32 Divisor() const { return SendDivisor == 2 || SendDivisor == 4 ? SendDivisor : 1; }
-	bool operator==(const FVirtualPcdSendOptions& R) const { return Profile==R.Profile && CustomFieldMask==R.CustomFieldMask && bCompressed==R.bCompressed && SendDivisor==R.SendDivisor; }
+	bool operator==(const FVirtualPcdSendOptions& R) const { return Profile == R.Profile && CustomFieldMask == R.CustomFieldMask && bCompressed == R.bCompressed && SendDivisor == R.SendDivisor; }
 };
 
 struct DEVICERUNTIME_API FVirtualPcdDocument
@@ -39,14 +49,14 @@ struct DEVICERUNTIME_API FVirtualPcdDocument
 class DEVICERUNTIME_API FVirtualPcdCodec
 {
 public:
- /** UTF-8 header bytes, including the DATA newline. Shared by writer, reader and metrics.
+	/** UTF-8 header bytes, including the DATA newline. Shared by writer, reader and metrics.
   * 1 MiB admits long run metadata while bounding scanning/allocation independently
   * of the existing 128 MiB decoded point-data limit. */
- static constexpr int32 MaxHeaderBytes = 1024 * 1024;
- static const TCHAR* FieldName(int32 Index);
+	static constexpr int32 MaxHeaderBytes = 1024 * 1024;
+	static const TCHAR* FieldName(int32 Index);
 	/** Header-bounded byte accounting only; never decompresses or copies the body. */
- static int64 EncodedPointBytes(const TArray<uint8>& Bytes, bool bCompressed);
- static int32 BytesPerPoint(const FVirtualPcdSendOptions& Options);
+	static int64 EncodedPointBytes(const TArray<uint8>& Bytes, bool bCompressed);
+	static int32 BytesPerPoint(const FVirtualPcdSendOptions& Options);
 	static double EstimateBytesPerSecond(const FVirtualPcdSendOptions& Options, int32 Points, double ScanHz);
 	static bool Encode(const TArray<const FVirtualLidarPoint*>& Points, const FString& MetadataJson, const FVirtualPcdSendOptions& Options, TArray<uint8>& Out);
 	static bool Decode(const TArray<uint8>& Bytes, FVirtualPcdDocument& Out, FString& Error);

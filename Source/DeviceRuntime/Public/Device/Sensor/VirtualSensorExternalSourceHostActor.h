@@ -20,7 +20,7 @@ class UVirtualCameraStreamReceiverTC;
 class UVirtualPointCloudStreamReceiverTC;
 class UVirtualSensorStreamPublisherComp;
 class ADeviceSensorCoordinator;
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnVirtualSensorUiReceiveCompletedNative,const FVirtualSensorTopicReceivedDataBase&);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnVirtualSensorUiReceiveCompletedNative, const FVirtualSensorTopicReceivedDataBase&);
 
 /** Test-map host that exposes every implemented external source without auto-starting network listeners. */
 UCLASS(BlueprintType)
@@ -29,13 +29,13 @@ class DEVICERUNTIME_API AVirtualSensorExternalSourceHostActor : public AActor
 	GENERATED_BODY()
 
 public:
-    /** Small actual TC/UI completion observation; never copies the binary body. */
-    FOnVirtualSensorUiReceiveCompletedNative OnUiReceiveCompletedNative;
-	UFUNCTION(BlueprintCallable, Category="DigitalTwin|ExternalSource|TopicReceiver")
+	/** Small actual TC/UI completion observation; never copies the binary body. */
+	FOnVirtualSensorUiReceiveCompletedNative OnUiReceiveCompletedNative;
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|ExternalSource|TopicReceiver")
 	void SetTopicReceiverScope(EVirtualSensorTopicReceiverScope Scope);
-	UFUNCTION(BlueprintPure, Category="DigitalTwin|ExternalSource|TopicReceiver")
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|ExternalSource|TopicReceiver")
 	EVirtualSensorTopicReceiverScope GetTopicReceiverScope() const { return ReceiverScope; }
-	UFUNCTION(BlueprintPure, Category="DigitalTwin|ExternalSource|TopicReceiver")
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|ExternalSource|TopicReceiver")
 	bool UsesSharedReceiver() const { return bUsingSharedReceiver; }
 	AVirtualSensorExternalSourceHostActor();
 
@@ -63,13 +63,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "DigitalTwin|ExternalSource|TopicReceiver")
 	FString GetReceiverBrokerUrl() const;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<USceneComponent> Root;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarCsvReplaySourceComp> LidarCsvReplayComp;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarJsonLinesReplaySourceComp> LidarJsonLinesReplayComp;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarJsonLiveSourceComp> LidarBufferedJsonComp;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarHttpJsonLiveSourceComp> LidarHttpJsonComp;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<ULidarUdpJsonLiveSourceComp> LidarUdpJsonComp;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource") TObjectPtr<UCameraJsonLiveSourceComp> CameraBufferedJsonComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource")
+	TObjectPtr<USceneComponent> Root;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource")
+	TObjectPtr<ULidarCsvReplaySourceComp> LidarCsvReplayComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource")
+	TObjectPtr<ULidarJsonLinesReplaySourceComp> LidarJsonLinesReplayComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource")
+	TObjectPtr<ULidarJsonLiveSourceComp> LidarBufferedJsonComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource")
+	TObjectPtr<ULidarHttpJsonLiveSourceComp> LidarHttpJsonComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource")
+	TObjectPtr<ULidarUdpJsonLiveSourceComp> LidarUdpJsonComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource")
+	TObjectPtr<UCameraJsonLiveSourceComp> CameraBufferedJsonComp;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "DigitalTwin|ExternalSource|TopicReceiver")
 	TObjectPtr<UVirtualLidarStreamReceiverTC> LidarTopicHandler;
@@ -110,15 +117,15 @@ private:
 	bool TrySharedReceiver();
 	bool IsActiveReceiveKind(EVirtualSensorTopicReceiveKind Kind) const;
 	void HandleSharedReceived(const TSharedPtr<FVirtualSensorTopicReceivedDataBase>& Data);
-	EVirtualSensorTopicReceiverScope ReceiverScope=EVirtualSensorTopicReceiverScope::ActiveTransmitOnly;
-	bool bUsingSharedReceiver=false;
-	int64 ReceiverGeneration=0;
+	EVirtualSensorTopicReceiverScope ReceiverScope = EVirtualSensorTopicReceiverScope::ActiveTransmitOnly;
+	bool bUsingSharedReceiver = false;
+	int64 ReceiverGeneration = 0;
 	FString SelectionSignature;
 	FDelegateHandle SharedReceiveHandle, PublisherChangeHandle;
 	TWeakObjectPtr<UVirtualSensorStreamPublisherComp> BoundPublisher;
 	FTimerHandle ReceiverRefreshTimer;
-	TMap<FString,double> ReceiveDrainDeadlines;
-	TMap<FString,int64> LastReceivedSequence;
+	TMap<FString, double> ReceiveDrainDeadlines;
+	TMap<FString, int64> LastReceivedSequence;
 	struct FRawPointCloudPayload
 	{
 		TArray<uint8> Body;
@@ -133,7 +140,7 @@ private:
 		TArray<FRawPointCloudPayload> PendingBinaryBodies;
 		bool bSubscriptionPending = false;
 		bool bParsing = false;
-		int64 ParsingGeneration=0;
+		int64 ParsingGeneration = 0;
 		int32 RetryAttempt = 0;
 		double SubscriptionStartedSeconds = 0.0;
 		double FirstValidatedSeconds = 0.0;
@@ -170,7 +177,7 @@ private:
 	void CompleteSubscription(EVirtualSensorTopicReceiveKind Kind, bool bSuccess, const FString& Error);
 	void QueueTopicPayload(EVirtualSensorTopicReceiveKind Kind, FString Body);
 	void TryStartQueuedParses();
-	void CompleteTopicParse(EVirtualSensorTopicReceiveKind Kind, const TSharedPtr<FTransactionCodeDataBase>& ParsedData, float ParseLatencyMs, int64 Generation=-1);
+	void CompleteTopicParse(EVirtualSensorTopicReceiveKind Kind, const TSharedPtr<FTransactionCodeDataBase>& ParsedData, float ParseLatencyMs, int64 Generation = -1);
 	void ScheduleSubscriptionRetry();
 	void AddReceiveLog(const FReceiverRuntime& Runtime, const FVirtualSensorTopicReceivedDataBase& Data, float ParseLatencyMs);
 	FReceiverRuntime* FindRuntime(EVirtualSensorTopicReceiveKind Kind);

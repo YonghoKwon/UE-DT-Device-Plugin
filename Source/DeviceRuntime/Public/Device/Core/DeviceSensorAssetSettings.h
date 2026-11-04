@@ -5,12 +5,14 @@
 class UMaterialInterface;
 class UNiagaraSystem;
 /** Explicit host soft paths. Defaults preserve existing project assets; no asset is moved or created. */
-UCLASS(Config=Engine, DefaultConfig)
+UCLASS(Config = Engine, DefaultConfig)
 class DEVICERUNTIME_API UDeviceSensorAssetSettings : public UDeveloperSettings
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 public:
-    UDeviceSensorAssetSettings();
-    UPROPERTY(EditAnywhere,Config,Category="Device assets") TSoftObjectPtr<UMaterialInterface> LidarSemanticMaterial;
-    UPROPERTY(EditAnywhere,Config,Category="Device assets") TSoftObjectPtr<UNiagaraSystem> LidarPointCloudSystem;
+	UDeviceSensorAssetSettings();
+	UPROPERTY(EditAnywhere, Config, Category = "Device assets")
+	TSoftObjectPtr<UMaterialInterface> LidarSemanticMaterial;
+	UPROPERTY(EditAnywhere, Config, Category = "Device assets")
+	TSoftObjectPtr<UNiagaraSystem> LidarPointCloudSystem;
 };

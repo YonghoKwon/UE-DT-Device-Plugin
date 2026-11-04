@@ -6,8 +6,6 @@
 #include "Device/Contracts/VirtualSensorStreamReceiverTypes.h"
 #include "VirtualLidarStreamReceiverTC.generated.h"
 
-
-
 /** virtual-lidar.v1 Topic 본문을 검증하는 UKP형 수신 Handler입니다. */
 UCLASS()
 class DEVICERUNTIME_API UVirtualLidarStreamReceiverTC : public UTransactionCodeMessage

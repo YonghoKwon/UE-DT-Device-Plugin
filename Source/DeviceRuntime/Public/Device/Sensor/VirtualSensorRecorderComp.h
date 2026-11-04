@@ -9,22 +9,22 @@
 USTRUCT(BlueprintType)
 struct DEVICERUNTIME_API FVirtualSensorRecordedFrame
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorRecorder")
-    FString SensorId;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorRecorder")
+	FString SensorId;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorRecorder")
-    FString SensorType;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorRecorder")
+	FString SensorType;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorRecorder")
-    int64 FrameId = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorRecorder")
+	int64 FrameId = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorRecorder")
-    FDateTime TimestampUtc;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorRecorder")
+	FDateTime TimestampUtc;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorRecorder")
-    FString PayloadJson;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorRecorder")
+	FString PayloadJson;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVirtualSensorReplayFrame, const FVirtualSensorRecordedFrame&, Frame);
@@ -32,73 +32,82 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVirtualSensorReplayFrame, const F
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
 class DEVICERUNTIME_API UVirtualSensorRecorderComp : public UActorComponent
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    UVirtualSensorRecorderComp();
-    void RecordImuSamples(const FString& Id,const TArray<FVirtualImuSample>& Samples);
-    TArray<FVirtualImuSample> GetImuSamples(const FString& Id) const;
-    void ClearImuSamples(const FString& Id) { ImuSamples.Remove(Id); ImuOverflow.Remove(Id); }
-    int64 GetImuOverflowCount(const FString& Id) const {return ImuOverflow.FindRef(Id);}
+	UVirtualSensorRecorderComp();
+	void RecordImuSamples(const FString& Id, const TArray<FVirtualImuSample>& Samples);
+	TArray<FVirtualImuSample> GetImuSamples(const FString& Id) const;
+	void ClearImuSamples(const FString& Id)
+	{
+		ImuSamples.Remove(Id);
+		ImuOverflow.Remove(Id);
+	}
+	int64 GetImuOverflowCount(const FString& Id) const { return ImuOverflow.FindRef(Id); }
 
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
+	void StartRecording();
 
-    UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
-    void StartRecording();
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
+	void StopRecording();
 
-    UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
-    void StopRecording();
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
+	void ClearRecording();
 
-    UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
-    void ClearRecording();
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
+	void RecordJsonFrame(const FString& SensorId, const FString& SensorType, int64 FrameId, const FString& PayloadJson);
 
-    UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
-    void RecordJsonFrame(const FString& SensorId, const FString& SensorType, int64 FrameId, const FString& PayloadJson);
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
+	bool SaveSession(const FString& FileNamePrefix = TEXT("")) const;
 
-    UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
-    bool SaveSession(const FString& FileNamePrefix = TEXT("")) const;
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
+	bool LoadSessionFromFile(const FString& AbsoluteFilePath);
 
-    UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
-    bool LoadSessionFromFile(const FString& AbsoluteFilePath);
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorRecorder")
+	bool GetRecordedFrame(int32 FrameIndex, FVirtualSensorRecordedFrame& OutFrame) const;
 
-    UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorRecorder")
-    bool GetRecordedFrame(int32 FrameIndex, FVirtualSensorRecordedFrame& OutFrame) const;
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
+	void StartReplay(float FramesPerSecond = 10.0f);
 
-    UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
-    void StartReplay(float FramesPerSecond = 10.0f);
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
+	void StopReplay();
 
-    UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorRecorder")
-    void StopReplay();
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorRecorder")
+	bool IsRecording() const { return bRecording; }
+	bool IsRecordingSensor(const FString& Id) const { return bRecording && (LocalCaptureSuspensions.IsEmpty() || !LocalCaptureSuspensions.Contains(Id)); }
+	void SetLocalCaptureSuspended(const FString& Id, bool Suspended)
+	{
+		if (Suspended)
+			LocalCaptureSuspensions.Add(Id);
+		else
+			LocalCaptureSuspensions.Remove(Id);
+	}
 
-    UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorRecorder")
-    bool IsRecording() const { return bRecording; }
-    bool IsRecordingSensor(const FString& Id) const { return bRecording&&(LocalCaptureSuspensions.IsEmpty()||!LocalCaptureSuspensions.Contains(Id)); }
-    void SetLocalCaptureSuspended(const FString& Id,bool Suspended) { if(Suspended)LocalCaptureSuspensions.Add(Id);else LocalCaptureSuspensions.Remove(Id); }
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorRecorder")
+	int32 GetRecordedFrameCount() const { return RecordedFrames.Num(); }
 
-    UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorRecorder")
-    int32 GetRecordedFrameCount() const { return RecordedFrames.Num(); }
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorRecorder")
+	FString GetLastSavedSessionPath() const { return LastSavedSessionPath; }
 
-    UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorRecorder")
-    FString GetLastSavedSessionPath() const { return LastSavedSessionPath; }
+	UPROPERTY(BlueprintAssignable, Category = "DigitalTwin|SensorRecorder")
+	FOnVirtualSensorReplayFrame OnReplayFrame;
 
-    UPROPERTY(BlueprintAssignable, Category = "DigitalTwin|SensorRecorder")
-    FOnVirtualSensorReplayFrame OnReplayFrame;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorRecorder")
-    FString SaveSubDirectory = VirtualSensorDefaults::RecordingDirectory;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorRecorder")
+	FString SaveSubDirectory = VirtualSensorDefaults::RecordingDirectory;
 
 private:
-    TSet<FString> LocalCaptureSuspensions;
-    TMap<FString,TArray<FVirtualImuSample>> ImuSamples;
-    TMap<FString,int64> ImuOverflow;
-    void ReplayNextFrame();
-    FString BuildSessionPath(const FString& FileNamePrefix) const;
+	TSet<FString> LocalCaptureSuspensions;
+	TMap<FString, TArray<FVirtualImuSample>> ImuSamples;
+	TMap<FString, int64> ImuOverflow;
+	void ReplayNextFrame();
+	FString BuildSessionPath(const FString& FileNamePrefix) const;
 
 private:
-    UPROPERTY(Transient)
-    TArray<FVirtualSensorRecordedFrame> RecordedFrames;
+	UPROPERTY(Transient)
+	TArray<FVirtualSensorRecordedFrame> RecordedFrames;
 
-    mutable FString LastSavedSessionPath;
-    bool bRecording = false;
-    int32 ReplayFrameIndex = 0;
-    FTimerHandle ReplayTimerHandle;
+	mutable FString LastSavedSessionPath;
+	bool bRecording = false;
+	int32 ReplayFrameIndex = 0;
+	FTimerHandle ReplayTimerHandle;
 };

@@ -10,9 +10,9 @@ struct FVirtualPointCloudBinaryMetadata;
 UENUM(BlueprintType)
 enum class EVirtualSensorTransportMode : uint8
 {
-    None UMETA(DisplayName = "None"),
-    LogOnly UMETA(DisplayName = "Log Only"),
-    SaveToFile UMETA(DisplayName = "Save To File"),
+	None UMETA(DisplayName = "None"),
+	LogOnly UMETA(DisplayName = "Log Only"),
+	SaveToFile UMETA(DisplayName = "Save To File"),
 	HttpPost UMETA(DisplayName = "HTTP POST"),
 	StompWebSocket UMETA(DisplayName = "Artemis STOMP over WebSocket")
 };
@@ -53,46 +53,49 @@ struct DEVICERUNTIME_API FVirtualSensorTransportProfile
 USTRUCT(BlueprintType)
 struct DEVICERUNTIME_API FVirtualSensorTransportResult
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    bool bSubmitted = false;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	bool bSubmitted = false;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    bool bAccepted = false;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	bool bAccepted = false;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    bool bBackpressureRejected = false;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	bool bBackpressureRejected = false;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    bool bRetryExhausted = false;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	bool bRetryExhausted = false;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    FString Message;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	FString Message;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    int32 DataLength = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	int32 DataLength = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    int32 HttpStatusCode = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	int32 HttpStatusCode = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    int32 RetryAttemptCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	int32 RetryAttemptCount = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    FString SavedFilePath;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	FString SavedFilePath;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    FString ResponseBody;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	FString ResponseBody;
 
 	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
 	FString Protocol;
 
 	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
 	FString RequestId;
-	UPROPERTY(BlueprintReadOnly,Category="DigitalTwin|SensorTransport") FString RunId;
-	UPROPERTY(BlueprintReadOnly,Category="DigitalTwin|SensorTransport") int64 FrameId=-1;
-	UPROPERTY(BlueprintReadOnly,Category="DigitalTwin|SensorTransport") bool bReceiptCompleted=false;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	FString RunId;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	int64 FrameId = -1;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	bool bReceiptCompleted = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
 	FString SensorId;
@@ -127,33 +130,33 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVirtualSensorDataSent, const FVir
 UCLASS(ClassGroup = (DTCore), meta = (BlueprintSpawnableComponent))
 class DEVICERUNTIME_API UVirtualSensorTransportComp : public UActorComponent
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    UVirtualSensorTransportComp();
+	UVirtualSensorTransportComp();
 
-    UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorTransport")
-    FVirtualSensorTransportResult SendJson(const FString& SensorId, const FString& SensorType, const FString& JsonText);
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorTransport")
+	FVirtualSensorTransportResult SendJson(const FString& SensorId, const FString& SensorType, const FString& JsonText);
 
-    UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorTransport")
-    FVirtualSensorTransportResult SendBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes);
+	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorTransport")
+	FVirtualSensorTransportResult SendBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes);
 
 	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorTransport")
 	FVirtualSensorTransportResult SendJsonRequest(const FString& SensorId, const FString& SensorType, const FString& DataKind, int64 FrameId, const FString& JsonText, bool bManualRequest = false);
 
 	/** Stream-oriented request. Automatic callers can sample receipts without changing manual request semantics. */
 	FVirtualSensorTransportResult SendJsonStreamRequest(
-		const FString& SensorId,
-		const FString& SensorType,
-		const FString& DataKind,
-		int64 FrameId,
-		const FString& JsonText,
-		bool bRequestReceipt, const TMap<FString,FString>& AdditionalHeaders = {});
+	    const FString& SensorId,
+	    const FString& SensorType,
+	    const FString& DataKind,
+	    int64 FrameId,
+	    const FString& JsonText,
+	    bool bRequestReceipt, const TMap<FString, FString>& AdditionalHeaders = {});
 
 	/** Sends a complete PCD file as the STOMP binary body without Base64 or JSON wrapping. */
 	FVirtualSensorTransportResult SendStompBinaryStreamRequest(
-		const TArray<uint8>& Bytes,
-		const FVirtualPointCloudBinaryMetadata& Metadata);
+	    const TArray<uint8>& Bytes,
+	    const FVirtualPointCloudBinaryMetadata& Metadata);
 
 	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorTransport")
 	void ConfigureTransportProfile(const FVirtualSensorTransportProfile& InProfile);
@@ -183,58 +186,58 @@ public:
 	static const TCHAR* RuntimeConfigSection;
 
 	static bool BuildStompConnectHeaders(const FString& User, const FString& Passcode,
-		const FString& UpgradeToken, TMap<FName, FString>& OutHeaders, FString& OutError);
+	                                     const FString& UpgradeToken, TMap<FName, FString>& OutHeaders, FString& OutError);
 
 	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorTransport")
 	FVirtualSensorTransportResult TestConnection();
 
-    UPROPERTY(BlueprintAssignable, Category = "DigitalTwin|SensorTransport")
-    FOnVirtualSensorDataSent OnDataSent;
+	UPROPERTY(BlueprintAssignable, Category = "DigitalTwin|SensorTransport")
+	FOnVirtualSensorDataSent OnDataSent;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport")
-    EVirtualSensorTransportMode TransportMode = EVirtualSensorTransportMode::LogOnly;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport")
+	EVirtualSensorTransportMode TransportMode = EVirtualSensorTransportMode::LogOnly;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport", meta = (EditCondition = "TransportMode == EVirtualSensorTransportMode::HttpPost"))
-    FString HttpEndpoint;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport", meta = (EditCondition = "TransportMode == EVirtualSensorTransportMode::HttpPost"))
+	FString HttpEndpoint;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport")
-    FString SaveSubDirectory = VirtualSensorDefaults::CaptureDirectory;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport")
+	FString SaveSubDirectory = VirtualSensorDefaults::CaptureDirectory;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport")
-    int32 HttpTimeoutSeconds = 30;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport")
+	int32 HttpTimeoutSeconds = 30;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport", meta = (ClampMin = "1", EditCondition = "TransportMode == EVirtualSensorTransportMode::HttpPost"))
-    int32 MaxInFlightHttpRequests = 2;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport", meta = (ClampMin = "1", EditCondition = "TransportMode == EVirtualSensorTransportMode::HttpPost"))
+	int32 MaxInFlightHttpRequests = 2;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport", meta = (ClampMin = "0", ClampMax = "5", EditCondition = "TransportMode == EVirtualSensorTransportMode::HttpPost"))
-    int32 MaxHttpRetryAttempts = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport", meta = (ClampMin = "0", ClampMax = "5", EditCondition = "TransportMode == EVirtualSensorTransportMode::HttpPost"))
+	int32 MaxHttpRetryAttempts = 1;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport", meta = (EditCondition = "TransportMode == EVirtualSensorTransportMode::HttpPost"))
-    bool bRetryOnConnectionFailure = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport", meta = (EditCondition = "TransportMode == EVirtualSensorTransportMode::HttpPost"))
+	bool bRetryOnConnectionFailure = true;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport", meta = (EditCondition = "TransportMode == EVirtualSensorTransportMode::HttpPost"))
-    bool bRetryOnServerError = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport", meta = (EditCondition = "TransportMode == EVirtualSensorTransportMode::HttpPost"))
+	bool bRetryOnServerError = true;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport")
-    bool bLogHttpResponse = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport")
+	bool bLogHttpResponse = true;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    int32 InFlightHttpRequestCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	int32 InFlightHttpRequestCount = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    int32 BackpressureRejectedRequestCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	int32 BackpressureRejectedRequestCount = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    int32 TotalHttpRetryAttemptCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	int32 TotalHttpRetryAttemptCount = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    int32 FailedHttpRequestCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	int32 FailedHttpRequestCount = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    int32 RetryExhaustedRequestCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	int32 RetryExhaustedRequestCount = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
-    FVirtualSensorTransportResult LastResult;
+	UPROPERTY(BlueprintReadOnly, Category = "DigitalTwin|SensorTransport")
+	FVirtualSensorTransportResult LastResult;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport")
 	FVirtualSensorTransportProfile TransportProfile;
@@ -242,7 +245,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorTransport")
 	bool IsStompConnected() const;
 	/** Read-only state of the current profile, including an idle connection test. */
-	void GetOutputServerConnection(bool& Connected,bool& Expected) const;
+	void GetOutputServerConnection(bool& Connected, bool& Expected) const;
 	bool PrepareStompConnection(FString& Error);
 	int64 GetStompConnectionRevision() const { return StompConnectionRevision.Load(); }
 
@@ -254,13 +257,13 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-    FVirtualSensorTransportResult SendHttp(const FString& SensorId, const FString& SensorType, const FString& JsonText);
-    bool SubmitHttpAttempt(const FString& SensorId, const FString& SensorType, const FString& JsonText, int32 AttemptIndex, int32 SubmittedDataLength);
-    FVirtualSensorTransportResult SendHttpBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes);
-    FVirtualSensorTransportResult SaveJson(const FString& SensorId, const FString& SensorType, const FString& JsonText) const;
-    FVirtualSensorTransportResult SaveBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes) const;
-    FString BuildSavePath(const FString& SensorId, const FString& SensorType, const FString& Extension) const;
-	FVirtualSensorTransportResult SendStomp(const FString& SensorId, const FString& SensorType, const FString& DataKind, int64 FrameId, const FString& JsonText, bool bManualRequest, bool bRequestReceipt, const TMap<FString,FString>& AdditionalHeaders = {});
+	FVirtualSensorTransportResult SendHttp(const FString& SensorId, const FString& SensorType, const FString& JsonText);
+	bool SubmitHttpAttempt(const FString& SensorId, const FString& SensorType, const FString& JsonText, int32 AttemptIndex, int32 SubmittedDataLength);
+	FVirtualSensorTransportResult SendHttpBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes);
+	FVirtualSensorTransportResult SaveJson(const FString& SensorId, const FString& SensorType, const FString& JsonText) const;
+	FVirtualSensorTransportResult SaveBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes) const;
+	FString BuildSavePath(const FString& SensorId, const FString& SensorType, const FString& Extension) const;
+	FVirtualSensorTransportResult SendStomp(const FString& SensorId, const FString& SensorType, const FString& DataKind, int64 FrameId, const FString& JsonText, bool bManualRequest, bool bRequestReceipt, const TMap<FString, FString>& AdditionalHeaders = {});
 	void EnsureStompClient();
 	void HandleStompConnected(const FString& ProtocolVersion, const FString& SessionId, const FString& ServerString);
 	void HandleStompFailure(const FString& Error);
@@ -269,13 +272,13 @@ private:
 	FString ResolveTopic(const FString& SensorType, const FString& DataKind) const;
 
 	TSharedPtr<class IStompClient> StompClient;
-	TAtomic<bool> bStompConnected { false };
-	TAtomic<bool> bStompConnecting { false };
-	TAtomic<int64> StompConnectionRevision { 0 };
+	TAtomic<bool> bStompConnected{false};
+	TAtomic<bool> bStompConnecting{false};
+	TAtomic<int64> StompConnectionRevision{0};
 	FString AckSubscriptionId;
 	FString SessionPasscode;
 	FString SessionBearerToken;
-	bool bRuntimeConfigApplied=false;
+	bool bRuntimeConfigApplied = false;
 	FString RuntimeConfigSource;
 	double LastStompSubmitSeconds = 0.0;
 };

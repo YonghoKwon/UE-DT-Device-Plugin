@@ -7,12 +7,13 @@ UVirtualLidarExportComp::UVirtualLidarExportComp()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-bool UVirtualLidarExportComp::SerializeImmutableFrame(const FVirtualSensorFrameEnvelope& Frame,const FVirtualSensorStreamConfig& Config,FString& Extension,TArray<uint8>& Bytes,int32& PointCount,FString& Error)
+bool UVirtualLidarExportComp::SerializeImmutableFrame(const FVirtualSensorFrameEnvelope& Frame, const FVirtualSensorStreamConfig& Config, FString& Extension, TArray<uint8>& Bytes, int32& PointCount, FString& Error)
 {
-	FVirtualSensorStreamConfig FileConfig=Config;
-	FileConfig.PcdSendOptions=FVirtualPcdSendOptions(); // Export/Recorder always preserve Full binary storage.
-	const bool Success=UVirtualSensorStreamPublisherComp::SerializePointCloudFrame(Frame,FileConfig,Extension,Bytes,PointCount,Error);
-	if(!Success&&Error.IsEmpty())Error=TEXT("선택 형식으로 저장할 검출점이 없거나 프레임 변환에 실패했습니다.");
+	FVirtualSensorStreamConfig FileConfig = Config;
+	FileConfig.PcdSendOptions = FVirtualPcdSendOptions(); // Export/Recorder always preserve Full binary storage.
+	const bool Success = UVirtualSensorStreamPublisherComp::SerializePointCloudFrame(Frame, FileConfig, Extension, Bytes, PointCount, Error);
+	if (!Success && Error.IsEmpty())
+		Error = TEXT("선택 형식으로 저장할 검출점이 없거나 프레임 변환에 실패했습니다.");
 	return Success;
 }
 

@@ -14,127 +14,204 @@
 
 struct FVirtualCameraPreviewFence
 {
-    FVirtualCameraPreviewCompletion Completion;
-    FGPUFenceRHIRef Fence;
-    std::atomic<bool> Submitted{false};
+	FVirtualCameraPreviewCompletion Completion;
+	FGPUFenceRHIRef Fence;
+	std::atomic<bool> Submitted{false};
 };
 void UVirtualCameraCaptureComp::RequestPlacementPreviewProof()
-{PlacementPreviewFence.Reset();bPlacementPreviewProofRequested=true;}
+{
+	PlacementPreviewFence.Reset();
+	bPlacementPreviewProofRequested = true;
+}
 void UVirtualCameraCaptureComp::CancelPlacementPreviewProof()
-{bPlacementPreviewProofRequested=false;PlacementPreviewFence.Reset();}
+{
+	bPlacementPreviewProofRequested = false;
+	PlacementPreviewFence.Reset();
+}
 bool UVirtualCameraCaptureComp::GetPlacementPreviewCompletion(FVirtualCameraPreviewCompletion& Out) const
 {
-    const auto P=PlacementPreviewFence;
-    if(!P||!P->Submitted.load(std::memory_order_acquire)||!P->Fence.IsValid()||!P->Fence->Poll()||P->Completion.Generation!=ScheduledGeneration)return false;
-    Out=P->Completion;return true;
+	const auto P = PlacementPreviewFence;
+	if (!P || !P->Submitted.load(std::memory_order_acquire) || !P->Fence.IsValid() || !P->Fence->Poll() || P->Completion.Generation != ScheduledGeneration)
+		return false;
+	Out = P->Completion;
+	return true;
 }
 
 struct FVirtualCameraLocalReadbackState
 {
 	FVirtualCameraLocalSaveFrame Frame;
 	FVirtualCameraLocalSaveCallback Callback;
-	TSharedPtr<FRHIGPUTextureReadback,ESPMode::ThreadSafe> Readback;
+	TSharedPtr<FRHIGPUTextureReadback, ESPMode::ThreadSafe> Readback;
 	std::atomic<bool> Cancelled{false};
-	int32 Generation=0;
-	int32 Quality=80;
-	bool WaitingForNewFrame=false;
-	bool Mapping=false;
+	int32 Generation = 0;
+	int32 Quality = 80;
+	bool WaitingForNewFrame = false;
+	bool Mapping = false;
 };
 
 int64 UVirtualCameraCaptureComp::GetAvailableLocalFrameId() const
 {
-	return bHasFileAcquisition&&CameraRenderTarget&&LastFileAcquisition.SensorId==SensorId&&
-		CameraRenderTarget->SizeX==LastFileAcquisition.Width&&CameraRenderTarget->SizeY==LastFileAcquisition.Height?LastFileAcquisition.FrameId:-1;
+	return bHasFileAcquisition && CameraRenderTarget && LastFileAcquisition.SensorId == SensorId &&
+	               CameraRenderTarget->SizeX == LastFileAcquisition.Width && CameraRenderTarget->SizeY == LastFileAcquisition.Height
+	           ? LastFileAcquisition.FrameId
+	           : -1;
 }
 
-bool UVirtualCameraCaptureComp::RequestLocalFileFrame(bool bNewFrame,FVirtualCameraLocalSaveCallback Callback,FString& Error)
+bool UVirtualCameraCaptureComp::RequestLocalFileFrame(bool bNewFrame, FVirtualCameraLocalSaveCallback Callback, FString& Error)
 {
 	check(IsInGameThread());
-	if(LocalFileReadback) { Error=TEXT("Camera 파일 캡처 요청이 이미 진행 중입니다."); return false; }
-	if(bNewFrame&&!IsCaptureRunning()) {Error=TEXT("센서 측정을 시작한 뒤 새 프레임 저장을 요청하세요.");return false;}
-	if(!bNewFrame&&(!bHasFileAcquisition||!CameraRenderTarget)) {Error=TEXT("저장할 완료된 Camera 프레임이 없습니다.");return false;}
-	if(!bNewFrame&&LastFileAcquisition.SensorId!=SensorId) {Error=TEXT("현재 SensorId에 속하는 Camera 프레임이 없습니다.");return false;}
-	if(!bNewFrame&&(CameraRenderTarget->SizeX!=LastFileAcquisition.Width||CameraRenderTarget->SizeY!=LastFileAcquisition.Height))
-	{Error=TEXT("Camera 렌더 타깃 크기가 바뀌었습니다. 새 측정 프레임을 기다리세요.");return false;}
-	auto State=MakeShared<FVirtualCameraLocalReadbackState,ESPMode::ThreadSafe>();
-	State->Callback=MoveTemp(Callback); State->Generation=ScheduledGeneration; State->Quality=FMath::Clamp(JpegQuality,1,100); State->WaitingForNewFrame=bNewFrame;
-	LocalFileReadback=State;
-	if(!bNewFrame) QueueLocalFileReadback();
+	if (LocalFileReadback)
+	{
+		Error = TEXT("Camera 파일 캡처 요청이 이미 진행 중입니다.");
+		return false;
+	}
+	if (bNewFrame && !IsCaptureRunning())
+	{
+		Error = TEXT("센서 측정을 시작한 뒤 새 프레임 저장을 요청하세요.");
+		return false;
+	}
+	if (!bNewFrame && (!bHasFileAcquisition || !CameraRenderTarget))
+	{
+		Error = TEXT("저장할 완료된 Camera 프레임이 없습니다.");
+		return false;
+	}
+	if (!bNewFrame && LastFileAcquisition.SensorId != SensorId)
+	{
+		Error = TEXT("현재 SensorId에 속하는 Camera 프레임이 없습니다.");
+		return false;
+	}
+	if (!bNewFrame && (CameraRenderTarget->SizeX != LastFileAcquisition.Width || CameraRenderTarget->SizeY != LastFileAcquisition.Height))
+	{
+		Error = TEXT("Camera 렌더 타깃 크기가 바뀌었습니다. 새 측정 프레임을 기다리세요.");
+		return false;
+	}
+	auto State = MakeShared<FVirtualCameraLocalReadbackState, ESPMode::ThreadSafe>();
+	State->Callback = MoveTemp(Callback);
+	State->Generation = ScheduledGeneration;
+	State->Quality = FMath::Clamp(JpegQuality, 1, 100);
+	State->WaitingForNewFrame = bNewFrame;
+	LocalFileReadback = State;
+	if (!bNewFrame)
+		QueueLocalFileReadback();
 	return true;
 }
 void UVirtualCameraCaptureComp::RecordLocalFileAcquisition(double)
 {
-	PendingFileAcquisition.SensorId=SensorId; PendingFileAcquisition.FrameId=FrameId;
-	PendingFileAcquisition.Manufacturer=DeviceSpec.Manufacturer;PendingFileAcquisition.Model=DeviceSpec.Model;
-	const TCHAR* Quality=SimulationQuality==EVirtualSensorSimulationQuality::Debug?TEXT("Debug"):SimulationQuality==EVirtualSensorSimulationQuality::Balanced?TEXT("Balanced"):SimulationQuality==EVirtualSensorSimulationQuality::FullSpec?TEXT("FullSpec"):TEXT("RealTimePreview");
-	PendingFileAcquisition.SimulationQuality=Quality;bFileAcquisitionPendingRender=true;
-	if(const auto* Context=SlabCaptureContexts.Find(FrameId))PendingFileSlabContext=*Context;else PendingFileSlabContext=FVirtualSensorAcquisitionContext();
+	PendingFileAcquisition.SensorId = SensorId;
+	PendingFileAcquisition.FrameId = FrameId;
+	PendingFileAcquisition.Manufacturer = DeviceSpec.Manufacturer;
+	PendingFileAcquisition.Model = DeviceSpec.Model;
+	const TCHAR* Quality = SimulationQuality == EVirtualSensorSimulationQuality::Debug ? TEXT("Debug") : SimulationQuality == EVirtualSensorSimulationQuality::Balanced ? TEXT("Balanced")
+	                                                                                                 : SimulationQuality == EVirtualSensorSimulationQuality::FullSpec   ? TEXT("FullSpec")
+	                                                                                                                                                                    : TEXT("RealTimePreview");
+	PendingFileAcquisition.SimulationQuality = Quality;
+	bFileAcquisitionPendingRender = true;
+	if (const auto* Context = SlabCaptureContexts.Find(FrameId))
+		PendingFileSlabContext = *Context;
+	else
+		PendingFileSlabContext = FVirtualSensorAcquisitionContext();
 }
 void UVirtualCameraCaptureComp::UpdateSceneCaptureContents(FSceneInterface* Scene)
 {
 	// This callback is invoked by the engine at this component's natural capture point.
 	// Never dispatch another component's deferred capture in response to a file request.
-	const double ActualStart=FPlatformTime::Seconds();
-	FVirtualCameraPayloadSnapshot Snapshot=PendingFileAcquisition;
+	const double ActualStart = FPlatformTime::Seconds();
+	FVirtualCameraPayloadSnapshot Snapshot = PendingFileAcquisition;
 #if WITH_DEV_AUTOMATION_TESTS
-	if(BeforeSceneCaptureForTests&&bFileAcquisitionPendingRender)BeforeSceneCaptureForTests(Snapshot.FrameId);
+	if (BeforeSceneCaptureForTests && bFileAcquisitionPendingRender)
+		BeforeSceneCaptureForTests(Snapshot.FrameId);
 #endif
-	Snapshot.TimestampUtc=FDateTime::UtcNow();Snapshot.Width=CameraRenderTarget?CameraRenderTarget->SizeX:CaptureResolution.X;
-	Snapshot.AcquisitionRevision=ScheduledGeneration;
-	Snapshot.Height=CameraRenderTarget?CameraRenderTarget->SizeY:CaptureResolution.Y;Snapshot.HorizontalFov=FOVAngle;Snapshot.VerticalFov=DeviceSpec.VerticalFovDegrees;
-	Snapshot.Location=GetComponentLocation();Snapshot.Rotation=GetComponentRotation();Snapshot.Forward=GetForwardVector();Snapshot.Up=GetUpVector();
+	Snapshot.TimestampUtc = FDateTime::UtcNow();
+	Snapshot.Width = CameraRenderTarget ? CameraRenderTarget->SizeX : CaptureResolution.X;
+	Snapshot.AcquisitionRevision = ScheduledGeneration;
+	Snapshot.Height = CameraRenderTarget ? CameraRenderTarget->SizeY : CaptureResolution.Y;
+	Snapshot.HorizontalFov = FOVAngle;
+	Snapshot.VerticalFov = DeviceSpec.VerticalFovDegrees;
+	Snapshot.Location = GetComponentLocation();
+	Snapshot.Rotation = GetComponentRotation();
+	Snapshot.Forward = GetForwardVector();
+	Snapshot.Up = GetUpVector();
 	Super::UpdateSceneCaptureContents(Scene);
-	if(bGroundTruthEnabled&&bFileAcquisitionPendingRender)CaptureGroundTruth(Snapshot);
-	if(bPlacementPreviewProofRequested&&bFileAcquisitionPendingRender)
+	if (bGroundTruthEnabled && bFileAcquisitionPendingRender)
+		CaptureGroundTruth(Snapshot);
+	if (bPlacementPreviewProofRequested && bFileAcquisitionPendingRender)
 	{
-		bPlacementPreviewProofRequested=false;
-		auto Proof=MakeShared<FVirtualCameraPreviewFence,ESPMode::ThreadSafe>();
-		Proof->Completion.Acquisition=Snapshot;Proof->Completion.AcquisitionPose=GetComponentTransform();
-		Proof->Completion.StartedMonotonic=ActualStart;Proof->Completion.Generation=ScheduledGeneration;PlacementPreviewFence=Proof;
+		bPlacementPreviewProofRequested = false;
+		auto Proof = MakeShared<FVirtualCameraPreviewFence, ESPMode::ThreadSafe>();
+		Proof->Completion.Acquisition = Snapshot;
+		Proof->Completion.AcquisitionPose = GetComponentTransform();
+		Proof->Completion.StartedMonotonic = ActualStart;
+		Proof->Completion.Generation = ScheduledGeneration;
+		PlacementPreviewFence = Proof;
 		ENQUEUE_RENDER_COMMAND(SensorPlacementPreviewFence)([Proof](FRHICommandListImmediate& Cmd)
-		{Proof->Fence=RHICreateGPUFence(TEXT("SensorPlacementPreview"));Cmd.WriteGPUFence(Proof->Fence);Proof->Submitted.store(true,std::memory_order_release);});
+		                                                    {Proof->Fence=RHICreateGPUFence(TEXT("SensorPlacementPreview"));Cmd.WriteGPUFence(Proof->Fence);Proof->Submitted.store(true,std::memory_order_release); });
 	}
 #if WITH_DEV_AUTOMATION_TESTS
 	++LocalFileRenderDispatchCount;
 #endif
-	if(!bFileAcquisitionPendingRender)return;
-	bFileAcquisitionPendingRender=false;LastFileAcquisition=MoveTemp(Snapshot);LastFileSlabContext=PendingFileSlabContext;LastFileAcquisitionSeconds=ActualStart;bHasFileAcquisition=true;ExternalFileFrame.Reset();
-	if(ShouldGeneratePayload()&&!PendingReadbackRequests.IsEmpty())
+	if (!bFileAcquisitionPendingRender)
+		return;
+	bFileAcquisitionPendingRender = false;
+	LastFileAcquisition = MoveTemp(Snapshot);
+	LastFileSlabContext = PendingFileSlabContext;
+	LastFileAcquisitionSeconds = ActualStart;
+	bHasFileAcquisition = true;
+	ExternalFileFrame.Reset();
+	if (ShouldGeneratePayload() && !PendingReadbackRequests.IsEmpty())
 	{
-		ScheduledAcquisitionSnapshots.Add(LastFileAcquisition.FrameId,LastFileAcquisition);
+		ScheduledAcquisitionSnapshots.Add(LastFileAcquisition.FrameId, LastFileAcquisition);
 		QueuePendingGpuReadbacks();
 	}
-	if(LocalFileReadback&&LocalFileReadback->WaitingForNewFrame) {LocalFileReadback->WaitingForNewFrame=false;QueueLocalFileReadback();}
+	if (LocalFileReadback && LocalFileReadback->WaitingForNewFrame)
+	{
+		LocalFileReadback->WaitingForNewFrame = false;
+		QueueLocalFileReadback();
+	}
 }
 void UVirtualCameraCaptureComp::QueueLocalFileReadback()
 {
-	const auto State=LocalFileReadback;
-	if(!State||State->Cancelled||State->Readback||!GetWorld()) return;
+	const auto State = LocalFileReadback;
+	if (!State || State->Cancelled || State->Readback || !GetWorld())
+		return;
 	// Current: copy the last dispatched capture before a later deferred capture is queued.
 	// New: called immediately after our own capture command by UpdateSceneCaptureContents.
-	FTextureRenderTargetResource* Resource=CameraRenderTarget?CameraRenderTarget->GameThread_GetRenderTargetResource():nullptr;
-	FTextureRHIRef Texture=Resource?Resource->GetRenderTargetTexture():FTextureRHIRef();
-	if(!Texture.IsValid())
+	FTextureRenderTargetResource* Resource = CameraRenderTarget ? CameraRenderTarget->GameThread_GetRenderTargetResource() : nullptr;
+	FTextureRHIRef Texture = Resource ? Resource->GetRenderTargetTexture() : FTextureRHIRef();
+	if (!Texture.IsValid())
 	{
-		auto Callback=MoveTemp(State->Callback);LocalFileReadback.Reset();if(Callback)Callback(nullptr,TEXT("Camera GPU 프레임을 읽을 수 없습니다."));return;
+		auto Callback = MoveTemp(State->Callback);
+		LocalFileReadback.Reset();
+		if (Callback)
+			Callback(nullptr, TEXT("Camera GPU 프레임을 읽을 수 없습니다."));
+		return;
 	}
-	State->Frame.Payload=LastFileAcquisition; State->Frame.AcquisitionSeconds=LastFileAcquisitionSeconds;
-	State->Frame.SlabContext=LastFileSlabContext;
-	State->Readback=MakeShared<FRHIGPUTextureReadback,ESPMode::ThreadSafe>(TEXT("SensorLocalFileReadback"));
-	const auto Copy=State->Readback;
-	ENQUEUE_RENDER_COMMAND(SensorLocalFileCopy)([Copy,Texture](FRHICommandListImmediate& R){VirtualSensorTextureReadback::Enqueue(R,*Copy,Texture);});
+	State->Frame.Payload = LastFileAcquisition;
+	State->Frame.AcquisitionSeconds = LastFileAcquisitionSeconds;
+	State->Frame.SlabContext = LastFileSlabContext;
+	State->Readback = MakeShared<FRHIGPUTextureReadback, ESPMode::ThreadSafe>(TEXT("SensorLocalFileReadback"));
+	const auto Copy = State->Readback;
+	ENQUEUE_RENDER_COMMAND(SensorLocalFileCopy)([Copy, Texture](FRHICommandListImmediate& R)
+	                                            { VirtualSensorTextureReadback::Enqueue(R, *Copy, Texture); });
 }
 void UVirtualCameraCaptureComp::PollLocalFileFrame()
 {
-	check(IsInGameThread()); const auto State=LocalFileReadback;
-	if(!State||State->Cancelled||State->WaitingForNewFrame||State->Mapping||!State->Readback||!State->Readback->IsReady()) return;
-	if(State->Generation!=ScheduledGeneration) {CancelLocalFileFrame();return;}
-	if(!TryAcquireLocalFileEncodeSlot()) return;
-	State->Mapping=true; auto Copy=MoveTemp(State->Readback);
-	IImageWrapperModule* Module=&FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
-	TWeakObjectPtr<UVirtualCameraCaptureComp> Weak(this);
-	ENQUEUE_RENDER_COMMAND(SensorLocalFileMap)([Copy,State,Module,Weak](FRHICommandListImmediate&) mutable
+	check(IsInGameThread());
+	const auto State = LocalFileReadback;
+	if (!State || State->Cancelled || State->WaitingForNewFrame || State->Mapping || !State->Readback || !State->Readback->IsReady())
+		return;
+	if (State->Generation != ScheduledGeneration)
 	{
+		CancelLocalFileFrame();
+		return;
+	}
+	if (!TryAcquireLocalFileEncodeSlot())
+		return;
+	State->Mapping = true;
+	auto Copy = MoveTemp(State->Readback);
+	IImageWrapperModule* Module = &FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
+	TWeakObjectPtr<UVirtualCameraCaptureComp> Weak(this);
+	ENQUEUE_RENDER_COMMAND(SensorLocalFileMap)([Copy, State, Module, Weak](FRHICommandListImmediate&) mutable
+	                                           {
 		TArray<FColor> Pixels;int32 Pitch=0;const FColor* Raw=static_cast<const FColor*>(Copy->Lock(Pitch));
 		const int32 W=State->Frame.Payload.Width,H=State->Frame.Payload.Height;
 		if(Raw&&Pitch>=W&&W>0&&H>0&&!State->Cancelled)
@@ -156,16 +233,18 @@ void UVirtualCameraCaptureComp::PollLocalFileFrame()
 				if(!Weak.IsValid()||State->Cancelled||Weak->ScheduledGeneration!=State->Generation||Weak->LocalFileReadback!=State)return;
 				Weak->LocalFileReadback.Reset();auto Callback=MoveTemp(State->Callback);if(Callback)Callback(Frame,Error);
 			});
-		});
-	});
+		}); });
 }
 void UVirtualCameraCaptureComp::CancelLocalFileFrame()
 {
-	if(!LocalFileReadback) return;
-	LocalFileReadback->Cancelled=true;
-	if(LocalFileReadback->Readback)
+	if (!LocalFileReadback)
+		return;
+	LocalFileReadback->Cancelled = true;
+	if (LocalFileReadback->Readback)
 	{
-		auto Copy=MoveTemp(LocalFileReadback->Readback);ENQUEUE_RENDER_COMMAND(SensorLocalFileRelease)([Copy](FRHICommandListImmediate&)mutable{Copy.Reset();});
+		auto Copy = MoveTemp(LocalFileReadback->Readback);
+		ENQUEUE_RENDER_COMMAND(SensorLocalFileRelease)([Copy](FRHICommandListImmediate&) mutable
+		                                               { Copy.Reset(); });
 	}
 	LocalFileReadback.Reset();
 }
@@ -175,25 +254,36 @@ void UVirtualCameraCaptureComp::CancelLocalFileFrame()
 #include "Tests/AutomationEditorCommon.h"
 #include "Device/Camera/VirtualCameraSensorActor.h"
 #include "RHIGlobals.h"
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSensorCameraLocalDispatchTest,"MA0T10.SensorFiles.CameraCaptureDispatchIsolation",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSensorCameraLocalDispatchTest, "MA0T10.SensorFiles.CameraCaptureDispatchIsolation", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FSensorCameraLocalDispatchTest::RunTest(const FString&)
 {
-	if(GUsingNullRHI||!FApp::CanEverRender()){AddInfo(TEXT("SKIP: camera capture dispatch isolation requires rendering."));return true;}
-	auto* World=FAutomationEditorCommonUtils::CreateNewMap();auto* A=World->SpawnActor<AVirtualCameraSensorActor>();auto* B=World->SpawnActor<AVirtualCameraSensorActor>();
-	A->CaptureComp->CaptureMode=EVirtualCameraCaptureMode::PreviewOnly;A->CaptureComp->CaptureResolution=FIntPoint(4,4);
+	if (GUsingNullRHI || !FApp::CanEverRender())
+	{
+		AddInfo(TEXT("SKIP: camera capture dispatch isolation requires rendering."));
+		return true;
+	}
+	auto* World = FAutomationEditorCommonUtils::CreateNewMap();
+	auto* A = World->SpawnActor<AVirtualCameraSensorActor>();
+	auto* B = World->SpawnActor<AVirtualCameraSensorActor>();
+	A->CaptureComp->CaptureMode = EVirtualCameraCaptureMode::PreviewOnly;
+	A->CaptureComp->CaptureResolution = FIntPoint(4, 4);
 	// Existing public one-shot creates the fixture frame, not the production file request.
 	A->CaptureComp->CaptureAndSendImage();
-	TestTrue(TEXT("fixture has a dispatched local frame"),A->CaptureComp->GetAvailableLocalFrameId()>=0);
-	B->CaptureComp->CaptureSceneDeferred();const int32 Before=B->CaptureComp->LocalFileRenderDispatchCount;
-	const int32 OwnBefore=A->CaptureComp->LocalFileRenderDispatchCount;FString Error;
-	const bool Accepted=A->CaptureComp->RequestLocalFileFrame(false,[](auto,const FString&){},Error);
-	TestTrue(TEXT("current local copy accepted"),Accepted);
-	TestEqual(TEXT("file request never dispatches another deferred camera"),B->CaptureComp->LocalFileRenderDispatchCount,Before);
-	TestEqual(TEXT("current frame copy creates no new own acquisition"),A->CaptureComp->LocalFileRenderDispatchCount,OwnBefore);
+	TestTrue(TEXT("fixture has a dispatched local frame"), A->CaptureComp->GetAvailableLocalFrameId() >= 0);
+	B->CaptureComp->CaptureSceneDeferred();
+	const int32 Before = B->CaptureComp->LocalFileRenderDispatchCount;
+	const int32 OwnBefore = A->CaptureComp->LocalFileRenderDispatchCount;
+	FString Error;
+	const bool Accepted = A->CaptureComp->RequestLocalFileFrame(false, [](auto, const FString&) {}, Error);
+	TestTrue(TEXT("current local copy accepted"), Accepted);
+	TestEqual(TEXT("file request never dispatches another deferred camera"), B->CaptureComp->LocalFileRenderDispatchCount, Before);
+	TestEqual(TEXT("current frame copy creates no new own acquisition"), A->CaptureComp->LocalFileRenderDispatchCount, OwnBefore);
 	A->CaptureComp->CancelLocalFileFrame();
 	// Explicitly advance the test's engine stage, proving B really was pending all along.
 	USceneCaptureComponent::UpdateDeferredCaptures(World->Scene);
-	TestTrue(TEXT("unrelated capture remains pending until the engine capture stage"),B->CaptureComp->LocalFileRenderDispatchCount>Before);
-	A->Destroy();B->Destroy();return true;
+	TestTrue(TEXT("unrelated capture remains pending until the engine capture stage"), B->CaptureComp->LocalFileRenderDispatchCount > Before);
+	A->Destroy();
+	B->Destroy();
+	return true;
 }
 #endif

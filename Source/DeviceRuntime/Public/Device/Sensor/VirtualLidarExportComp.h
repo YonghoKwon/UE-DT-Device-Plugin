@@ -34,7 +34,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "DigitalTwin|VirtualLidar|Export")
 	FString GetLastExportPath() const;
 	/** Stateless worker-safe serializer; all inputs must be frozen before dispatch. */
-	static bool SerializeImmutableFrame(const FVirtualSensorFrameEnvelope& Frame,const FVirtualSensorStreamConfig& Config,FString& Extension,TArray<uint8>& Bytes,int32& PointCount,FString& Error);
+	static bool SerializeImmutableFrame(const FVirtualSensorFrameEnvelope& Frame, const FVirtualSensorStreamConfig& Config, FString& Extension, TArray<uint8>& Bytes, int32& PointCount, FString& Error);
 
 private:
 	UPROPERTY(Transient)

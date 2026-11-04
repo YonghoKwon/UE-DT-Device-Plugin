@@ -8,9 +8,9 @@
 #include "Device/Sensor/VirtualSensorRuntimeTypes.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorIncrementalStompParserTest,
-	"MA0T10.SensorStream.HighThroughput.IncrementalStompParser",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorIncrementalStompParserTest,
+    "MA0T10.SensorStream.HighThroughput.IncrementalStompParser",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorIncrementalStompParserTest::RunTest(const FString& Parameters)
 {
@@ -36,7 +36,8 @@ bool FVirtualSensorIncrementalStompParserTest::RunTest(const FString& Parameters
 	{
 		const int32 Count = FMath::Min(3, Wire.Num() - Offset);
 		TestTrue(TEXT("fragment parses without error"), Parser.Append(Wire.GetData() + Offset, Count, Frames, Error));
-		if (!Error.IsEmpty()) AddError(Error);
+		if (!Error.IsEmpty())
+			AddError(Error);
 	}
 	TestEqual(TEXT("fragmented/coalesced frame count"), Frames.Num(), 2);
 	if (Frames.Num() == 2)
@@ -54,9 +55,9 @@ bool FVirtualSensorIncrementalStompParserTest::RunTest(const FString& Parameters
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorRawTcpEndpointPolicyTest,
-	"MA0T10.SensorStream.HighThroughput.EndpointPolicy",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorRawTcpEndpointPolicyTest,
+    "MA0T10.SensorStream.HighThroughput.EndpointPolicy",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorRawTcpEndpointPolicyTest::RunTest(const FString& Parameters)
 {
@@ -84,13 +85,14 @@ struct FVirtualSensorRawTcpLoopbackState
 };
 
 DEFINE_LATENT_AUTOMATION_COMMAND_TWO_PARAMETER(
-	FVirtualSensorRawTcpLoopbackCommand,
-	TSharedPtr<FVirtualSensorRawTcpLoopbackState>, State,
-	FAutomationTestBase*, Test);
+    FVirtualSensorRawTcpLoopbackCommand,
+    TSharedPtr<FVirtualSensorRawTcpLoopbackState>, State,
+    FAutomationTestBase*, Test);
 
 bool FVirtualSensorRawTcpLoopbackCommand::Update()
 {
-	if (!State.IsValid() || !State->Subsystem) return true;
+	if (!State.IsValid() || !State->Subsystem)
+		return true;
 	State->Subsystem->Tick(0.016f);
 	const TArray<FVirtualSensorStreamTelemetry> Telemetry = State->Subsystem->GetStreamTelemetry();
 	int32 CompletedKinds = 0;
@@ -113,8 +115,8 @@ bool FVirtualSensorRawTcpLoopbackCommand::Update()
 		for (const FVirtualSensorStreamTelemetry& Item : Telemetry)
 		{
 			Test->AddError(FString::Printf(TEXT("Raw loopback timeout kind=%d submitted=%lld receipt=%lld consumed=%lld invalid=%lld state=%s message=%s"),
-				static_cast<int32>(Item.StreamKind), Item.SubmittedCount, Item.ReceiptCount, Item.ConsumerReceivedCount,
-				Item.ValidationFailureCount, *Item.State, *Item.Message));
+			                               static_cast<int32>(Item.StreamKind), Item.SubmittedCount, Item.ReceiptCount, Item.ConsumerReceivedCount,
+			                               Item.ValidationFailureCount, *Item.State, *Item.Message));
 		}
 		State->Subsystem->StopHighThroughputTransport();
 		State->Subsystem->RemoveFromRoot();
@@ -125,9 +127,9 @@ bool FVirtualSensorRawTcpLoopbackCommand::Update()
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FVirtualSensorRawTcpArtemisLoopbackTest,
-	"MA0T10.SensorStream.HighThroughput.RawTcpArtemisLoopback",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    FVirtualSensorRawTcpArtemisLoopbackTest,
+    "MA0T10.SensorStream.HighThroughput.RawTcpArtemisLoopback",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FVirtualSensorRawTcpArtemisLoopbackTest::RunTest(const FString& Parameters)
 {
@@ -143,9 +145,11 @@ bool FVirtualSensorRawTcpArtemisLoopbackTest::RunTest(const FString& Parameters)
 	State->Subsystem->ConfigureReceiver(FVirtualSensorReceiveSelection{});
 	FVirtualSensorHighThroughputProfile Profile;
 	Profile.BrokerUrl = FPlatformMisc::GetEnvironmentVariable(TEXT("MA0T10_ARTEMIS_RAW_URL"));
-	if (Profile.BrokerUrl.IsEmpty()) Profile.BrokerUrl = TEXT("tcp://127.0.0.1:61616");
+	if (Profile.BrokerUrl.IsEmpty())
+		Profile.BrokerUrl = TEXT("tcp://127.0.0.1:61616");
 	const FString User = FPlatformMisc::GetEnvironmentVariable(TEXT("MA0T10_ARTEMIS_USER"));
-	if (!User.IsEmpty()) Profile.UserName = User;
+	if (!User.IsEmpty())
+		Profile.UserName = User;
 	const FString Password = FPlatformMisc::GetEnvironmentVariable(TEXT("MA0T10_ARTEMIS_PASSWORD"));
 	TestTrue(TEXT("raw transport starts"), State->Subsystem->StartHighThroughputTransport(Profile, Password));
 
@@ -175,11 +179,15 @@ bool FVirtualSensorRawTcpArtemisLoopbackTest::RunTest(const FString& Parameters)
 		Frame.Body64 = MakeShared<const TArray64<uint8>, ESPMode::ThreadSafe>(MoveTemp(Body));
 		FString Error;
 		TestTrue(FString::Printf(TEXT("enqueue %s"), *Schema), State->Subsystem->EnqueueBinaryFrame(Frame, Error));
-		if (!Error.IsEmpty()) AddError(Error);
+		if (!Error.IsEmpty())
+			AddError(Error);
 	};
 
 	TArray64<uint8> CameraBody;
-	CameraBody.Add(0xff); CameraBody.Add(0xd8); CameraBody.Add(0xff); CameraBody.Add(0xd9);
+	CameraBody.Add(0xff);
+	CameraBody.Add(0xd8);
+	CameraBody.Add(0xff);
+	CameraBody.Add(0xd9);
 	Enqueue(EVirtualSensorStreamKind::CameraImage, TEXT("CAM-RAW-SMOKE"), 1, TEXT("virtual-camera.jpeg.v1"), TEXT("image/jpeg"), Profile.CameraTopic, MoveTemp(CameraBody));
 
 	const FString LidarJson = TEXT("{\"schema\":\"virtual-lidar.telemetry.v1\",\"sensorId\":\"LIDAR-RAW-SMOKE\",\"frameId\":2}");

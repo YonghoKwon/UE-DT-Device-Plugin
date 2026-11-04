@@ -7,21 +7,21 @@
 /** World-space rigid velocity at acquisition; no dependency on a business Actor. */
 struct FVirtualSensorMotionSample
 {
-    FVector LinearVelocityCmPerSecond = FVector::ZeroVector;
-    FVector AngularVelocityRadiansPerSecond = FVector::ZeroVector;
-    FVector PivotWorldCm = FVector::ZeroVector;
+	FVector LinearVelocityCmPerSecond = FVector::ZeroVector;
+	FVector AngularVelocityRadiansPerSecond = FVector::ZeroVector;
+	FVector PivotWorldCm = FVector::ZeroVector;
 };
 
 UINTERFACE(MinimalAPI)
 class UVirtualSensorMotionProvider : public UInterface
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 };
 
 class DEVICERUNTIME_API IVirtualSensorMotionProvider
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 public:
-    /** Return an immutable velocity sample. Paused/stopped providers return zero. */
-    virtual FVirtualSensorMotionSample CaptureSensorMotion() const = 0;
+	/** Return an immutable velocity sample. Paused/stopped providers return zero. */
+	virtual FVirtualSensorMotionSample CaptureSensorMotion() const = 0;
 };

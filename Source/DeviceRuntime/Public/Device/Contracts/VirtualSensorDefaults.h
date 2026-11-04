@@ -11,7 +11,6 @@ inline constexpr TCHAR PointCloudTopic[] = TEXT("topic.virtual.sensor.export.0")
 // Default Rev7 x3 measured PCD demand is about 75.9 MiB/s at 20 Hz.
 inline constexpr float PointCloudBandwidthMiBPerSecond = 80.0f;
 
-
 inline constexpr TCHAR CaptureDirectory[] = TEXT("SensorCaptures");
 inline constexpr TCHAR RecordingDirectory[] = TEXT("SensorRecordings");
 inline constexpr TCHAR PlacementDirectory[] = TEXT("SensorPlacements");
