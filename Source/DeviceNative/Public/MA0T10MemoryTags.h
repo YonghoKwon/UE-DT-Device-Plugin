@@ -21,21 +21,22 @@ DEVICENATIVE_API bool IsEnabled();
 #if ENABLE_LOW_LEVEL_MEM_TRACKER
 class FProjectScope
 {
-    TOptional<FLLMScope> Scope;
+	TOptional<FLLMScope> Scope;
 #if UE_MEMORY_TAGS_TRACE_ENABLED
-    TOptional<FMemScope> TraceScope;
+	TOptional<FMemScope> TraceScope;
 #endif
 public:
-    explicit FProjectScope(FLLMTagDeclaration& Tag)
-    {
-        if(IsEnabled())
-        {
-            const auto Name=Tag.GetUniqueName();Scope.Emplace(Name,false,ELLMTagSet::None,ELLMTracker::Default);
+	explicit FProjectScope(FLLMTagDeclaration& Tag)
+	{
+		if (IsEnabled())
+		{
+			const auto Name = Tag.GetUniqueName();
+			Scope.Emplace(Name, false, ELLMTagSet::None, ELLMTracker::Default);
 #if UE_MEMORY_TAGS_TRACE_ENABLED
-            TraceScope.Emplace(Name);
+			TraceScope.Emplace(Name);
 #endif
-        }
-    }
+		}
+	}
 };
 #endif
 // LLM_DEFINE_TAG converts '_' in C++ identifiers to '/' in tracker names.
@@ -48,13 +49,12 @@ inline constexpr const TCHAR* Names[] = {
     TEXT("MA0T10/LidarPreview"),
     TEXT("MA0T10/PcdEncode"),
     TEXT("MA0T10/HatchAnalysis"),
-    TEXT("MA0T10/CameraGT")
-};
+    TEXT("MA0T10/CameraGT")};
 inline constexpr int32 Count = sizeof(Names) / sizeof(Names[0]);
 }
 
 #if ENABLE_LOW_LEVEL_MEM_TRACKER
-#define MA0T10_LLM_SCOPE_BYTAG(Tag) MA0T10MemoryTags::FProjectScope PREPROCESSOR_JOIN(MA0T10Scope_,__LINE__)(PREPROCESSOR_JOIN(LLMTagDeclaration_,Tag))
+#define MA0T10_LLM_SCOPE_BYTAG(Tag) MA0T10MemoryTags::FProjectScope PREPROCESSOR_JOIN(MA0T10Scope_, __LINE__)(PREPROCESSOR_JOIN(LLMTagDeclaration_, Tag))
 #else
 #define MA0T10_LLM_SCOPE_BYTAG(Tag)
 #endif

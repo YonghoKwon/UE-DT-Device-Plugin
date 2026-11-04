@@ -4,7 +4,8 @@
 
 bool MA0T10MemoryTags::IsEnabled()
 {
-    static const bool Enabled=!FParse::Param(FCommandLine::Get(),TEXT("NoProjectMemoryTags"));return Enabled;
+	static const bool Enabled = !FParse::Param(FCommandLine::Get(), TEXT("NoProjectMemoryTags"));
+	return Enabled;
 }
 
 LLM_DEFINE_TAG(MA0T10_LidarRtScene);
