@@ -1,4 +1,5 @@
 #include "Device/Sensor/VirtualSensorTransportComp.h"
+#include "DeviceSensorTransportConfig.h"
 #include "Misc/App.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FileHelper.h"
@@ -62,12 +63,12 @@ bool UVirtualSensorTransportComp::ApplyRuntimeConfigFile()
 	return ApplyRuntimeConfigFrom(GetRuntimeConfigCandidateFiles(), true);
 }
 
-bool UVirtualSensorTransportComp::ApplyRuntimeConfigFrom(const TArray<FString>& CandidateFiles, bool bUseGameIniFallback)
+bool DeviceSensorTransportConfig::ReadValues(const TArray<FString>& CandidateFiles, bool bUseGameIniFallback, TMap<FString, FString>& Values, FString& Source)
 {
 	static const TCHAR* Keys[] = {TEXT("TransportMode"), TEXT("BrokerUrl"), TEXT("CameraTopic"), TEXT("LidarTopic"), TEXT("ExportTopic"), TEXT("AckTopic"),
 	                              TEXT("UserName"), TEXT("Passcode"), TEXT("HttpEndpoint"), TEXT("MaxMessageBytes"), TEXT("TimeoutSeconds")};
-	TMap<FString, FString> Values;
-	FString Source;
+	Values.Reset();
+	Source.Reset();
 	// Parsed directly: Unreal's ini reader cuts values at "//", which broke unquoted
 	// URLs such as tcp://host:port. Comments are whole lines starting with ; or #.
 	// The first file whose section has values wins as a whole; keys are not mixed across files.
@@ -93,7 +94,7 @@ bool UVirtualSensorTransportComp::ApplyRuntimeConfigFrom(const TArray<FString>& 
 				continue;
 			if (Line.StartsWith(TEXT("[")))
 			{
-				bInSection = Line.Equals(FString::Printf(TEXT("[%s]"), RuntimeConfigSection), ESearchCase::IgnoreCase);
+				bInSection = Line.Equals(FString::Printf(TEXT("[%s]"), UVirtualSensorTransportComp::RuntimeConfigSection), ESearchCase::IgnoreCase);
 				continue;
 			}
 			if (!bInSection)
@@ -119,12 +120,53 @@ bool UVirtualSensorTransportComp::ApplyRuntimeConfigFrom(const TArray<FString>& 
 		for (const TCHAR* Key : Keys)
 		{
 			FString V;
-			if (GConfig->GetString(RuntimeConfigSection, Key, V, GGameIni) && !Unquote(V).IsEmpty())
+			if (GConfig->GetString(UVirtualSensorTransportComp::RuntimeConfigSection, Key, V, GGameIni) && !Unquote(V).IsEmpty())
 				Values.Add(Key, Unquote(V));
 		}
 		if (!Values.IsEmpty())
 			Source = TEXT("GGameIni");
 	}
+	return !Values.IsEmpty();
+}
+
+bool DeviceSensorTransportConfig::ReadLegacyConnection(FVirtualSensorTransportProfile& Profile, FString& SessionPasscode)
+{
+	TMap<FString, FString> Values;
+	FString Source;
+	if (!ReadValues(UVirtualSensorTransportComp::GetRuntimeConfigCandidateFiles(), true, Values, Source))
+		return false;
+	auto Str = [&Values](const TCHAR* Key, FString& Target)
+	{
+		if (const auto* Value = Values.Find(Key))
+			Target = *Value;
+	};
+	Str(TEXT("BrokerUrl"), Profile.BrokerUrl);
+	Str(TEXT("CameraTopic"), Profile.CameraTopic);
+	Str(TEXT("LidarTopic"), Profile.LidarTopic);
+	Str(TEXT("ExportTopic"), Profile.ExportTopic);
+	Str(TEXT("AckTopic"), Profile.AckTopic);
+	Str(TEXT("UserName"), Profile.UserName);
+	Str(TEXT("Passcode"), SessionPasscode);
+	if (const auto* Value = Values.Find(TEXT("MaxMessageBytes")))
+	{
+		int32 Number;
+		if (LexTryParseString(Number, **Value))
+			Profile.MaxMessageBytes = FMath::Max(1024, Number);
+	}
+	if (const auto* Value = Values.Find(TEXT("TimeoutSeconds")))
+	{
+		int32 Number;
+		if (LexTryParseString(Number, **Value))
+			Profile.TimeoutSeconds = FMath::Clamp(Number, 1, 120);
+	}
+	return true;
+}
+
+bool UVirtualSensorTransportComp::ApplyRuntimeConfigFrom(const TArray<FString>& CandidateFiles, bool bUseGameIniFallback)
+{
+	TMap<FString, FString> Values;
+	FString Source;
+	DeviceSensorTransportConfig::ReadValues(CandidateFiles, bUseGameIniFallback, Values, Source);
 	if (Values.IsEmpty())
 	{
 		DX_LOG(GetWorld(), TEXT("[SensorTransport] no deployment values in [%s]; first candidate %s"), RuntimeConfigSection, CandidateFiles.Num() ? *CandidateFiles[0] : TEXT("-"));

@@ -4,6 +4,7 @@
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
 #include "Device/Sensor/VirtualSensorTransportComp.h"
+#include "../../Sensor/DeviceSensorTransportConfig.h"
 
 // Deployment Game.ini [MA0T10.SensorTransport] applies over map defaults, first file with
 // the section wins, empty keys keep current values, unknown mode is ignored.
@@ -32,6 +33,12 @@ bool FSensorTransportRuntimeConfigTest::RunTest(const FString&)
 	TestEqual(TEXT("mode by enum name"), T->TransportMode, EVirtualSensorTransportMode::StompWebSocket);
 	TestEqual(TEXT("passcode reaches the session credentials"), T->GetSessionPasscodeForHighThroughput(), FString(TEXT("secret-for-test")));
 	TestEqual(TEXT("source recorded"), T->GetRuntimeConfigSource(), Game);
+	TMap<FString, FString> ChannelValues;
+	FString ChannelSource;
+	TestTrue(TEXT("channel uses the same legacy parser"), DeviceSensorTransportConfig::ReadValues({Empty, Game, Later}, false, ChannelValues, ChannelSource));
+	TestEqual(TEXT("channel keeps URL slashes"), ChannelValues.FindRef(TEXT("BrokerUrl")), P.BrokerUrl);
+	TestEqual(TEXT("channel keeps first-file source"), ChannelSource, Game);
+	TestFalse(TEXT("empty keys do not become overrides"), ChannelValues.Contains(TEXT("CameraTopic")));
 
 	FFileHelper::SaveStringToFile(TEXT("[MA0T10.SensorTransport]\nTransportMode=NotAMode\n"), *Game);
 	T->TransportMode = EVirtualSensorTransportMode::HttpPost;

@@ -13,9 +13,9 @@
 #include "Misc/Paths.h"
 #include "Json.h"
 #include "HAL/PlatformTime.h"
-#include "IStompClient.h"
-#include "IStompMessage.h"
-#include "StompModule.h"
+#include "Device/Core/DxDeviceSensorStompChannel.h"
+#include "Device/Core/DxDeviceSensorChannelSubsystem.h"
+#include "Core/DxDataChannelBase.h"
 
 UVirtualSensorTransportComp::UVirtualSensorTransportComp()
 {
@@ -162,8 +162,8 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStompBinaryStream
 
 	const double StartedSeconds = FPlatformTime::Seconds();
 	const TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
-	StompClient->Send(Result.Destination, Bytes, Headers, FStompRequestCompleted::CreateLambda([WeakThis, SubmittedResult = Result, StartedSeconds](bool bSuccess, const FString& Error)
-	                                                                                           {
+	const bool bSubmitted = SensorStompChannel->Send(Result.Destination, Bytes, Headers, FStompRequestCompleted::CreateLambda([WeakThis, SubmittedResult = Result, StartedSeconds](bool bSuccess, const FString& Error)
+	                                                                                                                          {
 			if (!WeakThis.IsValid()) return;
 			FVirtualSensorTransportResult Receipt = SubmittedResult;
 			Receipt.bSubmitted = true;
@@ -175,6 +175,11 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStompBinaryStream
 				? TEXT("Binary PCD broker receipt received; consumer processing is tracked separately.")
 				: FString::Printf(TEXT("Binary PCD broker receipt failed: %s"), *Error);
 			WeakThis->OnDataSent.Broadcast(Receipt); }));
+	if (!bSubmitted)
+	{
+		Result.Message = TEXT("STOMP ?? ?? ?? ? ??/??? ??? ?????.");
+		return Result;
+	}
 	Result.bSubmitted = true;
 	Result.Message = TEXT("Binary PCD submitted through IStompClient; waiting for broker receipt.");
 	LastStompSubmitSeconds = StartedSeconds;
@@ -190,12 +195,11 @@ void UVirtualSensorTransportComp::ConfigureTransportProfile(const FVirtualSensor
 	TransportProfile.TimeoutSeconds = FMath::Clamp(TransportProfile.TimeoutSeconds, 1, 120);
 	HttpEndpoint = TransportProfile.HttpEndpoint;
 	HttpTimeoutSeconds = TransportProfile.TimeoutSeconds;
-	if (bBrokerChanged && StompClient.IsValid())
+	if (bBrokerChanged && SensorStompChannel.IsValid())
 	{
 		bStompConnected.Store(false);
 		bStompConnecting.Store(false);
-		StompClient->Disconnect();
-		StompClient.Reset();
+		ReleaseStompChannel();
 	}
 }
 
@@ -207,22 +211,28 @@ void UVirtualSensorTransportComp::SetSessionCredentials(const FString& InPasscod
 
 bool UVirtualSensorTransportComp::IsStompConnected() const
 {
-	return StompClient.IsValid() && (bStompConnected.Load() || StompClient->IsConnected());
+	return SensorStompChannel.IsValid() && (bStompConnected.Load() || SensorStompChannel->IsConnected());
 }
 
 void UVirtualSensorTransportComp::GetOutputServerConnection(bool& Connected, bool& Expected) const
 {
+	Connected = false;
+	Expected = false;
+	if (!UsesDedicatedSensorBroker())
+		return;
 	const auto* Raw = GetWorld() ? GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>() : nullptr;
-	const bool CurrentRaw = Raw && Raw->GetActiveProfile().BrokerUrl == TransportProfile.BrokerUrl && Raw->GetActiveProfile().UserName == TransportProfile.UserName;
-	Connected = UsesDedicatedSensorBroker() && (IsStompConnected() || (CurrentRaw && Raw->IsTransportConnected()));
-	Expected = UsesDedicatedSensorBroker() && (StompClient.IsValid() || (CurrentRaw && Raw->IsHighThroughputTransportRunning()));
-	if (TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket)
-		if (auto* Socket = GetDTCoreWebSocket())
+	Expected = SensorStompChannel.IsValid() || (Raw && Raw->IsHighThroughputTransportRunning());
+	if (auto* Socket = GetDTCoreWebSocket())
+	{
+		for (const auto& Status : Socket->GetAllChannelStatus())
 		{
-			const auto State = Socket->GetConnectionState();
-			Connected |= State == EDxWebSocketConnectionState::Ready || State == EDxWebSocketConnectionState::Subscribing;
-			Expected = true;
+			const bool bDefault = Status.ChannelName == UDxWebSocketSubsystem::DefaultChannelName && TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket;
+			if (bDefault)
+				Expected = true;
+			if ((bDefault || (Expected && (Status.ChannelName == TEXT("sensor") || Status.ChannelName == TEXT("sensor-bulk")))) && Status.State == EDxDataChannelState::Connected)
+				Connected = true;
 		}
+	}
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::TestConnection()
@@ -263,7 +273,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::TestConnection()
 		else
 		{
 			EnsureStompClient();
-			Result.bSubmitted = StompClient.IsValid();
+			Result.bSubmitted = SensorStompChannel.IsValid();
 			Result.bAccepted = IsStompConnected();
 			Result.Destination = TransportProfile.BrokerUrl;
 			Result.Message = Result.bAccepted ? TEXT("Artemis STOMP 연결됨") : TEXT("Artemis STOMP 연결을 시작했습니다");
@@ -294,11 +304,8 @@ void UVirtualSensorTransportComp::RequestStompReconnect()
 	++StompConnectionRevision;
 	bStompConnected.Store(false);
 	bStompConnecting.Store(false);
-	if (StompClient.IsValid())
-	{
-		StompClient->Disconnect();
-		StompClient.Reset();
-	}
+	if (auto* Channel = SensorStompChannel.Get())
+		Channel->Disconnect();
 	EnsureStompClient();
 }
 
@@ -311,7 +318,7 @@ bool UVirtualSensorTransportComp::PrepareStompConnection(FString& Error)
 		return false;
 	}
 	EnsureStompClient();
-	if (!StompClient.IsValid())
+	if (!SensorStompChannel.IsValid())
 	{
 		Error = LastResult.Message.IsEmpty() ? TEXT("STOMP 연결 준비 실패") : LastResult.Message;
 		return false;
@@ -338,35 +345,48 @@ bool UVirtualSensorTransportComp::BuildStompConnectHeaders(const FString& User, 
 	return true;
 }
 
+void UVirtualSensorTransportComp::ReleaseStompChannel()
+{
+	if (auto* Channel = SensorStompChannel.Get())
+	{
+		Channel->Connected.RemoveAll(this);
+		Channel->Failed.RemoveAll(this);
+		Channel->AckReceived.RemoveAll(this);
+		Channel->AckSubscribed.RemoveAll(this);
+		Channel->ReleaseOwner(this);
+	}
+	SensorStompChannel.Reset();
+	AckSubscriptionId.Reset();
+}
+
 void UVirtualSensorTransportComp::EnsureStompClient()
 {
-	FStompHeader Headers;
-	FString AuthError;
-	if (!BuildStompConnectHeaders(TransportProfile.UserName, SessionPasscode, SessionBearerToken, Headers, AuthError))
+	auto* Channel = UDxDeviceSensorChannelSubsystem::FindStomp(GetWorld());
+	FString Error;
+	if (!Channel || !Channel->AcquireOwner(this, TransportProfile, SessionPasscode, SessionBearerToken, Error))
 	{
 		LastResult.bSubmitted = false;
 		LastResult.bAccepted = false;
-		LastResult.Message = AuthError;
+		LastResult.Message = Error.IsEmpty() ? TEXT("STOMP ?? ???? ?????.") : Error;
 		return;
 	}
-	if (StompClient.IsValid())
+	if (SensorStompChannel.Get() != Channel)
 	{
-		if (StompClient->IsConnected() || bStompConnecting.Load())
-			return;
-		// Recreate to avoid duplicate socket callbacks and restore credentials.
-		StompClient.Reset();
+		ReleaseStompChannel();
+		SensorStompChannel = Channel;
+		Channel->Connected.AddUObject(this, &UVirtualSensorTransportComp::HandleStompConnected);
+		Channel->Failed.AddUObject(this, &UVirtualSensorTransportComp::HandleStompFailure);
+		Channel->AckReceived.AddUObject(this, &UVirtualSensorTransportComp::HandleAckMessage);
+		Channel->AckSubscribed.AddUObject(this, &UVirtualSensorTransportComp::HandleAckSubscribed);
+		if (Channel->IsConnected())
+			HandleStompConnected(TEXT("1.2"), FString(), FString());
 	}
-	if (TransportProfile.BrokerUrl.IsEmpty())
-		return;
-	UE_LOG(LogTemp, Display, TEXT("[SensorStreamTransport] creating STOMP client owner=%s broker=%s"),
-	       *GetNameSafe(GetOwner()), *TransportProfile.BrokerUrl);
-	StompClient = FStompModule::Get().CreateClient(TransportProfile.BrokerUrl, SessionBearerToken);
-	StompClient->OnConnected().AddUObject(this, &UVirtualSensorTransportComp::HandleStompConnected);
-	StompClient->OnConnectionError().AddUObject(this, &UVirtualSensorTransportComp::HandleStompFailure);
-	StompClient->OnError().AddUObject(this, &UVirtualSensorTransportComp::HandleStompFailure);
-	StompClient->OnClosed().AddUObject(this, &UVirtualSensorTransportComp::HandleStompFailure);
-	bStompConnecting.Store(true);
-	StompClient->Connect(Headers);
+	const auto State = Channel->GetState();
+	if (State != EDxDataChannelState::Connecting && State != EDxDataChannelState::Reconnecting && !Channel->IsConnected())
+	{
+		UE_LOG(LogTemp, Display, TEXT("[SensorStreamTransport] creating STOMP client owner=%s broker=%s"), *GetNameSafe(GetOwner()), *TransportProfile.BrokerUrl);
+		bStompConnecting.Store(Channel->Connect());
+	}
 }
 
 void UVirtualSensorTransportComp::HandleStompConnected(const FString& ProtocolVersion, const FString& SessionId, const FString& ServerString)
@@ -403,37 +423,33 @@ void UVirtualSensorTransportComp::HandleStompFailure(const FString& Error)
 
 void UVirtualSensorTransportComp::SubscribeToAckTopic()
 {
-	if (!StompClient.IsValid() || !StompClient->IsConnected() || TransportProfile.AckTopic.IsEmpty() || !AckSubscriptionId.IsEmpty())
+	if (!SensorStompChannel.IsValid() || !SensorStompChannel->IsConnected() || TransportProfile.AckTopic.IsEmpty() || !AckSubscriptionId.IsEmpty())
 		return;
-	TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
-	AckSubscriptionId = StompClient->Subscribe(
-	    TransportProfile.AckTopic,
-	    FStompSubscriptionEvent::CreateLambda([WeakThis](const IStompMessage& Message)
-	                                          {
-			if (WeakThis.IsValid()) WeakThis->HandleAckMessage(Message); }),
-	    FStompRequestCompleted::CreateLambda([WeakThis](bool bSuccess, const FString& Error)
-	                                         {
-			if (!WeakThis.IsValid()) return;
-			FVirtualSensorTransportResult Result;
-			Result.Protocol = TEXT("STOMP/WS");
-			Result.Destination = WeakThis->TransportProfile.AckTopic;
-			Result.bSubmitted = true;
-			Result.bAccepted = bSuccess;
-			Result.DataKind = TEXT("ack-subscription");
-			Result.Message = bSuccess ? TEXT("소비자 ACK Topic 구독 완료") : FString::Printf(TEXT("ACK Topic 구독 실패: %s"), *Error);
-			WeakThis->OnDataSent.Broadcast(Result); }));
+	AckSubscriptionId = SensorStompChannel->SubscribeToAck(TransportProfile.AckTopic);
 }
 
-void UVirtualSensorTransportComp::HandleAckMessage(const IStompMessage& Message)
+void UVirtualSensorTransportComp::HandleAckSubscribed(bool bSuccess, const FString& Error)
+{
+	FVirtualSensorTransportResult Result;
+	Result.Protocol = TEXT("STOMP/WS");
+	Result.Destination = TransportProfile.AckTopic;
+	Result.bSubmitted = true;
+	Result.bAccepted = bSuccess;
+	Result.DataKind = TEXT("ack-subscription");
+	Result.Message = bSuccess ? TEXT("??? ACK Topic ?? ??") : FString::Printf(TEXT("ACK Topic ?? ??: %s"), *Error);
+	OnDataSent.Broadcast(Result);
+}
+
+void UVirtualSensorTransportComp::HandleAckMessage(const FWebSocketMessage& Message)
 {
 	FString RequestId;
-	const FStompHeader& Headers = Message.GetHeader();
+	const FStompHeader& Headers = Message.Headers;
 	if (const FString* HeaderRequestId = Headers.Find(TEXT("x-request-id")))
 		RequestId = *HeaderRequestId;
 	if (RequestId.IsEmpty())
 	{
 		TSharedPtr<FJsonObject> Root;
-		const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Message.GetBodyAsString());
+		const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Message.BodyString);
 		if (FJsonSerializer::Deserialize(Reader, Root) && Root.IsValid())
 			Root->TryGetStringField(TEXT("requestId"), RequestId);
 	}
@@ -499,14 +515,18 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStomp(
 	TWeakObjectPtr<UVirtualSensorTransportComp> WeakThis(this);
 	if (!bRequestReceipt)
 	{
-		StompClient->Send(Result.Destination, JsonText, Headers);
-		Result.bSubmitted = true;
+		Result.bSubmitted = SensorStompChannel->Send(Result.Destination, JsonText, Headers);
+		if (!Result.bSubmitted)
+		{
+			Result.Message = TEXT("STOMP ?? ?? ?? ? ??/??? ??? ?????.");
+			return Result;
+		}
 		Result.Message = TEXT("STOMP 전송 제출됨 · 이번 프레임은 receipt 생략");
 		LastStompSubmitSeconds = StartedSeconds;
 		return Result;
 	}
-	StompClient->Send(Result.Destination, JsonText, Headers, FStompRequestCompleted::CreateLambda([WeakThis, SubmittedResult = Result, RequestId, Destination, StartedSeconds](bool bSuccess, const FString& Error)
-	                                                                                              {
+	const bool bSubmitted = SensorStompChannel->Send(Result.Destination, JsonText, Headers, FStompRequestCompleted::CreateLambda([WeakThis, SubmittedResult = Result, RequestId, Destination, StartedSeconds](bool bSuccess, const FString& Error)
+	                                                                                                                             {
 			if (!WeakThis.IsValid()) return;
 			FVirtualSensorTransportResult Receipt = SubmittedResult;
 			Receipt.Protocol = TEXT("STOMP/WS");
@@ -536,10 +556,9 @@ void UVirtualSensorTransportComp::EndPlay(const EEndPlayReason::Type EndPlayReas
 	CancelDTCoreReceipts();
 	bStompConnected.Store(false);
 	bStompConnecting.Store(false);
-	if (StompClient.IsValid())
+	if (SensorStompChannel.IsValid())
 	{
-		StompClient->Disconnect();
-		StompClient.Reset();
+		ReleaseStompChannel();
 	}
 	AckSubscriptionId.Reset();
 	SessionPasscode.Reset();

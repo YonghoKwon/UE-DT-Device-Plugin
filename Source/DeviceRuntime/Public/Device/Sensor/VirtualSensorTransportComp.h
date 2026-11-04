@@ -8,6 +8,8 @@
 struct FVirtualPointCloudBinaryMetadata;
 class UDxWebSocketSubsystem;
 class UDeviceDTCorePublishReceipt;
+class UDxDeviceSensorStompChannel;
+struct FWebSocketMessage;
 
 UENUM(BlueprintType)
 enum class EVirtualSensorTransportMode : uint8
@@ -287,10 +289,12 @@ private:
 	void HandleStompConnected(const FString& ProtocolVersion, const FString& SessionId, const FString& ServerString);
 	void HandleStompFailure(const FString& Error);
 	void SubscribeToAckTopic();
-	void HandleAckMessage(const class IStompMessage& Message);
+	void HandleAckMessage(const FWebSocketMessage& Message);
+	void HandleAckSubscribed(bool bSuccess, const FString& Error);
+	void ReleaseStompChannel();
 	FString ResolveTopic(const FString& SensorType, const FString& DataKind) const;
 
-	TSharedPtr<class IStompClient> StompClient;
+	TWeakObjectPtr<UDxDeviceSensorStompChannel> SensorStompChannel;
 	TAtomic<bool> bStompConnected{false};
 	TAtomic<bool> bStompConnecting{false};
 	TAtomic<int64> StompConnectionRevision{0};

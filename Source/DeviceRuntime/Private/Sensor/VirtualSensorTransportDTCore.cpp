@@ -2,6 +2,7 @@
 #include "DeviceDTCorePublishReceipt.h"
 #include "DeviceDTCoreReceiptPool.h"
 #include "Core/DxWebSocketSubsystem.h"
+#include "Core/DxDataChannelBase.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 
@@ -96,7 +97,8 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendDTCoreJson(UDxWeb
 		Receipt->Start(this, Socket, Pool, Submitted, TransportProfile.TimeoutSeconds);
 		Completion.BindDynamic(Receipt, &UDeviceDTCorePublishReceipt::HandleCompleted);
 	}
-	Result.bSubmitted = Socket->PublishMessage(Result.Destination, JsonText, Headers, Completion);
+	auto* DefaultChannel = Socket->FindChannel(UDxWebSocketSubsystem::DefaultChannelName);
+	Result.bSubmitted = DefaultChannel && DefaultChannel->PublishText(Result.Destination, JsonText, Headers, Completion);
 	if (!Result.bSubmitted)
 	{
 		if (Receipt)

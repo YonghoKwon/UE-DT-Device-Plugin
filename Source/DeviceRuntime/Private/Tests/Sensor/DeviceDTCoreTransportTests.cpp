@@ -3,6 +3,7 @@
 #include "Async/Async.h"
 #include "Device/Sensor/VirtualSensorTransportComp.h"
 #include "Core/DxWebSocketSubsystem.h"
+#include "Core/DxDataChannelBase.h"
 #include "Engine/GameInstance.h"
 #include "../../Sensor/DeviceDTCorePublishReceipt.h"
 #include "../../Sensor/DeviceDTCoreReceiptPool.h"
@@ -33,7 +34,7 @@ bool FDeviceDTCoreTransportTest::RunTest(const FString& Parameters)
 	auto* Game = NewObject<UGameInstance>();
 	auto* Socket = NewObject<UDxWebSocketSubsystem>(Game);
 	auto* Transport = NewObject<UVirtualSensorTransportComp>();
-	TestFalse(TEXT("default does not create a dedicated client"), Transport->StompClient.IsValid());
+	TestFalse(TEXT("default does not create a dedicated client"), Transport->SensorStompChannel.IsValid());
 	TestEqual(TEXT("default has no shared receipts"), Transport->DTCoreReceipts.Num(), 0);
 	Transport->TransportMode = EVirtualSensorTransportMode::DTCoreWebSocket;
 	const auto Result = Transport->SendDTCoreJson(Socket, TEXT("SENSOR-A"), TEXT("lidar"), TEXT("manual-payload"), 77, TEXT("{}"), true, true, {{TEXT("x-run-uuid"), TEXT("run-snapshot")}});
@@ -45,7 +46,8 @@ bool FDeviceDTCoreTransportTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("frame id remains immutable"), Result.FrameId, static_cast<int64>(77));
 	TestEqual(TEXT("run id remains immutable"), Result.RunId, FString(TEXT("run-snapshot")));
 	TestEqual(TEXT("failed send leaves no receipt"), Transport->DTCoreReceipts.Num(), 0);
-	TestFalse(TEXT("failed send leaves no state binding"), Socket->OnConnectionStateChanged.IsBound());
+	TestTrue(TEXT("Default adapter is registered on demand"), Socket->FindChannel(UDxWebSocketSubsystem::DefaultChannelName) != nullptr);
+	TestEqual(TEXT("failed send has no receipt contexts"), Transport->DTCoreReceipts.Num(), 0);
 	const auto Stream = Transport->SendDTCoreJson(Socket, TEXT("SENSOR-A"), TEXT("lidar"), TEXT("pointcloud-stream"), 78, TEXT("{}"), false, false);
 	TestFalse(TEXT("continuous frame explicitly rejected"), Stream.bSubmitted);
 	TestEqual(TEXT("policy rejection never calls shared publisher"), Socket->GetPublishDroppedCount(), 1);
@@ -70,10 +72,10 @@ bool FDeviceDTCoreTransportTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("disconnect releases pending context"), Transport->DTCoreReceipts.Num(), 0);
 	TestFalse(TEXT("disconnect receipt remains unknown"), Transport->LastResult.bReceiptCompleted);
 	TestFalse(TEXT("disconnect is not broker acceptance"), Transport->LastResult.bAccepted);
-	TestFalse(TEXT("disconnect removes state binding"), Socket->OnConnectionStateChanged.IsBound());
+	TestEqual(TEXT("disconnect removes receipt context, retaining Default channel adapter"), Transport->DTCoreReceipts.Num(), 0);
 	Receipt->HandleCompleted(true, FString());
 	TestFalse(TEXT("late completion cannot apply after cancellation"), Transport->LastResult.bAccepted);
-	TestFalse(TEXT("shared mode never creates dedicated client for JSON"), Transport->StompClient.IsValid());
+	TestFalse(TEXT("shared mode never creates dedicated client for JSON"), Transport->SensorStompChannel.IsValid());
 	TestEqual(TEXT("disconnect frees global slot"), Pool->Num(), 0);
 	auto* Timed = NewObject<UDeviceDTCorePublishReceipt>(Pool);
 	TestTrue(TEXT("deadline slot reserved"), Pool->Reserve(Timed));

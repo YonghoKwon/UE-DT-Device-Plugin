@@ -1,16 +1,24 @@
 #include "Device/Core/DxDeviceSensorBulkChannel.h"
 
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
+#include "Core/DTCoreSettings.h"
+#include "../Sensor/DeviceSensorTransportConfig.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+
+void UDxDeviceSensorBulkChannel::OnChannelInitialized()
+{
+	const FName Name = GetChannelName();
+	bExplicitSettings = GetDefault<UDTCoreSettings>()->DataChannels.ContainsByPredicate([Name](const auto& Item)
+	                                                                                    { return Item.ChannelName == Name; });
+}
 
 void UDxDeviceSensorBulkChannel::ResolveLegacyProfile(FVirtualSensorHighThroughputProfile& Profile, FString& Passcode) const
 {
 	const auto& Settings = GetChannelSettings();
 	if (!bExplicitSettings)
 		return;
-	if (!Settings.Url.IsEmpty() || !Settings.UrlOverrideKey.IsEmpty())
-		Profile.BrokerUrl = ResolveUrl();
+	Profile.BrokerUrl = ResolveUrl();
 	const auto Credentials = ResolveCredentials();
 	Profile.UserName = Credentials.FindRef(TEXT("login"));
 	Passcode = Credentials.FindRef(TEXT("passcode"));
@@ -90,12 +98,10 @@ bool UDxDeviceSensorBulkChannel::Connect()
 	}
 	if (Source->IsHighThroughputTransportRunning())
 		return true;
-	FVirtualSensorHighThroughputProfile Profile;
-	const auto Legacy = UVirtualSensorHighThroughputTransportSubsystem::MakeProfile(FVirtualSensorTransportProfile{});
-	Profile.ReconnectInitialDelaySeconds = Legacy.ReconnectInitialDelaySeconds;
-	Profile.ReconnectMaxDelaySeconds = Legacy.ReconnectMaxDelaySeconds;
-	Profile.ReconnectBackoffMultiplier = Legacy.ReconnectBackoffMultiplier;
-	return Start(*Source, Profile, FString());
+	FVirtualSensorTransportProfile Legacy;
+	FString Passcode;
+	DeviceSensorTransportConfig::ReadLegacyConnection(Legacy, Passcode);
+	return Start(*Source, UVirtualSensorHighThroughputTransportSubsystem::MakeProfile(Legacy), Passcode);
 }
 
 void UDxDeviceSensorBulkChannel::StopForWorld(UVirtualSensorHighThroughputTransportSubsystem& Source)

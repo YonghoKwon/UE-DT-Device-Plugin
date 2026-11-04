@@ -37,6 +37,7 @@ public:
 	void ResolveLegacyProfile(FVirtualSensorHighThroughputProfile& Profile, FString& Passcode) const;
 
 protected:
+	virtual void OnChannelInitialized() override;
 	virtual void OnChannelShutdown() override;
 	virtual bool PublishBytes(const FString& Destination, const TArray<uint8>& Body, const TMap<FName, FString>& Headers, const FSTOMPRequestCompleted& CompletionCallback) override;
 
