@@ -13,6 +13,7 @@
 #include "../../Sensor/DeviceStompSessionClient.h"
 #include "../../Core/DeviceDataChannelLooseConfig.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Core/DTCoreSettings.h"
 #include "Misc/AutomationTest.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceBulkChannelPolicy, "MA0T10.DataIf10.BulkPolicy", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -412,6 +413,20 @@ bool FDeviceLooseTopicConfig::RunTest(const FString&)
 	TestEqual(TEXT("topic policy independently replaced"), Entries.Num(), 1);
 	if (Entries.Num() == 1)
 		TestTrue(TEXT("Default topic row retained"), Entries[0].Contains(TEXT("Default")));
+	auto* Connections = NewObject<UDTCoreSettings>();
+	auto* Topics = NewObject<UDeviceDataChannelSettings>();
+	Connections->DataChannels.Empty();
+	Topics->Channels.Empty();
+	Connections->WebSocketPasscode = TEXT("fixture-value-retained");
+	auto* OriginalCache = GConfig->FindConfigFile(GGameIni);
+	const bool bOriginalDirty = OriginalCache ? OriginalCache->Dirty : false;
+	TestTrue(TEXT("typed settings overlay succeeds"), DeviceDataChannelConfig::ApplyBuffers(Common, Platform, *Connections, *Topics));
+	TestEqual(TEXT("typed connection URL"), Connections->WebSocketUrl, FString(TEXT("ws://127.0.0.1:3")));
+	TestEqual(TEXT("credential property unchanged"), Connections->WebSocketPasscode, FString(TEXT("fixture-value-retained")));
+	TestEqual(TEXT("typed named connection count"), Connections->DataChannels.Num(), 1);
+	TestEqual(TEXT("typed topic channel count"), Topics->Channels.Num(), 1);
+	TestTrue(TEXT("global config object is never replaced"), OriginalCache == GConfig->FindConfigFile(GGameIni));
+	TestEqual(TEXT("global config dirty flag unchanged"), OriginalCache ? OriginalCache->Dirty : false, bOriginalDirty);
 	return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceConfiguredAckPolicy, "MA0T10.DataIf10.ConfiguredAckPolicy", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

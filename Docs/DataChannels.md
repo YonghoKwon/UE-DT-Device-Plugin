@@ -107,7 +107,8 @@ Cooked packages apply those two physical loose files at module startup because p
 config otherwise masks this deployment layout. Only topic policy and an explicit
 connection-property whitelist are loaded, common then platform, above the existing
 config values. The Runtime Override credential/URL rules still apply afterwards.
-The overlay restores the original config cache without saving it; unrelated fields,
+The overlay parses a separately owned config file and never copies or changes the
+global config cache; unrelated fields,
 direct credentials and map configuration are excluded. Each file is capped at 2MiB.
 Editor configuration continues to use UE's standard hierarchy.
 

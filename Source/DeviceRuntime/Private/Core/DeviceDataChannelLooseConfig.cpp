@@ -8,6 +8,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "UObject/UnrealType.h"
+#include "Misc/OutputDeviceNull.h"
 
 namespace
 {
@@ -68,42 +69,87 @@ FString DeviceDataChannelConfig::FilterProjectOverrides(const FString& Text)
 	return bHasValue ? Result : FString();
 }
 
+namespace
+{
+template <typename T>
+void SeedRows(FConfigFile& File, const TCHAR* Section, const TCHAR* Key, const TArray<T>& Rows)
+{
+	for (const auto& Row : Rows)
+	{
+		FString Text;
+		T::StaticStruct()->ExportText(Text, &Row, nullptr, nullptr, PPF_None, nullptr);
+		File.FindOrAddSection(Section)->Add(FName(Key), FConfigValue(Text));
+	}
+}
+
+template <typename T>
+bool ReadRows(const FConfigFile& File, const TCHAR* Section, const TCHAR* Key, TArray<T>& Result)
+{
+	TArray<FString> Rows;
+	File.GetArray(Section, Key, Rows);
+	FOutputDeviceNull Errors;
+	for (const auto& Text : Rows)
+	{
+		T Row;
+		if (!T::StaticStruct()->ImportText(*Text, &Row, nullptr, PPF_None, &Errors, T::StaticStruct()->GetName()))
+			return false;
+		Result.Add(MoveTemp(Row));
+	}
+	return true;
+}
+}
+
+bool DeviceDataChannelConfig::ApplyBuffers(const FString& Common, const FString& Platform, UDTCoreSettings& Connections, UDeviceDataChannelSettings& Topics)
+{
+	const FString CommonValues = FilterProjectOverrides(Common);
+	const FString PlatformValues = FilterProjectOverrides(Platform);
+	if (CommonValues.IsEmpty() && PlatformValues.IsEmpty())
+		return true;
+	// This local file owns its data. Never copy, replace, dirty or flush GConfig's files.
+	FConfigFile Combined;
+	Combined.NoSave = true;
+	SeedRows(Combined, CoreSection, TEXT("DataChannels"), Connections.DataChannels);
+	SeedRows(Combined, TopicSection, TEXT("Channels"), Topics.Channels);
+	Combined.CombineFromBuffer(CommonValues, TEXT("loose common channel policy"));
+	Combined.CombineFromBuffer(PlatformValues, TEXT("loose platform channel policy"));
+	TArray<FDxDataChannelSettings> NewConnections;
+	TArray<FDeviceDataChannelTopics> NewTopics;
+	if (!ReadRows(Combined, CoreSection, TEXT("DataChannels"), NewConnections) || !ReadRows(Combined, TopicSection, TEXT("Channels"), NewTopics))
+		return false;
+	Swap(Topics.Channels, NewTopics);
+	FString Error;
+	if (!Topics.Validate(Error))
+	{
+		Swap(Topics.Channels, NewTopics);
+		return false;
+	}
+	Connections.DataChannels = MoveTemp(NewConnections);
+	Combined.GetString(CoreSection, TEXT("WebSocketUrl"), Connections.WebSocketUrl);
+	Combined.GetInt(CoreSection, TEXT("MaxReconnectAttempts"), Connections.MaxReconnectAttempts);
+	Combined.GetFloat(CoreSection, TEXT("ReconnectInitialDelaySeconds"), Connections.ReconnectInitialDelaySeconds);
+	Combined.GetFloat(CoreSection, TEXT("ReconnectMaxDelaySeconds"), Connections.ReconnectMaxDelaySeconds);
+	Combined.GetFloat(CoreSection, TEXT("ReconnectBackoffMultiplier"), Connections.ReconnectBackoffMultiplier);
+	Combined.GetFloat(CoreSection, TEXT("SubscribeReceiptTimeoutSeconds"), Connections.SubscribeReceiptTimeoutSeconds);
+	return true;
+}
+
 void DeviceDataChannelConfig::ApplyLoosePackageOverrides()
 {
-	if (!FPlatformProperties::RequiresCookedData() || !GConfig)
-		return;
-	auto* Connections = GetMutableDefault<UDTCoreSettings>();
-	auto* Topics = GetMutableDefault<UDeviceDataChannelSettings>();
-	auto* Game = GConfig->FindConfigFile(GGameIni);
-	if (!Game)
+	if (!FPlatformProperties::RequiresCookedData())
 		return;
 	const FString Root = FPaths::ConvertRelativePathToFull(FPaths::ProjectConfigDir());
 	const FString Platform = FPlatformProperties::IniPlatformName();
-	FConfigFile Original = *Game;
-	int32 Count = 0;
-	for (const FString& Path : {Root / TEXT("DefaultGame.ini"), Root / Platform / (Platform + TEXT("Game.ini"))})
+	FString Common, PlatformText;
+	ReadPhysicalConfig(Root / TEXT("DefaultGame.ini"), Common);
+	ReadPhysicalConfig(Root / Platform / (Platform + TEXT("Game.ini")), PlatformText);
+	if (FilterProjectOverrides(Common).IsEmpty() && FilterProjectOverrides(PlatformText).IsEmpty())
+		return;
+	if (ApplyBuffers(Common, PlatformText, *GetMutableDefault<UDTCoreSettings>(), *GetMutableDefault<UDeviceDataChannelSettings>()))
 	{
-		FString Text;
-		if (ReadPhysicalConfig(Path, Text))
-		{
-			const FString Filtered = FilterProjectOverrides(Text);
-			if (!Filtered.IsEmpty())
-			{
-				Game->CombineFromBuffer(Filtered, Path);
-				++Count;
-			}
-		}
+		UE_LOG(LogTemp, Display, TEXT("[DeviceDataChannel] Applied project loose connection/topic policy; credentials, unrelated settings and global config cache unchanged."));
 	}
-	if (Count > 0)
+	else
 	{
-		Game->NoSave = true;
-		for (FName Name : ConnectionProperties())
-			if (auto* Property = FindFProperty<FProperty>(UDTCoreSettings::StaticClass(), Name))
-				Connections->ReloadConfig(UDTCoreSettings::StaticClass(), *GGameIni, UE::LCPF_None, Property);
-		if (auto* Property = FindFProperty<FProperty>(UDeviceDataChannelSettings::StaticClass(), TEXT("Channels")))
-			Topics->ReloadConfig(UDeviceDataChannelSettings::StaticClass(), *GGameIni, UE::LCPF_None, Property);
-		UE_LOG(LogTemp, Display, TEXT("[DeviceDataChannel] Applied project loose connection/topic policy (%d files); credentials and unrelated settings unchanged."), Count);
+		UE_LOG(LogTemp, Error, TEXT("[DeviceDataChannel] Invalid loose channel policy; existing settings retained."));
 	}
-	// Only the two settings objects retain the selected values. Do not dirty/save the config cache.
-	*Game = MoveTemp(Original);
 }
