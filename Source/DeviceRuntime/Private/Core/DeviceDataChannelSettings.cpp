@@ -6,13 +6,25 @@ const FDeviceDataChannelTopics* UDeviceDataChannelSettings::FindTopics(FName Cha
 	                                { return Item.ChannelName == ChannelName; });
 }
 
-FString UDeviceDataChannelSettings::Resolve(FName ChannelName, FName Alias, const FString& LegacyDestination) const
+const FDeviceDataDestination* UDeviceDataChannelSettings::FindDestination(FName ChannelName, FName Alias) const
 {
 	if (const auto* Topics = FindTopics(ChannelName))
-		if (const auto* Topic = Topics->Destinations.FindByPredicate([Alias](const auto& Item)
-		                                                             { return Item.Alias == Alias; }))
-			if (!Topic->Destination.IsEmpty())
-				return Topic->Destination;
+		return Topics->Destinations.FindByPredicate([Alias](const auto& Item)
+		                                            { return Item.Alias == Alias; });
+	return nullptr;
+}
+
+FString UDeviceDataChannelSettings::Resolve(FName ChannelName, FName Alias, const FString& LegacyDestination) const
+{
+	if (const auto* Topic = FindDestination(ChannelName, Alias); Topic && !Topic->Destination.IsEmpty())
+		return Topic->Destination;
+	return LegacyDestination;
+}
+
+FString UDeviceDataChannelSettings::ResolveSubscription(FName ChannelName, FName Alias, const FString& LegacyDestination) const
+{
+	if (const auto* Topic = FindDestination(ChannelName, Alias); Topic && !Topic->Destination.IsEmpty())
+		return Topic->bSubscribe ? Topic->Destination : FString();
 	return LegacyDestination;
 }
 

@@ -11,6 +11,8 @@
 #include "TimerManager.h"
 #include "UObject/StrongObjectPtr.h"
 #include "../../Sensor/DeviceStompSessionClient.h"
+#include "../../Core/DeviceDataChannelLooseConfig.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/AutomationTest.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceBulkChannelPolicy, "MA0T10.DataIf10.BulkPolicy", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -351,9 +353,11 @@ bool FDeviceMultipleTopicSubscriptions::RunTest(const FString&)
 	Game->GetTimerManager().Tick(0.6f);
 	Fake->Connected.Broadcast(TEXT("1.2"), TEXT("two"), FString());
 	Pump();
-	TestEqual(TEXT("both topics resubscribed"), Fake->Subscriptions.Num(), 4);
-	TestEqual(TEXT("first destination preserved"), Fake->SubscriptionDestinations[0], Fake->SubscriptionDestinations[2]);
-	TestEqual(TEXT("second destination preserved"), Fake->SubscriptionDestinations[1], Fake->SubscriptionDestinations[3]);
+	if (TestEqual(TEXT("both topics resubscribed"), Fake->Subscriptions.Num(), 4))
+	{
+		TestEqual(TEXT("first destination preserved"), Fake->SubscriptionDestinations[0], Fake->SubscriptionDestinations[2]);
+		TestEqual(TEXT("second destination preserved"), Fake->SubscriptionDestinations[1], Fake->SubscriptionDestinations[3]);
+	}
 	Channel->ShutdownChannel();
 	return true;
 }
@@ -382,6 +386,80 @@ bool FDeviceSharedTopicLifecycle::RunTest(const FString&)
 	TestTrue(TEXT("old shared ID is discarded"), Interest->Key.IsEmpty());
 	Interest->ObserveSharedState(EDxDataChannelState::Connected);
 	TestEqual(TEXT("new shared generation requests interest again"), Fake->Subscriptions.Num(), 2);
+	Channel->ShutdownChannel();
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceLooseTopicConfig, "MA0T10.DataIf10.LooseTopicConfig", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FDeviceLooseTopicConfig::RunTest(const FString&)
+{
+	const FString Common = TEXT("[/Script/DTCore.DTCoreSettings]\nWebSocketUrl=\"ws://127.0.0.1:1\"\nWebSocketPasscode=not-imported\n+DataChannels=(ChannelName=\"sensor\",Url=\"ws://127.0.0.1:2\")\n[/Script/DeviceRuntime.DeviceDataChannelSettings]\n+Channels=(ChannelName=\"sensor\",Destinations=())\n[/Script/EngineSettings.GameMapsSettings]\nGameDefaultMap=/not/imported\n");
+	const FString Platform = TEXT("[/Script/DTCore.DTCoreSettings]\nWebSocketUrl=\"ws://127.0.0.1:3\"\n!DataChannels=ClearArray\n+DataChannels=(ChannelName=\"sensor-bulk\",Url=\"tcp://127.0.0.1:4\")\n[/Script/DeviceRuntime.DeviceDataChannelSettings]\n!Channels=ClearArray\n+Channels=(ChannelName=\"Default\",Destinations=())\n");
+	const FString Filtered = DeviceDataChannelConfig::FilterProjectOverrides(Common);
+	TestFalse(TEXT("credential value is excluded"), Filtered.Contains(TEXT("not-imported")));
+	TestFalse(TEXT("unrelated map setting is excluded"), Filtered.Contains(TEXT("GameDefaultMap")));
+	FConfigFile Combined;
+	Combined.CombineFromBuffer(Filtered, TEXT("common-fixture"));
+	Combined.CombineFromBuffer(DeviceDataChannelConfig::FilterProjectOverrides(Platform), TEXT("platform-fixture"));
+	FString Url;
+	Combined.GetString(TEXT("/Script/DTCore.DTCoreSettings"), TEXT("WebSocketUrl"), Url);
+	TestEqual(TEXT("platform wins over common"), Url, FString(TEXT("ws://127.0.0.1:3")));
+	TArray<FString> Entries;
+	Combined.GetArray(TEXT("/Script/DTCore.DTCoreSettings"), TEXT("DataChannels"), Entries);
+	TestEqual(TEXT("array clear operator retained"), Entries.Num(), 1);
+	if (Entries.Num() == 1)
+		TestTrue(TEXT("platform channel row retained"), Entries[0].Contains(TEXT("sensor-bulk")));
+	Combined.GetArray(TEXT("/Script/DeviceRuntime.DeviceDataChannelSettings"), TEXT("Channels"), Entries);
+	TestEqual(TEXT("topic policy independently replaced"), Entries.Num(), 1);
+	if (Entries.Num() == 1)
+		TestTrue(TEXT("Default topic row retained"), Entries[0].Contains(TEXT("Default")));
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceConfiguredAckPolicy, "MA0T10.DataIf10.ConfiguredAckPolicy", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FDeviceConfiguredAckPolicy::RunTest(const FString&)
+{
+	auto* Policy = GetMutableDefault<UDeviceDataChannelSettings>();
+	TGuardValue<TArray<FDeviceDataChannelTopics>> Restore(Policy->Channels, {});
+	FDeviceDataChannelTopics Topics;
+	Topics.ChannelName = TEXT("sensor");
+	Topics.Destinations.Add({TEXT("ack"), TEXT("topic.fixture.project-ack"), false, TEXT("consumer ACK")});
+	Policy->Channels.Add(Topics);
+	TestTrue(TEXT("explicit disabled ACK does not fall back to legacy subscription"), Policy->ResolveSubscription(TEXT("sensor"), TEXT("ack"), TEXT("legacy.ack")).IsEmpty());
+	Policy->Channels[0].Destinations[0].bSubscribe = true;
+	auto* Game = NewObject<UGameInstance>();
+	auto* Channel = NewObject<UDxDeviceSensorStompChannel>(Game);
+	auto Fake = MakeShared<FDataIfStompProbe>();
+	Channel->TestClient = Fake;
+	FDxDataChannelSettings Settings;
+	Settings.ChannelName = TEXT("sensor");
+	Settings.bAutoConnect = false;
+	Settings.bUseDefaultCredentials = false;
+	Settings.ReconnectInitialDelaySeconds = 0.5f;
+	Channel->InitializeChannel(Settings.ChannelName, Settings, Game);
+	TestEqual(TEXT("configured ACK registers without connecting"), Fake->ConnectCalls, 0);
+	Channel->Connect();
+	Fake->Connected.Broadcast(TEXT("1.2"), TEXT("first"), FString());
+	const auto Pump = []()
+	{
+		FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+	};
+	Pump();
+	TestEqual(TEXT("one configured ACK interest"), Fake->Subscriptions.Num(), 1);
+	Channel->SubscribeToAck(TEXT("topic.fixture.project-ack"));
+	TestEqual(TEXT("legacy caller shares configured ACK key"), Fake->Subscriptions.Num(), 1);
+	Fake->bConnected = false;
+	Fake->Closed.Broadcast(TEXT("fixture"));
+	Pump();
+	Game->GetTimerManager().Tick(0.01f);
+	++GFrameCounter;
+	Game->GetTimerManager().Tick(0.6f);
+	Fake->Connected.Broadcast(TEXT("1.2"), TEXT("second"), FString());
+	Pump();
+	TestEqual(TEXT("configured ACK automatically renews once"), Fake->Subscriptions.Num(), 2);
+	Channel->ReleaseOwner(Game);
+	Channel->Connect();
+	Fake->Connected.Broadcast(TEXT("1.2"), TEXT("third"), FString());
+	Pump();
+	TestEqual(TEXT("configured interest survives legacy-owner teardown"), Fake->Subscriptions.Num(), 3);
 	Channel->ShutdownChannel();
 	return true;
 }

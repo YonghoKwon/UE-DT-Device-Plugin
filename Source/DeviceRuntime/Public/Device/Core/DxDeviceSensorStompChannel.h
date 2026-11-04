@@ -44,6 +44,7 @@ private:
 	friend class FDeviceStompChannelLifecycle;
 	friend class FDeviceMultipleTopicSubscriptions;
 	friend class FDeviceSharedTopicLifecycle;
+	friend class FDeviceConfiguredAckPolicy;
 	TSharedPtr<IStompClient> TestClient;
 #endif
 	UFUNCTION()
@@ -57,4 +58,5 @@ private:
 	FString SessionPasscode, SessionBearerToken;
 	FString ProtocolVersion, SessionId, ServerString, AckKey, AckTopic;
 	bool bExplicitSettings = false;
+	bool bConfiguredAck = false;
 };

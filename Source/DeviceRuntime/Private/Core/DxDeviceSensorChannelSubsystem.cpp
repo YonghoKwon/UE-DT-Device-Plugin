@@ -137,6 +137,9 @@ void UDxDeviceSensorChannelSubsystem::ConfigureTopicSubscriptions(const UDeviceD
 					Channel->OnStateChanged.AddUniqueDynamic(this, &UDxDeviceSensorChannelSubsystem::HandleChannelState);
 				for (const auto& Destination : Destinations)
 				{
+					const auto* Ack = Settings.FindDestination(Name, TEXT("ack"));
+					if (Name == TEXT("sensor") && Ack && Ack->bSubscribe && Ack->Destination == Destination)
+						continue; // Reuse the channel's existing ACK callback/key.
 					auto* Subscription = NewObject<UDeviceDataTopicSubscription>(this);
 					Subscription->Owner = this;
 					Subscription->Channel = Channel;

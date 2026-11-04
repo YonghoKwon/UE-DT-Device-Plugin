@@ -305,7 +305,7 @@ FString UVirtualSensorTransportComp::ResolveTopic(const FString& SensorType, con
 
 FString UVirtualSensorTransportComp::ResolveAckTopic() const
 {
-	return GetDefault<UDeviceDataChannelSettings>()->Resolve(TEXT("sensor"), TEXT("ack"), TransportProfile.AckTopic);
+	return GetDefault<UDeviceDataChannelSettings>()->ResolveSubscription(TEXT("sensor"), TEXT("ack"), TransportProfile.AckTopic);
 }
 
 void UVirtualSensorTransportComp::RequestStompReconnect()

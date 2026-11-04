@@ -40,7 +40,9 @@ public:
 	TArray<FDeviceDataChannelTopics> Channels;
 
 	const FDeviceDataChannelTopics* FindTopics(FName ChannelName) const;
+	const FDeviceDataDestination* FindDestination(FName ChannelName, FName Alias) const;
 	FString Resolve(FName ChannelName, FName Alias, const FString& LegacyDestination) const;
+	FString ResolveSubscription(FName ChannelName, FName Alias, const FString& LegacyDestination) const;
 	TArray<FString> GetSubscriptions(FName ChannelName) const;
 	TArray<FString> GetDuplicateSubscriptionWarnings() const;
 	bool Validate(FString& Error) const;

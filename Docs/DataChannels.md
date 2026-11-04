@@ -75,6 +75,10 @@ profile. The default list is empty, preserving all existing server names and the
 default disabled self-consumption policy. `camera`, `lidar`, `pointcloud`, `imu`,
 and `ack` are the code-facing aliases; arbitrary extra receive aliases are allowed.
 Connection settings remain exclusively in DTCore's existing settings.
+The reserved `sensor/ack` interest shares the existing ACK callback/key, honors an
+explicit disabled subscription, and is retained across reconnect and legacy-owner
+teardown. Its callback remains `UDxDeviceSensorStompChannel::AckReceived`; it is not
+duplicated through the generic topic callback.
 
 The GI registry registers multiple sensor interests via `UDxStompChannel::Subscribe`;
 DTCore retains keys and renews them on reconnect. The Default adapter uses the
@@ -98,6 +102,14 @@ Common configuration is `Config/DefaultGame.ini`; platform overrides are
 `!Channels=ClearArray` plus complete channel rows. Restart after changing deployed
 loose configuration. Credentials remain Runtime Override key references, not values
 inside topic policy. The host's `docs/ARTEMIS_PCD_SETTINGS.md` has concrete examples.
+
+Cooked packages apply those two physical loose files at module startup because pak
+config otherwise masks this deployment layout. Only topic policy and an explicit
+connection-property whitelist are loaded, common then platform, above the existing
+config values. The Runtime Override credential/URL rules still apply afterwards.
+The overlay restores the original config cache without saving it; unrelated fields,
+direct credentials and map configuration are excluded. Each file is capped at 2MiB.
+Editor configuration continues to use UE's standard hierarchy.
 
 Development-only `-DeviceChannelConfigProbe` writes a read-only redacted snapshot
 after engine initialization and exits. No work is registered without that flag;

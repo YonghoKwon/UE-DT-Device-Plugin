@@ -3,6 +3,7 @@
 #include "../Sensor/DeviceStompSessionClient.h"
 #include "../Sensor/DeviceSensorTransportConfig.h"
 #include "Core/DTCoreSettings.h"
+#include "Device/Core/DeviceDataChannelSettings.h"
 #include "Async/Async.h"
 #include "Engine/GameInstance.h"
 #include "StompModule.h"
@@ -15,6 +16,10 @@ void UDxDeviceSensorStompChannel::OnChannelInitialized()
 	                                                                                    { return Item.ChannelName == Name; });
 	if (!bExplicitSettings)
 		DeviceSensorTransportConfig::ReadLegacyConnection(LegacyProfile, SessionPasscode);
+	const FString ProjectAck = GetDefault<UDeviceDataChannelSettings>()->ResolveSubscription(Name, TEXT("ack"), FString());
+	bConfiguredAck = !ProjectAck.IsEmpty();
+	if (bConfiguredAck)
+		SubscribeToAck(ProjectAck);
 }
 
 void UDxDeviceSensorStompChannel::PruneOwners()
@@ -48,7 +53,8 @@ bool UDxDeviceSensorStompChannel::AcquireOwner(UObject* Owner, const FVirtualSen
 		}
 		if (bChanged)
 		{
-			ClearAckSubscription();
+			if (!bConfiguredAck)
+				ClearAckSubscription();
 			Disconnect();
 		}
 		LegacyProfile = Profile;
@@ -65,7 +71,8 @@ void UDxDeviceSensorStompChannel::ReleaseOwner(UObject* Owner)
 	PruneOwners();
 	if (Owners.IsEmpty() && !(bExplicitSettings && GetChannelSettings().bAutoConnect))
 	{
-		ClearAckSubscription();
+		if (!bConfiguredAck)
+			ClearAckSubscription();
 		Disconnect();
 		SessionPasscode.Reset();
 		SessionBearerToken.Reset();
@@ -130,7 +137,8 @@ void UDxDeviceSensorStompChannel::HandleTransportConnected()
 
 void UDxDeviceSensorStompChannel::HandleTransportClosed(const FString& Reason)
 {
-	ClearAckSubscription();
+	if (!bConfiguredAck)
+		ClearAckSubscription();
 	Super::HandleTransportClosed(Reason);
 	Failed.Broadcast(Reason);
 }
