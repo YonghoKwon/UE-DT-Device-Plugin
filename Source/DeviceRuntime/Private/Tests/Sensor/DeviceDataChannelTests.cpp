@@ -105,6 +105,11 @@ public:
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceStompChannelPolicy, "MA0T10.DataIf10.StompPolicy", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDeviceStompChannelPolicy::RunTest(const FString&)
 {
+	const auto AcceptedAck = UVirtualSensorTransportComp::MakeAckSubscriptionResult(TEXT("topic.ack"), true, FString());
+	TestEqual(TEXT("legacy ACK success message"), AcceptedAck.Message, FString(TEXT("소비자 ACK Topic 구독 완료")));
+	const auto FailedAck = UVirtualSensorTransportComp::MakeAckSubscriptionResult(TEXT("topic.ack"), false, TEXT("fixture"));
+	TestEqual(TEXT("legacy ACK failure message"), FailedAck.Message, FString(TEXT("ACK Topic 구독 실패: fixture")));
+	TestFalse(TEXT("subscription receipt is not consumer acknowledgement"), AcceptedAck.bConsumerAckReceived);
 	auto* Channel = NewObject<UDxDeviceSensorStompChannel>();
 	FDxDataChannelSettings Settings;
 	Settings.ChannelName = TEXT("sensor");
@@ -171,6 +176,7 @@ bool FDeviceStompChannelLifecycle::RunTest(const FString&)
 	Settings.bAutoConnect = false;
 	Settings.bUseDefaultCredentials = false;
 	Settings.ReceiptTimeoutSeconds = 0.1f;
+	Settings.MaxMessageBytes = 3;
 	Settings.ReconnectInitialDelaySeconds = 0.5f;
 	Channel->InitializeChannel(Settings.ChannelName, Settings, Game);
 	FString Error;
@@ -198,6 +204,8 @@ bool FDeviceStompChannelLifecycle::RunTest(const FString&)
 	Fake->SubscribeReceipts[0].Execute(true, FString());
 	Pump();
 	TestEqual(TEXT("ACK subscription result retained"), AckResults, 1);
+	TestFalse(TEXT("named channel byte limit rejects before send"), Channel->Send(TEXT("topic.fixture"), FStompBuffer{1, 2, 3, 4}, {}));
+	TestEqual(TEXT("byte limit recorded as dropped"), Channel->GetStatus().DroppedCount, int64(1));
 	auto Completion = FStompRequestCompleted::CreateLambda([&Completions, &Accepted](bool bSuccess, const FString&)
 	                                                       { ++Completions; Accepted += bSuccess ? 1 : 0; });
 	TestTrue(TEXT("native receipt submission"), Channel->Send(TEXT("topic.fixture"), FStompBuffer{1, 0, 2}, {}, Completion));

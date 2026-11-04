@@ -177,7 +177,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStompBinaryStream
 			WeakThis->OnDataSent.Broadcast(Receipt); }));
 	if (!bSubmitted)
 	{
-		Result.Message = TEXT("STOMP ?? ?? ?? ? ??/??? ??? ?????.");
+		Result.Message = TEXT("STOMP 채널 전송 거절 · 연결/메시지 한도를 확인하세요.");
 		return Result;
 	}
 	Result.bSubmitted = true;
@@ -367,7 +367,7 @@ void UVirtualSensorTransportComp::EnsureStompClient()
 	{
 		LastResult.bSubmitted = false;
 		LastResult.bAccepted = false;
-		LastResult.Message = Error.IsEmpty() ? TEXT("STOMP ?? ???? ?????.") : Error;
+		LastResult.Message = Error.IsEmpty() ? TEXT("STOMP 연결 서비스를 확인하세요.") : Error;
 		return;
 	}
 	if (SensorStompChannel.Get() != Channel)
@@ -428,16 +428,21 @@ void UVirtualSensorTransportComp::SubscribeToAckTopic()
 	AckSubscriptionId = SensorStompChannel->SubscribeToAck(TransportProfile.AckTopic);
 }
 
-void UVirtualSensorTransportComp::HandleAckSubscribed(bool bSuccess, const FString& Error)
+FVirtualSensorTransportResult UVirtualSensorTransportComp::MakeAckSubscriptionResult(const FString& Topic, bool bSuccess, const FString& Error)
 {
 	FVirtualSensorTransportResult Result;
 	Result.Protocol = TEXT("STOMP/WS");
-	Result.Destination = TransportProfile.AckTopic;
+	Result.Destination = Topic;
 	Result.bSubmitted = true;
 	Result.bAccepted = bSuccess;
 	Result.DataKind = TEXT("ack-subscription");
-	Result.Message = bSuccess ? TEXT("??? ACK Topic ?? ??") : FString::Printf(TEXT("ACK Topic ?? ??: %s"), *Error);
-	OnDataSent.Broadcast(Result);
+	Result.Message = bSuccess ? TEXT("소비자 ACK Topic 구독 완료") : FString::Printf(TEXT("ACK Topic 구독 실패: %s"), *Error);
+	return Result;
+}
+
+void UVirtualSensorTransportComp::HandleAckSubscribed(bool bSuccess, const FString& Error)
+{
+	OnDataSent.Broadcast(MakeAckSubscriptionResult(TransportProfile.AckTopic, bSuccess, Error));
 }
 
 void UVirtualSensorTransportComp::HandleAckMessage(const FWebSocketMessage& Message)
@@ -518,7 +523,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStomp(
 		Result.bSubmitted = SensorStompChannel->Send(Result.Destination, JsonText, Headers);
 		if (!Result.bSubmitted)
 		{
-			Result.Message = TEXT("STOMP ?? ?? ?? ? ??/??? ??? ?????.");
+			Result.Message = TEXT("STOMP 채널 전송 거절 · 연결/메시지 한도를 확인하세요.");
 			return Result;
 		}
 		Result.Message = TEXT("STOMP 전송 제출됨 · 이번 프레임은 receipt 생략");
@@ -545,6 +550,11 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStomp(
 				WeakThis->LastResult = Receipt;
 			}
 			WeakThis->OnDataSent.Broadcast(Receipt); }));
+	if (!bSubmitted)
+	{
+		Result.Message = TEXT("STOMP 채널 전송 거절 · 연결/메시지 한도를 확인하세요.");
+		return Result;
+	}
 	Result.bSubmitted = true;
 	Result.Message = TEXT("STOMP 전송 제출됨 · Broker receipt 대기");
 	LastStompSubmitSeconds = StartedSeconds;

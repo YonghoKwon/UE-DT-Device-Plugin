@@ -252,6 +252,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorTransport")
 	int32 GetDTCorePublishDroppedCount() const;
 	static bool IsDTCoreJsonRequestAllowed(const FString& DataKind, bool bManualRequest);
+	static FVirtualSensorTransportResult MakeAckSubscriptionResult(const FString& Topic, bool bSuccess, const FString& Error);
 
 	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorTransport")
 	bool IsStompConnected() const;
