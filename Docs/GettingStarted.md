@@ -124,3 +124,10 @@ Native LiDAR 안전 상태는 소비 프로젝트의 `Saved/NativeLidarSafety`�
 ### 빈 프로젝트의 DTCore 업무 설정
 
 이 최소 예제는 센서·모니터용입니다. 업무용 API/TransactionCode DataTable과 STOMP 서버를 구성하지 않은 새 프로젝트에서는 DTCore의 테이블 미설정·기본 연결 재시도 메시지가 남을 수 있습니다. 실제 업무 연동은 DTCore 문서에 따라 별도로 구성하며 공용 서버 설정을 자동으로 덮어쓰지 않습니다. 화면 확인용 자동 캡처는 `DisableAllScreenMessages`로 일시적인 화면 진단 문자열만 숨겼고, 원래 로그는 보존합니다. 이는 제품 기본값이나 센서 출력 정책의 변경이 아닙니다.
+
+
+## 전용 센서 연결 재연결 정책 (DTCORE-EXT-09)
+
+DTDevice 설정 `/Script/DeviceRuntime.DeviceSensorAssetSettings`의 `RawTcpReconnectInitialDelaySeconds`(1초), `RawTcpReconnectMaxDelaySeconds`(10초), `RawTcpReconnectBackoffMultiplier`(2)로 Raw TCP STOMP 재연결 지연을 정합니다. 기본 실패 간격은 기존과 같은 1/2/4/8/10/10초입니다. Engine 설정이며 DTCore 공유 WebSocket의 Reconnect 설정과 독립적입니다. 과제 DefaultGame.ini에 DTCore Reconnect 기본값을 자동으로 쓰지 않습니다.
+
+설정은 연결 profile 생성 시 복사됩니다. 실행 중 워커는 UObject 설정을 읽지 않으며, 정책을 바꾸려면 새 profile로 전용 연결을 다시 준비합니다. 직접 `FVirtualSensorHighThroughputProfile`을 전달하는 소비자는 그 profile의 재연결 값을 사용할 수 있습니다. PCD wire/receipt/큐 상한과 과부하 backoff는 변경하지 않습니다.

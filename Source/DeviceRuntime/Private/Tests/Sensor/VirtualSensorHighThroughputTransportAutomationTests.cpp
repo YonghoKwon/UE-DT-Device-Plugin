@@ -207,4 +207,31 @@ bool FVirtualSensorRawTcpArtemisLoopbackTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FDeviceRawReconnectPolicyTest,
+    "MA0T10.SensorStream.HighThroughput.ReconnectPolicy",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FDeviceRawReconnectPolicyTest::RunTest(const FString& Parameters)
+{
+	FVirtualSensorHighThroughputProfile Profile;
+	const double Expected[] = {1.0, 2.0, 4.0, 8.0, 10.0, 10.0};
+	for (int32 Attempt = 0; Attempt < UE_ARRAY_COUNT(Expected); ++Attempt)
+		TestEqual(TEXT("default raw reconnect timing is unchanged"), UVirtualSensorHighThroughputTransportSubsystem::ReconnectDelaySeconds(Profile, Attempt), Expected[Attempt]);
+	TestEqual(TEXT("very large attempt stays capped"), UVirtualSensorHighThroughputTransportSubsystem::ReconnectDelaySeconds(Profile, MAX_int32), 10.0);
+	Profile.ReconnectInitialDelaySeconds = 0.5;
+	Profile.ReconnectMaxDelaySeconds = 4.0;
+	Profile.ReconnectBackoffMultiplier = 3.0;
+	TestEqual(TEXT("configured initial"), UVirtualSensorHighThroughputTransportSubsystem::ReconnectDelaySeconds(Profile, 0), 0.5);
+	TestEqual(TEXT("configured multiplier"), UVirtualSensorHighThroughputTransportSubsystem::ReconnectDelaySeconds(Profile, 1), 1.5);
+	TestEqual(TEXT("configured maximum"), UVirtualSensorHighThroughputTransportSubsystem::ReconnectDelaySeconds(Profile, 2), 4.0);
+	Profile.ReconnectBackoffMultiplier = 1.0;
+	TestEqual(TEXT("constant-delay policy"), UVirtualSensorHighThroughputTransportSubsystem::ReconnectDelaySeconds(Profile, MAX_int32), 0.5);
+	Profile.ReconnectInitialDelaySeconds = -1.0;
+	Profile.ReconnectMaxDelaySeconds = 0.0;
+	Profile.ReconnectBackoffMultiplier = 0.0;
+	TestEqual(TEXT("invalid configuration returns safe default"), UVirtualSensorHighThroughputTransportSubsystem::ReconnectDelaySeconds(Profile, 1), 2.0);
+	return true;
+}
+
 #endif

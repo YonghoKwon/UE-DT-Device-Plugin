@@ -32,6 +32,13 @@ struct DEVICERUNTIME_API FVirtualSensorHighThroughputProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|Transport", meta = (ClampMin = "1", ClampMax = "120"))
 	int32 ConnectTimeoutSeconds = 10;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|Transport", meta = (ClampMin = "0.001"))
+	double ReconnectInitialDelaySeconds = 1.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|Transport", meta = (ClampMin = "0.001"))
+	double ReconnectMaxDelaySeconds = 10.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|Transport", meta = (ClampMin = "1.0"))
+	double ReconnectBackoffMultiplier = 2.0;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|Transport", meta = (ClampMin = "100", ClampMax = "60000"))
 	int32 HeartbeatIntervalMs = 5000;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|Transport", meta = (ClampMin = "1"))
@@ -247,6 +254,8 @@ public:
 
 	static bool CanUseRawTcp(const FString& BrokerUrl, FString* OutReason = nullptr);
 	static FVirtualSensorHighThroughputProfile MakeProfile(const FVirtualSensorTransportProfile& Profile);
+	/** Pure worker-safe calculation from the immutable connection profile. */
+	static double ReconnectDelaySeconds(const FVirtualSensorHighThroughputProfile& Profile, int32 Attempt);
 
 private:
 	friend class FVirtualSensorReceiverRequestPolicyTest;

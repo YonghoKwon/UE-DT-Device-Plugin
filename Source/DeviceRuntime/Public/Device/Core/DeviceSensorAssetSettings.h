@@ -15,4 +15,12 @@ public:
 	TSoftObjectPtr<UMaterialInterface> LidarSemanticMaterial;
 	UPROPERTY(EditAnywhere, Config, Category = "Device assets")
 	TSoftObjectPtr<UNiagaraSystem> LidarPointCloudSystem;
+
+	/** Dedicated sensor connection policy; independent of DTCore's shared WebSocket. */
+	UPROPERTY(EditAnywhere, Config, Category = "Device transport", meta = (ClampMin = "0.001"))
+	double RawTcpReconnectInitialDelaySeconds = 1.0;
+	UPROPERTY(EditAnywhere, Config, Category = "Device transport", meta = (ClampMin = "0.001"))
+	double RawTcpReconnectMaxDelaySeconds = 10.0;
+	UPROPERTY(EditAnywhere, Config, Category = "Device transport", meta = (ClampMin = "1.0"))
+	double RawTcpReconnectBackoffMultiplier = 2.0;
 };

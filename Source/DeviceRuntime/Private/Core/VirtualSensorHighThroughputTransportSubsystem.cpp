@@ -1,5 +1,6 @@
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
 #include "Device/Core/VirtualSensorHitchDiagnostics.h"
+#include "Device/Core/DeviceSensorAssetSettings.h"
 
 #include "Device/Core/VirtualSensorStompProtocol.h"
 #include "Device/Core/VirtualSensorWireHeaders.h"
@@ -215,7 +216,8 @@ public:
 				{
 					if (!Connect())
 					{
-						NextConnectSeconds = Now + FMath::Min(10.0, FMath::Pow(2.0, FMath::Min(4, ReconnectAttempt++)));
+						NextConnectSeconds = Now + UVirtualSensorHighThroughputTransportSubsystem::ReconnectDelaySeconds(Profile, ReconnectAttempt);
+						ReconnectAttempt = FMath::Min(ReconnectAttempt, MAX_int32 - 1) + 1;
 					}
 				}
 				if (bLegacyPollingProbe)
@@ -1289,7 +1291,7 @@ private:
 		LastWriteError = Reason;
 		PushConnectionEvent(false, Reason);
 		CloseSocket();
-		NextConnectSeconds = FPlatformTime::Seconds() + 1.0;
+		NextConnectSeconds = FPlatformTime::Seconds() + UVirtualSensorHighThroughputTransportSubsystem::ReconnectDelaySeconds(Profile, 0);
 	}
 
 	void PushConnectionEvent(bool bNowConnected, const FString& Message)
@@ -1436,6 +1438,9 @@ bool UVirtualSensorHighThroughputTransportSubsystem::StartHighThroughputTranspor
 	                          ActiveProfile.PointCloudTopic == Profile.PointCloudTopic &&
 	                          ActiveProfile.MaxOutstandingBytes == Profile.MaxOutstandingBytes &&
 	                          ActiveProfile.MaxOutstandingBytesPerStream == Profile.MaxOutstandingBytesPerStream &&
+	                          ActiveProfile.ReconnectInitialDelaySeconds == Profile.ReconnectInitialDelaySeconds &&
+	                          ActiveProfile.ReconnectMaxDelaySeconds == Profile.ReconnectMaxDelaySeconds &&
+	                          ActiveProfile.ReconnectBackoffMultiplier == Profile.ReconnectBackoffMultiplier &&
 	                          ActivePasscode == SessionPasscode;
 	if (bSameProfile && Worker->IsRunning())
 		return true;
@@ -1673,10 +1678,27 @@ bool UVirtualSensorHighThroughputTransportSubsystem::CanUseRawTcp(const FString&
 	return bValid;
 }
 
+double UVirtualSensorHighThroughputTransportSubsystem::ReconnectDelaySeconds(const FVirtualSensorHighThroughputProfile& Profile, int32 Attempt)
+{
+	const double Maximum = FMath::IsFinite(Profile.ReconnectMaxDelaySeconds) && Profile.ReconnectMaxDelaySeconds > 0.0 ? Profile.ReconnectMaxDelaySeconds : 10.0;
+	const double Initial = FMath::Min(Maximum, FMath::IsFinite(Profile.ReconnectInitialDelaySeconds) && Profile.ReconnectInitialDelaySeconds > 0.0 ? Profile.ReconnectInitialDelaySeconds : 1.0);
+	const double Multiplier = FMath::IsFinite(Profile.ReconnectBackoffMultiplier) && Profile.ReconnectBackoffMultiplier >= 1.0 ? Profile.ReconnectBackoffMultiplier : 2.0;
+	if (Attempt <= 0 || Multiplier == 1.0)
+		return Initial;
+	// Compare logarithms before Pow so even an unbounded retry count cannot overflow.
+	if (static_cast<double>(Attempt) >= (FMath::Loge(Maximum) - FMath::Loge(Initial)) / FMath::Loge(Multiplier))
+		return Maximum;
+	return FMath::Min(Maximum, Initial * FMath::Pow(Multiplier, static_cast<double>(Attempt)));
+}
+
 FVirtualSensorHighThroughputProfile UVirtualSensorHighThroughputTransportSubsystem::MakeProfile(
     const FVirtualSensorTransportProfile& Profile)
 {
 	FVirtualSensorHighThroughputProfile Result;
+	const UDeviceSensorAssetSettings* Settings = GetDefault<UDeviceSensorAssetSettings>();
+	Result.ReconnectInitialDelaySeconds = Settings->RawTcpReconnectInitialDelaySeconds;
+	Result.ReconnectMaxDelaySeconds = Settings->RawTcpReconnectMaxDelaySeconds;
+	Result.ReconnectBackoffMultiplier = Settings->RawTcpReconnectBackoffMultiplier;
 	Result.BrokerUrl = Profile.BrokerUrl;
 	Result.UserName = Profile.UserName;
 	Result.CameraTopic = Profile.CameraTopic;
