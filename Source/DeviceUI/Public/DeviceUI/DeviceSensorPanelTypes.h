@@ -5,35 +5,35 @@
 UENUM(BlueprintType)
 enum class EVirtualSensorPanelPlacement : uint8
 {
-    RightCenter,
-    LeftCenter,
-    BottomCenter
+	RightCenter,
+	LeftCenter,
+	BottomCenter
 };
 USTRUCT(BlueprintType)
 struct DEVICEUI_API FVirtualSensorSettingHelpDescriptor
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
-    FName Key = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
+	FName Key = NAME_None;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
-    FText Label;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
+	FText Label;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
-    FText Description;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
+	FText Description;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
-    FText Unit;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
+	FText Unit;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
-    FText PerformanceImpact;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
+	FText PerformanceImpact;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
-    FText RecommendedValue;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
+	FText RecommendedValue;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
-    FText Caution;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DigitalTwin|SensorControl|Help")
+	FText Caution;
 };
 
 UENUM(BlueprintType)

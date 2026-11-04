@@ -18,38 +18,38 @@ const FLinearColor FVirtualSensorUiStyle::Error = FLinearColor::FromSRGBColor(FC
 
 const FButtonStyle& FVirtualSensorUiStyle::ButtonStyle()
 {
-    static const FButtonStyle Style = FButtonStyle()
-        .SetNormal(FSlateColorBrush(ControlBackground))
-        .SetHovered(FSlateColorBrush(ControlHovered))
-        .SetPressed(FSlateColorBrush(ControlPressed))
-        .SetDisabled(FSlateColorBrush(FLinearColor(0.08f, 0.10f, 0.14f, 0.65f)))
-        .SetNormalPadding(FMargin(8.0f, 4.0f))
-        .SetPressedPadding(FMargin(8.0f, 5.0f, 8.0f, 3.0f));
-    return Style;
+	static const FButtonStyle Style = FButtonStyle()
+	                                      .SetNormal(FSlateColorBrush(ControlBackground))
+	                                      .SetHovered(FSlateColorBrush(ControlHovered))
+	                                      .SetPressed(FSlateColorBrush(ControlPressed))
+	                                      .SetDisabled(FSlateColorBrush(FLinearColor(0.08f, 0.10f, 0.14f, 0.65f)))
+	                                      .SetNormalPadding(FMargin(8.0f, 4.0f))
+	                                      .SetPressedPadding(FMargin(8.0f, 5.0f, 8.0f, 3.0f));
+	return Style;
 }
 
 const FEditableTextBoxStyle& FVirtualSensorUiStyle::EditableTextBoxStyle()
 {
-    static const FEditableTextBoxStyle Style = FEditableTextBoxStyle()
-        .SetBackgroundImageNormal(FSlateColorBrush(InputBackground))
-        .SetBackgroundImageHovered(FSlateColorBrush(ControlBackground))
-        .SetBackgroundImageFocused(FSlateColorBrush(ControlPressed))
-        .SetBackgroundImageReadOnly(FSlateColorBrush(FLinearColor(0.06f, 0.08f, 0.12f, 0.8f)))
-        .SetForegroundColor(PrimaryText)
-        .SetFocusedForegroundColor(PrimaryText)
-        .SetReadOnlyForegroundColor(SecondaryText)
-        .SetPadding(FMargin(6.0f, 4.0f));
-    return Style;
+	static const FEditableTextBoxStyle Style = FEditableTextBoxStyle()
+	                                               .SetBackgroundImageNormal(FSlateColorBrush(InputBackground))
+	                                               .SetBackgroundImageHovered(FSlateColorBrush(ControlBackground))
+	                                               .SetBackgroundImageFocused(FSlateColorBrush(ControlPressed))
+	                                               .SetBackgroundImageReadOnly(FSlateColorBrush(FLinearColor(0.06f, 0.08f, 0.12f, 0.8f)))
+	                                               .SetForegroundColor(PrimaryText)
+	                                               .SetFocusedForegroundColor(PrimaryText)
+	                                               .SetReadOnlyForegroundColor(SecondaryText)
+	                                               .SetPadding(FMargin(6.0f, 4.0f));
+	return Style;
 }
 
 float FVirtualSensorUiStyle::ContrastRatio(const FLinearColor& Foreground, const FLinearColor& Background)
 {
-    const auto Luminance = [](const FLinearColor& Color)
-    {
-        return 0.2126f * Color.R + 0.7152f * Color.G + 0.0722f * Color.B;
-    };
-    const float ForegroundLuminance = Luminance(Foreground);
-    const float BackgroundLuminance = Luminance(Background);
-    return (FMath::Max(ForegroundLuminance, BackgroundLuminance) + 0.05f) /
-        (FMath::Min(ForegroundLuminance, BackgroundLuminance) + 0.05f);
+	const auto Luminance = [](const FLinearColor& Color)
+	{
+		return 0.2126f * Color.R + 0.7152f * Color.G + 0.0722f * Color.B;
+	};
+	const float ForegroundLuminance = Luminance(Foreground);
+	const float BackgroundLuminance = Luminance(Background);
+	return (FMath::Max(ForegroundLuminance, BackgroundLuminance) + 0.05f) /
+	       (FMath::Min(ForegroundLuminance, BackgroundLuminance) + 0.05f);
 }

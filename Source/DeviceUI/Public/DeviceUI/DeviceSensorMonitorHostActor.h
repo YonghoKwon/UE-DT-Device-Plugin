@@ -7,17 +7,24 @@ class UDxDeviceSensorMonitorPanel;
 UCLASS()
 class DEVICEUI_API ADeviceSensorMonitorHostActor : public AActor
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 public:
-    ADeviceSensorMonitorHostActor();
-    UPROPERTY(EditAnywhere, Category="Device|Monitor") TSubclassOf<UDxDeviceSensorMonitorPanel> PanelClass;
-    UPROPERTY(EditAnywhere, Category="Device|Monitor") bool bShowOnBeginPlay=true;
-    UFUNCTION(BlueprintCallable, Category="Device|Monitor") void ShowMonitor();
-    UFUNCTION(BlueprintCallable, Category="Device|Monitor") void HideMonitor();
-    UDxDeviceSensorMonitorPanel* GetPanel() const { return Panel; }
+	ADeviceSensorMonitorHostActor();
+	UPROPERTY(EditAnywhere, Category = "Device|Monitor")
+	TSubclassOf<UDxDeviceSensorMonitorPanel> PanelClass;
+	UPROPERTY(EditAnywhere, Category = "Device|Monitor")
+	bool bShowOnBeginPlay = true;
+	UFUNCTION(BlueprintCallable, Category = "Device|Monitor")
+	void ShowMonitor();
+	UFUNCTION(BlueprintCallable, Category = "Device|Monitor")
+	void HideMonitor();
+	UDxDeviceSensorMonitorPanel* GetPanel() const { return Panel; }
+
 protected:
-    virtual void BeginPlay() override;
-    virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+
 private:
-    UPROPERTY(Transient) TObjectPtr<UDxDeviceSensorMonitorPanel> Panel;
+	UPROPERTY(Transient)
+	TObjectPtr<UDxDeviceSensorMonitorPanel> Panel;
 };

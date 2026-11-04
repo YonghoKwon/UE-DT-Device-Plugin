@@ -5,8 +5,8 @@
 UCLASS()
 class UCreateDTDeviceDemoCommandlet : public UCommandlet
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 public:
-    UCreateDTDeviceDemoCommandlet();
-    virtual int32 Main(const FString& Params) override;
+	UCreateDTDeviceDemoCommandlet();
+	virtual int32 Main(const FString& Params) override;
 };
