@@ -135,6 +135,17 @@ DTDevice 설정 `/Script/DeviceRuntime.DeviceSensorAssetSettings`의 `RawTcpReco
 
 ## 패널 내부 이동 (DTCORE-EXT-09)
 
-승인된 DTCore 660740f API를 사용합니다. `UDxDeviceSensorPanelBase::NavigateTo("Sensor:<센서 ID>")`는 명시적으로 바인딩한 host bridge에 센서 선택을 요청합니다. host가 해제됐거나 처리하지 못하면 false이며 현재 화면·이력은 바뀌지 않습니다. 독립 `UDxDeviceSensorMonitorPanel`은 같은 World의 해당 센서를 선택하며, `NavigateBack()`으로 이전 센서로 돌아갑니다. SubTarget은 DTCore의 FName 규칙을 따릅니다.
+DTCore main 1604ee7 API를 사용합니다. `UDxDeviceSensorPanelBase::NavigateTo("Sensor:<센서 ID>")`는 명시적으로 바인딩한 host bridge에 센서 선택을 요청합니다. host가 해제됐거나 처리하지 못하면 false이며 현재 화면·이력은 바뀌지 않습니다. 독립 `UDxDeviceSensorMonitorPanel`은 같은 World의 해당 센서를 선택하며, `NavigateBack()`으로 이전 센서로 돌아갑니다. SubTarget은 DTCore의 FName 규칙을 따릅니다.
 
 host workspace 패널은 기존 소유권/인스턴스를 유지합니다. 이 API를 쓰기 위해 DTCore OpenWidgets 목록으로 옮기거나 별도 위젯 관리자를 만들지 않습니다. 탐색은 사용자 동작 시에만 실행하고 Tick/스레드/구독을 추가하지 않습니다.
+
+
+## 공유 연결의 저빈도 JSON (DTCORE-EXT-09)
+
+기존 기본 모드·PCD 기본 정책은 그대로입니다. `UVirtualSensorTransportComp.TransportMode=DTCoreWebSocket`을 명시적으로 선택하거나 host 데이터 패널의 연결 화면에서 공유 연결 항목을 체크한 뒤 적용합니다. 화면 체크는 세션용이며 기존 SaveGame 형식에 새 값을 쓰지 않습니다. 설정 파일을 쓰는 경우 기존 enum-name 파서의 `TransportMode=DTCoreWebSocket`으로 선택할 수 있습니다(빈 템플릿 자동 변경 없음).
+
+공유 JSON은 DTCore 서버 설정을 사용하며 센서 broker 주소를 복사하거나 공유 연결을 재시작하지 않습니다. `SendJsonRequest`의 수동 요청(`manual-payload`, manual=true), 또는 `status`/`sensor-status`/`slab-result`/`slab-run-result`/`run-result`에 사용합니다. Slab 결과는 host가 만든 JSON과 실행 UUID를 명시적으로 넘깁니다. 기존 자동 전송 정책을 켜지 않습니다. 연속 camera/pointcloud/telemetry JSON은 거절하며, 20Hz PCD binary는 기존 전용 센서 연결과 예약 상한을 유지합니다.
+
+제출 성공은 소비자 처리 완료가 아닙니다. 미연결 Publish는 false와 DTCore의 누적 dropped count로 표시합니다. receipt 미요청 제출은 수락 여부 미확인이고, receipt 성공도 Broker 수락까지만 뜻합니다. 요청은 게임 스레드 API이며, 다른 스레드 요청은 UI 이벤트 없이 거절합니다.
+
+receipt는 GameInstance당 16개를 넘기지 않습니다. 로컬 대기 시간이 끝나거나 센서가 종료돼도 실제 receipt 또는 공유 연결 변경까지 슬롯을 유지하며, 새 센서/맵으로 바꿔 상한을 우회하지 않습니다. 타임아웃 후에는 자동 재전송하지 않습니다. 늦은 결과는 종료된/시간 초과 UI에 적용하지 않습니다. 이는 UE5.3 STOMP의 outstanding-request 만료 경로에 의존하지 않도록 하는 DTDevice 어댑터의 제한입니다. 엔진·DTCore 소스와 공유 연결의 소유권은 변경하지 않습니다. 기본 모드에는 이 경로의 Tick/스레드/구독/대기 receipt 컨텍스트가 없습니다. 등록 예산 Subsystem은 Tick 없는 빈 상태입니다.

@@ -1,4 +1,5 @@
 #include "Device/Sensor/VirtualSensorTransportComp.h"
+#include "Core/DxWebSocketSubsystem.h"
 #include "Device/Core/VirtualSensorWireHeaders.h"
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
 
@@ -40,6 +41,10 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJson(const FStrin
 	{
 		Result = SendHttp(SensorId, SensorType, JsonText);
 	}
+	else if (TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket)
+	{
+		Result = SendDTCoreJson(GetDTCoreWebSocket(), SensorId, SensorType, SensorType == TEXT("status") ? TEXT("status") : TEXT("frame"), 0, JsonText, false, false);
+	}
 	else if (TransportMode == EVirtualSensorTransportMode::StompWebSocket)
 	{
 		Result = SendStomp(SensorId, SensorType, TEXT("frame"), 0, JsonText, false, false);
@@ -52,6 +57,8 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJson(const FStrin
 		UE_LOG(LogTemp, Log, TEXT("%s"), *Result.Message);
 	}
 
+	if (TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket && !IsInGameThread())
+		return Result;
 	LastResult = Result;
 	OnDataSent.Broadcast(Result);
 	return Result;
@@ -65,6 +72,16 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJsonRequest(
     const FString& JsonText,
     bool bManualRequest)
 {
+	if (TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket)
+	{
+		auto Result = SendDTCoreJson(GetDTCoreWebSocket(), SensorId, SensorType, DataKind, FrameId, JsonText, bManualRequest, bManualRequest);
+		if (!IsInGameThread())
+			return Result;
+		if (bManualRequest)
+			LastResult = Result;
+		OnDataSent.Broadcast(Result);
+		return Result;
+	}
 	if (TransportMode == EVirtualSensorTransportMode::StompWebSocket)
 	{
 		FVirtualSensorTransportResult Result = SendStomp(SensorId, SensorType, DataKind, FrameId, JsonText, bManualRequest, bManualRequest);
@@ -86,6 +103,14 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendJsonStreamRequest
     const FString& JsonText,
     bool bRequestReceipt, const TMap<FString, FString>& AdditionalHeaders)
 {
+	if (TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket)
+	{
+		auto Result = SendDTCoreJson(GetDTCoreWebSocket(), SensorId, SensorType, DataKind, FrameId, JsonText, false, bRequestReceipt, AdditionalHeaders);
+		if (!IsInGameThread())
+			return Result;
+		OnDataSent.Broadcast(Result);
+		return Result;
+	}
 	if (TransportMode == EVirtualSensorTransportMode::StompWebSocket)
 	{
 		FVirtualSensorTransportResult Result = SendStomp(SensorId, SensorType, DataKind, FrameId, JsonText, false, bRequestReceipt, AdditionalHeaders);
@@ -189,12 +214,32 @@ void UVirtualSensorTransportComp::GetOutputServerConnection(bool& Connected, boo
 {
 	const auto* Raw = GetWorld() ? GetWorld()->GetSubsystem<UVirtualSensorHighThroughputTransportSubsystem>() : nullptr;
 	const bool CurrentRaw = Raw && Raw->GetActiveProfile().BrokerUrl == TransportProfile.BrokerUrl && Raw->GetActiveProfile().UserName == TransportProfile.UserName;
-	Connected = TransportMode == EVirtualSensorTransportMode::StompWebSocket && (IsStompConnected() || (CurrentRaw && Raw->IsTransportConnected()));
-	Expected = TransportMode == EVirtualSensorTransportMode::StompWebSocket && (StompClient.IsValid() || (CurrentRaw && Raw->IsHighThroughputTransportRunning()));
+	Connected = UsesDedicatedSensorBroker() && (IsStompConnected() || (CurrentRaw && Raw->IsTransportConnected()));
+	Expected = UsesDedicatedSensorBroker() && (StompClient.IsValid() || (CurrentRaw && Raw->IsHighThroughputTransportRunning()));
+	if (TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket)
+		if (auto* Socket = GetDTCoreWebSocket())
+		{
+			const auto State = Socket->GetConnectionState();
+			Connected |= State == EDxWebSocketConnectionState::Ready || State == EDxWebSocketConnectionState::Subscribing;
+			Expected = true;
+		}
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::TestConnection()
 {
+	if (TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket)
+	{
+		FVirtualSensorTransportResult Result;
+		Result.Protocol = TEXT("STOMP/DTCore");
+		auto* Socket = GetDTCoreWebSocket();
+		Result.bSubmitted = Socket != nullptr;
+		Result.bAccepted = Socket && (Socket->GetConnectionState() == EDxWebSocketConnectionState::Ready || Socket->GetConnectionState() == EDxWebSocketConnectionState::Subscribing);
+		Result.Message = FString::Printf(TEXT("DTCore JSON 연결 %s · dropped=%d · PCD 연결은 별도 유지"), Result.bAccepted ? TEXT("준비됨") : TEXT("준비 전"), GetDTCorePublishDroppedCount());
+		LastResult = Result;
+		OnDataSent.Broadcast(Result);
+		return Result;
+	}
+
 	UE_LOG(LogTemp, Display, TEXT("[SensorStreamTransport] connection test owner=%s mode=%d broker=%s"),
 	       *GetNameSafe(GetOwner()), static_cast<int32>(TransportMode), *TransportProfile.BrokerUrl);
 	FVirtualSensorTransportResult Result;
@@ -260,7 +305,7 @@ void UVirtualSensorTransportComp::RequestStompReconnect()
 bool UVirtualSensorTransportComp::PrepareStompConnection(FString& Error)
 {
 	Error.Reset();
-	if (TransportMode != EVirtualSensorTransportMode::StompWebSocket || TransportProfile.BrokerUrl.IsEmpty())
+	if (!UsesDedicatedSensorBroker() || TransportProfile.BrokerUrl.IsEmpty())
 	{
 		Error = TEXT("STOMP 서버 설정이 필요합니다.");
 		return false;
@@ -488,6 +533,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStomp(
 
 void UVirtualSensorTransportComp::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	CancelDTCoreReceipts();
 	bStompConnected.Store(false);
 	bStompConnecting.Store(false);
 	if (StompClient.IsValid())
@@ -520,7 +566,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendBinary(const FStr
 	{
 		Result = SendHttpBinary(SensorId, SensorType, Extension, Bytes);
 	}
-	else if (TransportMode == EVirtualSensorTransportMode::StompWebSocket)
+	else if (UsesDedicatedSensorBroker())
 	{
 		const FString Encoded = FBase64::Encode(Bytes);
 		const FString Envelope = FString::Printf(TEXT("{\"extension\":\"%s\",\"encoding\":\"base64\",\"data\":\"%s\"}"), *Extension, *Encoded);

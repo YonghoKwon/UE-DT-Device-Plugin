@@ -662,14 +662,14 @@ void UVirtualSensorStreamPublisherComp::PumpPublisherOnce(double Now)
 
 bool UVirtualSensorStreamPublisherComp::CanUseHighThroughputTransport() const
 {
-	return TransportComp && TransportComp->TransportMode == EVirtualSensorTransportMode::StompWebSocket &&
+	return TransportComp && TransportComp->UsesDedicatedSensorBroker() &&
 	       UVirtualSensorHighThroughputTransportSubsystem::CanUseRawTcp(TransportComp->GetTransportProfile().BrokerUrl);
 }
 
 bool UVirtualSensorStreamPublisherComp::EnsureHighThroughputTransport(FString& OutError)
 {
 	OutError.Reset();
-	if (!TransportComp || TransportComp->TransportMode != EVirtualSensorTransportMode::StompWebSocket || !GetWorld())
+	if (!TransportComp || !TransportComp->UsesDedicatedSensorBroker() || !GetWorld())
 	{
 		OutError = TEXT("STOMP transport is not active.");
 		return false;

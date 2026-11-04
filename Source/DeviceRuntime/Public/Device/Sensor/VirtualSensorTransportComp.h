@@ -6,6 +6,8 @@
 #include "VirtualSensorTransportComp.generated.h"
 
 struct FVirtualPointCloudBinaryMetadata;
+class UDxWebSocketSubsystem;
+class UDeviceDTCorePublishReceipt;
 
 UENUM(BlueprintType)
 enum class EVirtualSensorTransportMode : uint8
@@ -14,7 +16,8 @@ enum class EVirtualSensorTransportMode : uint8
 	LogOnly UMETA(DisplayName = "Log Only"),
 	SaveToFile UMETA(DisplayName = "Save To File"),
 	HttpPost UMETA(DisplayName = "HTTP POST"),
-	StompWebSocket UMETA(DisplayName = "Artemis STOMP over WebSocket")
+	StompWebSocket UMETA(DisplayName = "Artemis STOMP over WebSocket"),
+	DTCoreWebSocket UMETA(DisplayName = "DTCore shared WebSocket (low-frequency JSON only)")
 };
 
 USTRUCT(BlueprintType)
@@ -242,6 +245,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|SensorTransport")
 	FVirtualSensorTransportProfile TransportProfile;
 
+	/** Binary PCD remains on the dedicated sensor connection in both broker modes. */
+	bool UsesDedicatedSensorBroker() const { return TransportMode == EVirtualSensorTransportMode::StompWebSocket || TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket; }
+	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorTransport")
+	int32 GetDTCorePublishDroppedCount() const;
+	static bool IsDTCoreJsonRequestAllowed(const FString& DataKind, bool bManualRequest);
+
 	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorTransport")
 	bool IsStompConnected() const;
 	/** Read-only state of the current profile, including an idle connection test. */
@@ -257,6 +266,16 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	friend class UDeviceDTCorePublishReceipt;
+#if WITH_DEV_AUTOMATION_TESTS
+	friend class FDeviceDTCoreTransportTest;
+#endif
+	UDxWebSocketSubsystem* GetDTCoreWebSocket() const;
+	FVirtualSensorTransportResult SendDTCoreJson(UDxWebSocketSubsystem* Socket, const FString& SensorId, const FString& SensorType, const FString& DataKind, int64 FrameId, const FString& JsonText, bool bManualRequest, bool bRequestReceipt, const TMap<FString, FString>& AdditionalHeaders = {});
+	void CompleteDTCoreReceipt(UDeviceDTCorePublishReceipt* Receipt, const FVirtualSensorTransportResult& Result);
+	void CancelDTCoreReceipts();
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UDeviceDTCorePublishReceipt>> DTCoreReceipts;
 	FVirtualSensorTransportResult SendHttp(const FString& SensorId, const FString& SensorType, const FString& JsonText);
 	bool SubmitHttpAttempt(const FString& SensorId, const FString& SensorType, const FString& JsonText, int32 AttemptIndex, int32 SubmittedDataLength);
 	FVirtualSensorTransportResult SendHttpBinary(const FString& SensorId, const FString& SensorType, const FString& Extension, const TArray<uint8>& Bytes);
