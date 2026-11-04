@@ -3,10 +3,13 @@
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
 #include "Device/Core/DxDeviceSensorStompChannel.h"
+#include "Device/Core/DeviceDataChannelSettings.h"
+#include "Device/Core/DxDeviceSensorChannelSubsystem.h"
 #include "Core/DxDataChannelLibrary.h"
 #include "Engine/GameInstance.h"
 #include "Async/TaskGraphInterfaces.h"
 #include "TimerManager.h"
+#include "UObject/StrongObjectPtr.h"
 #include "../../Sensor/DeviceStompSessionClient.h"
 #include "Misc/AutomationTest.h"
 
@@ -51,6 +54,20 @@ bool FDeviceBulkChannelPolicy::RunTest(const FString&)
 	TestFalse(TEXT("rejection has a reason"), Error.IsEmpty());
 	Channel->ShutdownChannel();
 	TestFalse(TEXT("shutdown cannot reconnect"), Channel->Connect());
+	{
+		auto* Topics = GetMutableDefault<UDeviceDataChannelSettings>();
+		TGuardValue<TArray<FDeviceDataChannelTopics>> Restore(Topics->Channels, {});
+		FDeviceDataChannelTopics Policy;
+		Policy.ChannelName = TEXT("sensor-bulk");
+		Policy.Destinations.Add({TEXT("pointcloud"), TEXT("topic.fixture.pcd"), false, TEXT("PCD")});
+		Policy.Destinations.Add({TEXT("one"), TEXT("topic.fixture.one"), true, TEXT("diagnostic")});
+		Policy.Destinations.Add({TEXT("two"), TEXT("topic.fixture.two"), true, TEXT("diagnostic")});
+		Topics->Channels.Add(Policy);
+		FVirtualSensorHighThroughputProfile Resolved;
+		Channel->ResolveLegacyProfile(Resolved, Passcode);
+		TestEqual(TEXT("bulk sender resolves its project alias"), Resolved.PointCloudTopic, FString(TEXT("topic.fixture.pcd")));
+		TestEqual(TEXT("bulk worker receives both explicit interests"), Resolved.ProjectSubscriptionDestinations.Num(), 2);
+	}
 	return true;
 }
 
@@ -66,6 +83,7 @@ public:
 	int32 ConnectCalls = 0;
 	TArray<FStompRequestCompleted> Receipts;
 	TArray<FStompSubscriptionEvent> Subscriptions;
+	TArray<FString> SubscriptionDestinations;
 	TArray<FStompRequestCompleted> SubscribeReceipts;
 	virtual void Connect(const FStompHeader& Headers) override
 	{
@@ -75,8 +93,9 @@ public:
 	}
 	virtual void Disconnect(const FStompHeader&) override { bConnected = false; }
 	virtual bool IsConnected() const override { return bConnected; }
-	virtual FStompSubscriptionId Subscribe(const FString&, const FStompSubscriptionEvent& Event, const FStompRequestCompleted& Callback) override
+	virtual FStompSubscriptionId Subscribe(const FString& Destination, const FStompSubscriptionEvent& Event, const FStompRequestCompleted& Callback) override
 	{
+		SubscriptionDestinations.Add(Destination);
 		Subscriptions.Add(Event);
 		SubscribeReceipts.Add(Callback);
 		return FString::Printf(TEXT("probe-subscription-%d"), Subscriptions.Num());
@@ -241,6 +260,128 @@ bool FDeviceStompChannelLifecycle::RunTest(const FString&)
 	TestEqual(TEXT("ACK re-subscription after reconnect"), Fake->Subscriptions.Num(), 2);
 	Channel->ReleaseOwner(Game);
 	TestEqual(TEXT("last legacy owner release disconnects"), Channel->GetState(), EDxDataChannelState::Disconnected);
+	Channel->ShutdownChannel();
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceTopicAliases, "MA0T10.DataIf10.TopicAliases", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FDeviceTopicAliases::RunTest(const FString&)
+{
+	auto* Settings = NewObject<UDeviceDataChannelSettings>();
+	Settings->Channels.Empty();
+	TestEqual(TEXT("unset settings preserve legacy custom destination"), Settings->Resolve(TEXT("sensor"), TEXT("lidar"), TEXT("custom.legacy")), FString(TEXT("custom.legacy")));
+	FDeviceDataChannelTopics Topics;
+	Topics.ChannelName = TEXT("sensor");
+	Topics.Destinations.Add({TEXT("lidar"), TEXT("topic.fixture.lidar"), true, TEXT("telemetry")});
+	Topics.Destinations.Add({TEXT("status"), TEXT("topic.fixture.status"), true, TEXT("status")});
+	Topics.Destinations.Add({TEXT("same-status"), TEXT("topic.fixture.status"), true, TEXT("alias")});
+	Settings->Channels.Add(Topics);
+	TestEqual(TEXT("configured alias wins"), Settings->Resolve(TEXT("sensor"), TEXT("lidar"), TEXT("legacy")), FString(TEXT("topic.fixture.lidar")));
+	TestEqual(TEXT("different channel falls back independently"), Settings->Resolve(TEXT("sensor-bulk"), TEXT("lidar"), TEXT("bulk.legacy")), FString(TEXT("bulk.legacy")));
+	TestEqual(TEXT("two unique interests, repeated alias destination deduplicated"), Settings->GetSubscriptions(TEXT("sensor")).Num(), 2);
+	FString Error;
+	TestTrue(TEXT("valid policy"), Settings->Validate(Error));
+	Settings->Channels[0].Destinations.Add({TEXT("lidar"), TEXT("other"), false, FString()});
+	TestFalse(TEXT("duplicate alias rejected"), Settings->Validate(Error));
+	TestFalse(TEXT("validation gives reason"), Error.IsEmpty());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceDuplicateTopicWarning, "MA0T10.DataIf10.DuplicateTopicWarning", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FDeviceDuplicateTopicWarning::RunTest(const FString&)
+{
+	auto* Settings = NewObject<UDeviceDataChannelSettings>();
+	Settings->Channels.Empty();
+	for (FName Name : {FName(TEXT("sensor")), FName(TEXT("sensor-bulk"))})
+	{
+		FDeviceDataChannelTopics Topics;
+		Topics.ChannelName = Name;
+		Topics.Destinations.Add({TEXT("status"), TEXT("topic.fixture.shared"), true, TEXT("fixture")});
+		Settings->Channels.Add(Topics);
+	}
+	TestEqual(TEXT("cross-channel warning"), Settings->GetDuplicateSubscriptionWarnings().Num(), 1);
+	AddExpectedError(TEXT("Duplicate topic subscription:"), EAutomationExpectedErrorFlags::Contains, 1);
+	auto* Registry = NewObject<UDxDeviceSensorChannelSubsystem>(NewObject<UGameInstance>());
+	Registry->ConfigureTopicSubscriptions(*Settings);
+	TestTrue(TEXT("same warning available to status UI"), Registry->GetTopicConfigurationWarning().Contains(TEXT("sensor-bulk")));
+	TestEqual(TEXT("warning does not remove interests"), Settings->GetSubscriptions(TEXT("sensor")).Num(), 1);
+	Settings->Channels[1].Destinations[0].bSubscribe = false;
+	TestEqual(TEXT("publish-only topic does not warn"), Settings->GetDuplicateSubscriptionWarnings().Num(), 0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceMultipleTopicSubscriptions, "MA0T10.DataIf10.MultipleTopicSubscriptions", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FDeviceMultipleTopicSubscriptions::RunTest(const FString&)
+{
+	auto* Game = NewObject<UGameInstance>();
+	auto* Channel = NewObject<UDxDeviceSensorStompChannel>(Game);
+	auto Fake = MakeShared<FDataIfStompProbe>();
+	Channel->TestClient = Fake;
+	FDxDataChannelSettings Settings;
+	Settings.ChannelName = TEXT("sensor");
+	Settings.bAutoConnect = false;
+	Settings.bUseDefaultCredentials = false;
+	Settings.ReconnectInitialDelaySeconds = 0.5f;
+	Channel->InitializeChannel(Settings.ChannelName, Settings, Game);
+	TArray<TStrongObjectPtr<UDeviceDataTopicSubscription>> Interests;
+	for (const TCHAR* Topic : {TEXT("topic.fixture.one"), TEXT("topic.fixture.two")})
+	{
+		auto* Interest = NewObject<UDeviceDataTopicSubscription>();
+		Interest->Channel = Channel;
+		Interest->Destination = Topic;
+		Interest->Issue();
+		Interest->Issue();
+		TestFalse(TEXT("interest queued while disconnected"), Interest->Key.IsEmpty());
+		Interests.Emplace(Interest);
+	}
+	TestEqual(TEXT("interest registration is inert"), Fake->ConnectCalls, 0);
+	Channel->Connect();
+	Fake->Connected.Broadcast(TEXT("1.2"), TEXT("one"), FString());
+	const auto Pump = []()
+	{
+		FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+	};
+	Pump();
+	TestEqual(TEXT("multiple topics on one connection"), Fake->Subscriptions.Num(), 2);
+	Fake->bConnected = false;
+	Fake->Closed.Broadcast(TEXT("fixture"));
+	Pump();
+	Game->GetTimerManager().Tick(0.01f);
+	++GFrameCounter;
+	Game->GetTimerManager().Tick(0.6f);
+	Fake->Connected.Broadcast(TEXT("1.2"), TEXT("two"), FString());
+	Pump();
+	TestEqual(TEXT("both topics resubscribed"), Fake->Subscriptions.Num(), 4);
+	TestEqual(TEXT("first destination preserved"), Fake->SubscriptionDestinations[0], Fake->SubscriptionDestinations[2]);
+	TestEqual(TEXT("second destination preserved"), Fake->SubscriptionDestinations[1], Fake->SubscriptionDestinations[3]);
+	Channel->ShutdownChannel();
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceSharedTopicLifecycle, "MA0T10.DataIf10.SharedTopicLifecycle", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FDeviceSharedTopicLifecycle::RunTest(const FString&)
+{
+	auto* Channel = NewObject<UDxDeviceSensorStompChannel>();
+	auto Fake = MakeShared<FDataIfStompProbe>();
+	Channel->TestClient = Fake;
+	FDxDataChannelSettings Settings;
+	Settings.ChannelName = TEXT("sensor");
+	Settings.bAutoConnect = false;
+	Settings.bUseDefaultCredentials = false;
+	Channel->InitializeChannel(Settings.ChannelName, Settings, nullptr);
+	Channel->Connect();
+	Fake->Connected.Broadcast(TEXT("1.2"), TEXT("fixture"), FString());
+	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+	auto* Interest = NewObject<UDeviceDataTopicSubscription>();
+	Interest->Channel = Channel;
+	Interest->Destination = TEXT("topic.fixture.shared");
+	Interest->ObserveSharedState(EDxDataChannelState::Connected);
+	TestEqual(TEXT("shared ready issues one interest"), Fake->Subscriptions.Num(), 1);
+	Interest->ObserveSharedState(EDxDataChannelState::Connected);
+	TestEqual(TEXT("repeated ready is idempotent"), Fake->Subscriptions.Num(), 1);
+	Interest->ObserveSharedState(EDxDataChannelState::Reconnecting);
+	TestTrue(TEXT("old shared ID is discarded"), Interest->Key.IsEmpty());
+	Interest->ObserveSharedState(EDxDataChannelState::Connected);
+	TestEqual(TEXT("new shared generation requests interest again"), Fake->Subscriptions.Num(), 2);
 	Channel->ShutdownChannel();
 	return true;
 }

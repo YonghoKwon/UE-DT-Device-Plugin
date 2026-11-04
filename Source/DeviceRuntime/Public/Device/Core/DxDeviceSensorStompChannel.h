@@ -42,6 +42,8 @@ protected:
 private:
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 	friend class FDeviceStompChannelLifecycle;
+	friend class FDeviceMultipleTopicSubscriptions;
+	friend class FDeviceSharedTopicLifecycle;
 	TSharedPtr<IStompClient> TestClient;
 #endif
 	UFUNCTION()

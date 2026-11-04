@@ -65,3 +65,41 @@ Validation distinguishes transport submission, broker receipt, and consumer ACK.
 The mock lifecycle regression covers reconnect timer execution, ACK re-subscription,
 receipt deadline, late receipt/generation rejection, and final-owner cleanup.
 It does not claim live-broker or GPU acquisition acceptance.
+
+## Project topic policy (r55b)
+
+`UDeviceDataChannelSettings` is a Game-config DeveloperSettings class. Its `Channels`
+array contains `ChannelName` and `Destinations`: `Alias`, `Destination`, `bSubscribe`,
+and `Purpose`. An absent/empty alias destination preserves the legacy INI/map/UI
+profile. The default list is empty, preserving all existing server names and the
+default disabled self-consumption policy. `camera`, `lidar`, `pointcloud`, `imu`,
+and `ack` are the code-facing aliases; arbitrary extra receive aliases are allowed.
+Connection settings remain exclusively in DTCore's existing settings.
+
+The GI registry registers multiple sensor interests via `UDxStompChannel::Subscribe`;
+DTCore retains keys and renews them on reconnect. The Default adapter uses the
+existing shared connection and reissues interests for each new connection generation.
+Registration never opens a connection. `OnTopicMessage` exposes channel and alias to
+the project without adding a second TC dispatcher. Same-destination aliases in one
+channel share one interest (the first subscribed alias identifies the callback).
+Cross-channel overlaps log a warning and appear in the monitor/status getter without
+blocking connections. The registry owns bindings; they weakly reference their owner
+and channel and are removed at GI shutdown.
+
+Bulk configured interests use the existing worker socket. They are unioned with
+explicit diagnostic receiver interests and renewed after reconnect. They do not
+automatically enable decoding, PCD validation or a second large-body GT delivery
+path: the existing receiver selection still controls those operations. Default
+project interests are empty, and SEND/receipt/parser/reservation algorithms are
+unchanged. Alias selection occurs at the existing destination-selection boundary.
+
+Common configuration is `Config/DefaultGame.ini`; platform overrides are
+`Config/Windows/WindowsGame.ini` or `Config/Linux/LinuxGame.ini`. Replace arrays with
+`!Channels=ClearArray` plus complete channel rows. Restart after changing deployed
+loose configuration. Credentials remain Runtime Override key references, not values
+inside topic policy. The host's `docs/ARTEMIS_PCD_SETTINGS.md` has concrete examples.
+
+Development-only `-DeviceChannelConfigProbe` writes a read-only redacted snapshot
+after engine initialization and exits. No work is registered without that flag;
+the probe body is compiled out of Shipping. Package deployment acceptance uses
+NullRHI and is distinct from GPU/performance or direct UI acceptance.

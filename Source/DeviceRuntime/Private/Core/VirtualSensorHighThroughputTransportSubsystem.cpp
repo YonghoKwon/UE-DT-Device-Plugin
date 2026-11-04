@@ -740,24 +740,32 @@ private:
 
 	void SyncSubscriptions()
 	{
+		TMap<FString, FString> Desired;
 		const FString Topics[] = {Profile.LidarTopic, Profile.CameraTopic, Profile.PointCloudTopic};
 		for (int32 Kind = 0; Kind < 3; ++Kind)
+			if (ReceiveSelection.WantsKind(Kind))
+				Desired.Add(Topics[Kind], TEXT("ma0t10-shared-receiver-") + LexToString(Kind));
+		for (int32 Index = 0; Index < Profile.ProjectSubscriptionDestinations.Num(); ++Index)
 		{
-			const FString Id = TEXT("ma0t10-shared-receiver-") + LexToString(Kind);
-			if (ReceiveSelection.WantsKind(Kind) && !SubscribedKinds.Contains(Kind))
-			{
-				SendSubscribe(Id, Topics[Kind]);
-				SubscribedKinds.Add(Kind);
-			}
-			else if (!ReceiveSelection.WantsKind(Kind) && SubscribedKinds.Contains(Kind))
-			{
-				TArray<uint8> B;
-				AppendUtf8(B, TEXT("UNSUBSCRIBE\nid:") + Id + TEXT("\n\n"));
-				B.Add(0);
-				SendAll(B.GetData(), B.Num(), 2.0);
-				SubscribedKinds.Remove(Kind);
-			}
+			const auto& Destination = Profile.ProjectSubscriptionDestinations[Index];
+			if (!Destination.IsEmpty() && !Desired.Contains(Destination))
+				Desired.Add(Destination, TEXT("device-project-receiver-") + LexToString(Index));
 		}
+		for (auto It = SubscribedDestinations.CreateIterator(); It; ++It)
+			if (!Desired.Contains(It.Key()))
+			{
+				TArray<uint8> Bytes;
+				AppendUtf8(Bytes, TEXT("UNSUBSCRIBE\nid:") + It.Value() + TEXT("\n\n"));
+				Bytes.Add(0);
+				SendAll(Bytes.GetData(), Bytes.Num(), 2.0);
+				It.RemoveCurrent();
+			}
+		for (const auto& Pair : Desired)
+			if (!SubscribedDestinations.Contains(Pair.Key))
+			{
+				SendSubscribe(Pair.Value, Pair.Key);
+				SubscribedDestinations.Add(Pair.Key, Pair.Value);
+			}
 	}
 
 	void PumpSend()
@@ -1314,7 +1322,7 @@ private:
 			E.Type = EWorkerEventType::SendRecovered;
 			QueueEvent(MoveTemp(E));
 		}
-		SubscribedKinds.Reset();
+		SubscribedDestinations.Reset();
 		for (const auto& Pair : PendingReceipts)
 			FailFrame(Pair.Value.Frame, TEXT("Connection closed before broker receipt; delivery outcome is unconfirmed."));
 		PendingReceipts.Reset();
@@ -1342,7 +1350,7 @@ private:
 	TArray<uint8> ReceiveChunk;
 	FVirtualSensorReceiveSelection ReceiveSelection{false};
 	TQueue<FVirtualSensorReceiveSelection, EQueueMode::Mpsc> ReceiverChanges;
-	TSet<int32> SubscribedKinds;
+	TMap<FString, FString> SubscribedDestinations;
 	TAtomic<int32> PendingReceiveEvents{0};
 	TAtomic<int64> DroppedReceiveEvents{0};
 	TQueue<FString, EQueueMode::Mpsc> RunCancellations;
@@ -1461,6 +1469,7 @@ bool UVirtualSensorHighThroughputTransportSubsystem::StartWorker(
 	                          ActiveProfile.CameraTopic == Profile.CameraTopic &&
 	                          ActiveProfile.LidarTopic == Profile.LidarTopic &&
 	                          ActiveProfile.PointCloudTopic == Profile.PointCloudTopic &&
+	                          ActiveProfile.ProjectSubscriptionDestinations == Profile.ProjectSubscriptionDestinations &&
 	                          ActiveProfile.MaxOutstandingBytes == Profile.MaxOutstandingBytes &&
 	                          ActiveProfile.MaxOutstandingBytesPerStream == Profile.MaxOutstandingBytesPerStream &&
 	                          ActiveProfile.ReconnectInitialDelaySeconds == Profile.ReconnectInitialDelaySeconds &&
@@ -1505,7 +1514,7 @@ bool UVirtualSensorHighThroughputTransportSubsystem::PrepareWorker(const FVirtua
 	bool Held = false;
 	for (const auto& T : GetStreamTelemetry())
 		Held |= T.OutstandingFrameCount > 0;
-	if (Worker && Worker->IsRunning() && (ActiveProfile.BrokerUrl != Profile.BrokerUrl || ActiveProfile.UserName != Profile.UserName || ActiveProfile.CameraTopic != Profile.CameraTopic || ActiveProfile.LidarTopic != Profile.LidarTopic || ActiveProfile.PointCloudTopic != Profile.PointCloudTopic || ActiveProfile.MaxOutstandingBytes != Profile.MaxOutstandingBytes || ActiveProfile.MaxOutstandingBytesPerStream != Profile.MaxOutstandingBytesPerStream || ActivePasscode != Passcode) && (!bAllowIdleReplacement || Held))
+	if (Worker && Worker->IsRunning() && (ActiveProfile.BrokerUrl != Profile.BrokerUrl || ActiveProfile.UserName != Profile.UserName || ActiveProfile.CameraTopic != Profile.CameraTopic || ActiveProfile.LidarTopic != Profile.LidarTopic || ActiveProfile.PointCloudTopic != Profile.PointCloudTopic || ActiveProfile.ProjectSubscriptionDestinations != Profile.ProjectSubscriptionDestinations || ActiveProfile.MaxOutstandingBytes != Profile.MaxOutstandingBytes || ActiveProfile.MaxOutstandingBytesPerStream != Profile.MaxOutstandingBytesPerStream || ActivePasscode != Passcode) && (!bAllowIdleReplacement || Held))
 	{
 		Error = TEXT("공유 Raw TCP 연결의 설정이 다릅니다. 기존 스트림을 변경하지 않고 준비를 거절했습니다.");
 		return false;

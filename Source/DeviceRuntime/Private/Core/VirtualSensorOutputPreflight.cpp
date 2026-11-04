@@ -1,4 +1,5 @@
 #include "Device/Core/VirtualSensorOutputPreflight.h"
+#include "Device/Core/DeviceDataChannelSettings.h"
 #include "Device/Core/VirtualSensorLayoutSubsystem.h"
 #include "Device/Core/VirtualSensorSchedulerSubsystem.h"
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
@@ -214,6 +215,9 @@ FVirtualSensorOutputPreflightResult UVirtualSensorOutputPreflight::InspectForPre
 				Row.bTransportConnected = UseRaw ? R.bRawConnected : R.bEngineConnected;
 				Row.Topic = Kind == EVirtualSensorStreamKind::PointCloud ? Profile.ExportTopic : Camera ? Profile.CameraTopic
 				                                                                                        : Profile.LidarTopic;
+				Row.Topic = GetDefault<UDeviceDataChannelSettings>()->Resolve(UseRaw ? TEXT("sensor-bulk") : TEXT("sensor"), Kind == EVirtualSensorStreamKind::PointCloud ? TEXT("pointcloud") : Camera ? TEXT("camera")
+				                                                                                                                                                                                        : TEXT("lidar"),
+				                                                              Row.Topic);
 				if (Row.Topic.TrimStartAndEnd().IsEmpty())
 				{
 					const FString Reason = Id + TEXT(": ") + (Kind == EVirtualSensorStreamKind::PointCloud ? TEXT("PCD") : Camera ? TEXT("Camera")

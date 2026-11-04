@@ -173,7 +173,7 @@ public:
 	const FString& GetSessionPasscodeForHighThroughput() const { return SessionPasscode; }
 
 	UFUNCTION(BlueprintPure, Category = "DigitalTwin|SensorTransport")
-	FString ResolveDestination(const FString& SensorType, const FString& DataKind) const { return ResolveTopic(SensorType, DataKind); }
+	FString ResolveDestination(const FString& SensorType, const FString& DataKind) const { return ResolveTopic(SensorType, DataKind, TEXT("sensor-bulk")); }
 
 	UFUNCTION(BlueprintCallable, Category = "DigitalTwin|SensorTransport")
 	void SetSessionCredentials(const FString& InPasscode, const FString& InBearerToken);
@@ -293,7 +293,8 @@ private:
 	void HandleAckMessage(const FWebSocketMessage& Message);
 	void HandleAckSubscribed(bool bSuccess, const FString& Error);
 	void ReleaseStompChannel();
-	FString ResolveTopic(const FString& SensorType, const FString& DataKind) const;
+	FString ResolveTopic(const FString& SensorType, const FString& DataKind, FName ChannelName = NAME_None) const;
+	FString ResolveAckTopic() const;
 
 	TWeakObjectPtr<UDxDeviceSensorStompChannel> SensorStompChannel;
 	TAtomic<bool> bStompConnected{false};

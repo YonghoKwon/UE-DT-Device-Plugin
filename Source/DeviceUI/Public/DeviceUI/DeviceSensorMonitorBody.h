@@ -43,6 +43,8 @@
 #include "Device/Camera/VirtualCameraCaptureComp.h"
 #include "Device/Contracts/DeviceIdentityPolicy.h"
 #include "Device/Contracts/VirtualSensorDefaults.h"
+#include "Device/Core/DxDeviceSensorChannelSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "Device/Core/VirtualSensorSchedulerSubsystem.h"
 #include "Device/Core/VirtualSensorStreamPublisherComp.h"
 #include "Device/Sensor/DeviceSensorCoordinator.h"
@@ -84,18 +86,26 @@ struct FDeviceSensorMonitorBody
 	{
 		TWeakObjectPtr<TView> DeviceOwner(&View);
 		auto* DeviceSelf = &View;
+		FString Warning;
+		if (auto* Game = View.GetGameInstance())
+			if (auto* Registry = Game->template GetSubsystem<UDxDeviceSensorChannelSubsystem>())
+			{
+				Warning = Registry->GetTopicConfigurationWarning();
+				if (!Warning.IsEmpty())
+					Warning = TEXT("\n") + Warning;
+			}
 
 		if (DeviceSelf->bShowingLidar && DeviceSelf->LidarComp)
 		{
 			const FVirtualSensorRuntimeStatus& Status = DeviceSelf->LidarComp->GetRuntimeStatus();
-			return FString::Printf(TEXT("Frame: %lld | Scan: %.3fs"), Status.FrameId, DeviceSelf->LidarComp->ScanInterval);
+			return FString::Printf(TEXT("Frame: %lld | Scan: %.3fs"), Status.FrameId, DeviceSelf->LidarComp->ScanInterval) + Warning;
 		}
 		if (!DeviceSelf->bShowingLidar && DeviceSelf->CameraComp)
 		{
 			const FVirtualSensorRuntimeStatus& Status = DeviceSelf->CameraComp->GetRuntimeStatus();
-			return FString::Printf(TEXT("Frame: %lld | Interval: %.3fs"), Status.FrameId, DeviceSelf->CameraComp->CaptureInterval);
+			return FString::Printf(TEXT("Frame: %lld | Interval: %.3fs"), Status.FrameId, DeviceSelf->CameraComp->CaptureInterval) + Warning;
 		}
-		return TEXT("Frame: unavailable");
+		return TEXT("Frame: unavailable") + Warning;
 	}
 
 #undef LOCTEXT_NAMESPACE

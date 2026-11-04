@@ -29,6 +29,9 @@ struct DEVICERUNTIME_API FVirtualSensorHighThroughputProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|Transport")
 	FString PointCloudTopic = VirtualSensorDefaults::PointCloudTopic;
 
+	/** Explicit project interests only; empty preserves diagnostic self-receive default off. */
+	TArray<FString> ProjectSubscriptionDestinations;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DigitalTwin|VirtualSensor|Transport", meta = (ClampMin = "1", ClampMax = "120"))
 	int32 ConnectTimeoutSeconds = 10;
 

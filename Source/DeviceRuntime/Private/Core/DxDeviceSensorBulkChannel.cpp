@@ -1,6 +1,7 @@
 #include "Device/Core/DxDeviceSensorBulkChannel.h"
 
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
+#include "Device/Core/DeviceDataChannelSettings.h"
 #include "Core/DTCoreSettings.h"
 #include "../Sensor/DeviceSensorTransportConfig.h"
 #include "Engine/GameInstance.h"
@@ -15,6 +16,11 @@ void UDxDeviceSensorBulkChannel::OnChannelInitialized()
 
 void UDxDeviceSensorBulkChannel::ResolveLegacyProfile(FVirtualSensorHighThroughputProfile& Profile, FString& Passcode) const
 {
+	const auto* Topics = GetDefault<UDeviceDataChannelSettings>();
+	Profile.CameraTopic = Topics->Resolve(TEXT("sensor-bulk"), TEXT("camera"), Profile.CameraTopic);
+	Profile.LidarTopic = Topics->Resolve(TEXT("sensor-bulk"), TEXT("lidar"), Profile.LidarTopic);
+	Profile.PointCloudTopic = Topics->Resolve(TEXT("sensor-bulk"), TEXT("pointcloud"), Profile.PointCloudTopic);
+	Profile.ProjectSubscriptionDestinations = Topics->GetSubscriptions(TEXT("sensor-bulk"));
 	const auto& Settings = GetChannelSettings();
 	if (!bExplicitSettings)
 		return;

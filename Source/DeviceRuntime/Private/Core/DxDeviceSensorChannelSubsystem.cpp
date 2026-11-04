@@ -2,6 +2,7 @@
 
 #include "Device/Core/DxDeviceSensorBulkChannel.h"
 #include "Device/Core/DxDeviceSensorStompChannel.h"
+#include "Device/Core/DeviceDataChannelSettings.h"
 #include "Core/DTCoreSettings.h"
 #include "Core/DxWebSocketSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -52,12 +53,24 @@ void UDxDeviceSensorChannelSubsystem::Initialize(FSubsystemCollectionBase& Colle
 		return;
 	Bulk = RegisterSensorChannel<UDxDeviceSensorBulkChannel>(*Owner, this, TEXT("sensor-bulk"));
 	Sensor = RegisterSensorChannel<UDxDeviceSensorStompChannel>(*Owner, this, TEXT("sensor"));
+	ConfigureTopicSubscriptions(*GetDefault<UDeviceDataChannelSettings>());
 }
 
 void UDxDeviceSensorChannelSubsystem::Deinitialize()
 {
+	for (UDeviceDataTopicSubscription* Subscription : TopicSubscriptions)
+		if (auto* Channel = Subscription->Channel.Get())
+		{
+			Channel->OnStateChanged.RemoveDynamic(this, &UDxDeviceSensorChannelSubsystem::HandleChannelState);
+			if (!Subscription->Key.IsEmpty())
+				Channel->Unsubscribe(Subscription->Key, FSTOMPRequestCompleted());
+		}
+	TopicSubscriptions.Empty();
+	OnTopicMessage.Clear();
 	if (auto* Owner = Socket.Get())
 	{
+		if (auto* Default = Owner->FindChannel(TEXT("Default")))
+			Default->OnStateChanged.RemoveDynamic(this, &UDxDeviceSensorChannelSubsystem::HandleChannelState);
 		if (Bulk && Owner->FindChannel(TEXT("sensor-bulk")) == Bulk)
 			Owner->UnregisterChannel(TEXT("sensor-bulk"));
 		if (Sensor && Owner->FindChannel(TEXT("sensor")) == Sensor)
@@ -67,6 +80,89 @@ void UDxDeviceSensorChannelSubsystem::Deinitialize()
 	Sensor = nullptr;
 	Socket.Reset();
 	Super::Deinitialize();
+}
+
+void UDeviceDataTopicSubscription::Issue()
+{
+	if (Key.IsEmpty())
+		if (auto* Target = Channel.Get())
+		{
+			FSTOMPSubscriptionEvent Event;
+			Event.BindDynamic(this, &UDeviceDataTopicSubscription::Receive);
+			Key = Target->Subscribe(Destination, Event, FSTOMPRequestCompleted());
+		}
+}
+
+void UDeviceDataTopicSubscription::Receive(const FWebSocketMessage& Message)
+{
+	if (auto* Registry = Owner.Get())
+		Registry->OnTopicMessage.Broadcast(ChannelName, Alias, Message);
+}
+
+void UDeviceDataTopicSubscription::ObserveSharedState(EDxDataChannelState State)
+{
+	if (State == EDxDataChannelState::Connected)
+		Issue();
+	else
+		Key.Reset(); // Shared subscription IDs belong to the previous connection generation.
+}
+
+void UDxDeviceSensorChannelSubsystem::ConfigureTopicSubscriptions(const UDeviceDataChannelSettings& Settings)
+{
+	check(IsInGameThread());
+	for (UDeviceDataTopicSubscription* Subscription : TopicSubscriptions)
+		if (auto* Channel = Subscription->Channel.Get())
+		{
+			Channel->OnStateChanged.RemoveDynamic(this, &UDxDeviceSensorChannelSubsystem::HandleChannelState);
+			if (!Subscription->Key.IsEmpty())
+				Channel->Unsubscribe(Subscription->Key, FSTOMPRequestCompleted());
+		}
+	TopicSubscriptions.Empty();
+	TopicConfigurationWarning = FString::Join(Settings.GetDuplicateSubscriptionWarnings(), TEXT("\n"));
+	FString Error;
+	if (!Settings.Validate(Error))
+	{
+		TopicConfigurationWarning = Error;
+		UE_LOG(LogTemp, Error, TEXT("[DeviceDataChannel] %s"), *Error);
+		return;
+	}
+	if (!TopicConfigurationWarning.IsEmpty())
+		UE_LOG(LogTemp, Warning, TEXT("[DeviceDataChannel] %s"), *TopicConfigurationWarning);
+	if (auto* SocketOwner = Socket.Get())
+		for (FName Name : {FName(TEXT("sensor")), FName(TEXT("Default"))})
+			if (auto* Channel = SocketOwner->FindChannel(Name))
+			{
+				const auto Destinations = Settings.GetSubscriptions(Name);
+				if (!Destinations.IsEmpty())
+					Channel->OnStateChanged.AddUniqueDynamic(this, &UDxDeviceSensorChannelSubsystem::HandleChannelState);
+				for (const auto& Destination : Destinations)
+				{
+					auto* Subscription = NewObject<UDeviceDataTopicSubscription>(this);
+					Subscription->Owner = this;
+					Subscription->Channel = Channel;
+					Subscription->ChannelName = Name;
+					Subscription->Destination = Destination;
+					for (const auto& Topic : Settings.FindTopics(Name)->Destinations)
+						if (Topic.Destination == Destination && Topic.bSubscribe)
+						{
+							Subscription->Alias = Topic.Alias;
+							break;
+						}
+					TopicSubscriptions.Add(Subscription);
+					// Default wraps the existing shared connection and cannot queue interests while disconnected.
+					if (Name != TEXT("Default") || Channel->GetState() == EDxDataChannelState::Connected)
+						Subscription->Issue();
+				}
+			}
+}
+
+void UDxDeviceSensorChannelSubsystem::HandleChannelState(FName ChannelName, EDxDataChannelState State, FString)
+{
+	if (ChannelName != TEXT("Default"))
+		return; // UDxStompChannel retains and reissues all sensor interests itself.
+	for (UDeviceDataTopicSubscription* Subscription : TopicSubscriptions)
+		if (Subscription->ChannelName == ChannelName)
+			Subscription->ObserveSharedState(State);
 }
 
 UDxDeviceSensorBulkChannel* UDxDeviceSensorChannelSubsystem::FindBulk(const UWorld* World)

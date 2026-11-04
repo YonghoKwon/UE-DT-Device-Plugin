@@ -15,6 +15,7 @@
 #include "HAL/PlatformTime.h"
 #include "Device/Core/DxDeviceSensorStompChannel.h"
 #include "Device/Core/DxDeviceSensorChannelSubsystem.h"
+#include "Device/Core/DeviceDataChannelSettings.h"
 #include "Core/DxDataChannelBase.h"
 
 UVirtualSensorTransportComp::UVirtualSensorTransportComp()
@@ -288,15 +289,23 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::TestConnection()
 	return Result;
 }
 
-FString UVirtualSensorTransportComp::ResolveTopic(const FString& SensorType, const FString& DataKind) const
+FString UVirtualSensorTransportComp::ResolveTopic(const FString& SensorType, const FString& DataKind, FName ChannelName) const
 {
+	if (ChannelName.IsNone())
+		ChannelName = TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket ? TEXT("Default") : TEXT("sensor");
+	const auto* Topics = GetDefault<UDeviceDataChannelSettings>();
 	if (SensorType == TEXT("imu") && DataKind == TEXT("imu-stream"))
-		return TEXT("topic.virtual.sensor.imu.0");
+		return Topics->Resolve(ChannelName, TEXT("imu"), TEXT("topic.virtual.sensor.imu.0"));
 	if (DataKind.Contains(TEXT("export"), ESearchCase::IgnoreCase) || DataKind.Contains(TEXT("pointcloud"), ESearchCase::IgnoreCase))
-		return TransportProfile.ExportTopic;
+		return Topics->Resolve(ChannelName, TEXT("pointcloud"), TransportProfile.ExportTopic);
 	if (SensorType.Contains(TEXT("lidar"), ESearchCase::IgnoreCase))
-		return TransportProfile.LidarTopic;
-	return TransportProfile.CameraTopic;
+		return Topics->Resolve(ChannelName, TEXT("lidar"), TransportProfile.LidarTopic);
+	return Topics->Resolve(ChannelName, TEXT("camera"), TransportProfile.CameraTopic);
+}
+
+FString UVirtualSensorTransportComp::ResolveAckTopic() const
+{
+	return GetDefault<UDeviceDataChannelSettings>()->Resolve(TEXT("sensor"), TEXT("ack"), TransportProfile.AckTopic);
 }
 
 void UVirtualSensorTransportComp::RequestStompReconnect()
@@ -423,9 +432,9 @@ void UVirtualSensorTransportComp::HandleStompFailure(const FString& Error)
 
 void UVirtualSensorTransportComp::SubscribeToAckTopic()
 {
-	if (!SensorStompChannel.IsValid() || !SensorStompChannel->IsConnected() || TransportProfile.AckTopic.IsEmpty() || !AckSubscriptionId.IsEmpty())
+	if (!SensorStompChannel.IsValid() || !SensorStompChannel->IsConnected() || ResolveAckTopic().IsEmpty() || !AckSubscriptionId.IsEmpty())
 		return;
-	AckSubscriptionId = SensorStompChannel->SubscribeToAck(TransportProfile.AckTopic);
+	AckSubscriptionId = SensorStompChannel->SubscribeToAck(ResolveAckTopic());
 }
 
 FVirtualSensorTransportResult UVirtualSensorTransportComp::MakeAckSubscriptionResult(const FString& Topic, bool bSuccess, const FString& Error)
@@ -442,7 +451,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::MakeAckSubscriptionRe
 
 void UVirtualSensorTransportComp::HandleAckSubscribed(bool bSuccess, const FString& Error)
 {
-	OnDataSent.Broadcast(MakeAckSubscriptionResult(TransportProfile.AckTopic, bSuccess, Error));
+	OnDataSent.Broadcast(MakeAckSubscriptionResult(ResolveAckTopic(), bSuccess, Error));
 }
 
 void UVirtualSensorTransportComp::HandleAckMessage(const FWebSocketMessage& Message)
@@ -461,7 +470,7 @@ void UVirtualSensorTransportComp::HandleAckMessage(const FWebSocketMessage& Mess
 	FVirtualSensorTransportResult Result;
 	Result.Protocol = TEXT("STOMP/WS");
 	Result.RequestId = RequestId;
-	Result.Destination = TransportProfile.AckTopic;
+	Result.Destination = ResolveAckTopic();
 	Result.DataKind = TEXT("consumer-ack");
 	Result.bSubmitted = true;
 	Result.bAccepted = !RequestId.IsEmpty();
@@ -543,7 +552,7 @@ FVirtualSensorTransportResult UVirtualSensorTransportComp::SendStomp(
 			Receipt.bReceiptCompleted=true;
 			Receipt.LatencyMs = static_cast<float>((FPlatformTime::Seconds() - StartedSeconds) * 1000.0);
 			Receipt.Message = bSuccess
-				? (WeakThis->TransportProfile.AckTopic.IsEmpty() ? TEXT("Broker 수락, 소비자 처리 미확인") : TEXT("Broker receipt 수락 · 소비자 ACK 대기"))
+				? (WeakThis->ResolveAckTopic().IsEmpty() ? TEXT("Broker 수락, 소비자 처리 미확인") : TEXT("Broker receipt 수락 · 소비자 ACK 대기"))
 				: FString::Printf(TEXT("STOMP 전송 실패: %s"), *Error);
 			if (Receipt.bManualRequest)
 			{
