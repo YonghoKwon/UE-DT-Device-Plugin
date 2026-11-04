@@ -98,8 +98,10 @@ project interests are empty, and SEND/receipt/parser/reservation algorithms are
 unchanged. Alias selection occurs at the existing destination-selection boundary.
 
 Common configuration is `Config/DefaultGame.ini`; platform overrides are
-`Config/Windows/WindowsGame.ini` or `Config/Linux/LinuxGame.ini`. Replace arrays with
-`!Channels=ClearArray` plus complete channel rows. Restart after changing deployed
+`Config/Windows/WindowsGame.ini` or `Config/Linux/LinuxGame.ini`. A deployed
+`DefaultGame.ini` that lists an array replaces the packaged list. In a platform file, a `+` row
+edits the channel of the same name or adds a new one; `!Channels=ClearArray` plus complete rows
+replaces the list. Restart after changing deployed
 loose configuration. Credentials remain Runtime Override key references, not values
 inside topic policy. The host's `docs/ARTEMIS_PCD_SETTINGS.md` has concrete examples.
 

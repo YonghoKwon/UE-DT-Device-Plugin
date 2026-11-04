@@ -4,7 +4,7 @@
 |---|---|
 | Unreal Engine | 5.3 |
 | 플랫폼 / RHI | Win64 / D3D12 (native 레이트레이싱은 DXR Tier 1.1 필요) |
-| DTCore | `dd7bae7be36d9d6137cb41f8fd1ec86c60306b71` (UE-DT-Core-Plugin) |
+| DTCore | `cb9788a2338ad92e6a651be71330f2abe4b63a90` (UE-DT-Core-Plugin) |
 | 검증 호스트 | UE-DT-Project (기준 커밋은 첫 이관 PR에서 기록) |
 | native 실측 장치 | NVIDIA GeForce RTX 4070 Ti / 드라이버 621.01 |
 
@@ -14,4 +14,4 @@
 
 2026-11-04 r54c: DTCore main `1604ee72a52362c7e39d969ca1c3e631cfdaa3c3`을 검증 기준으로 사용합니다. 승인된 660740f 기능과 54050fd 신규 테스트를 포함하며, 이후 host/TestHost/release 검증은 이 main pin을 기준으로 기록합니다.
 
-2026-11-04 DATA-IF-10 r55: approved data-channel branch pin `dd7bae7be36d9d6137cb41f8fd1ec86c60306b71`. DTCore source is read-only; runtime integration validation is recorded separately. Host merge waits for DTCore main integration.
+2026-11-04 DATA-IF-10 r55: approved data-channel branch pin `cb9788a2338ad92e6a651be71330f2abe4b63a90`. DTCore source is read-only; runtime integration validation is recorded separately. Host merge waits for DTCore main integration.

@@ -93,9 +93,38 @@ bool ReadRows(const FConfigFile& File, const TCHAR* Section, const TCHAR* Key, T
 		T Row;
 		if (!T::StaticStruct()->ImportText(*Text, &Row, nullptr, PPF_None, &Errors, T::StaticStruct()->GetName()))
 			return false;
+		// A later file edits an earlier row of the same channel instead of adding a shadowed duplicate.
+		Result.RemoveAll([&Row](const T& Existing)
+		                 { return Existing.ChannelName == Row.ChannelName; });
 		Result.Add(MoveTemp(Row));
 	}
 	return true;
+}
+
+// FilterProjectOverrides output only: does this file set the array key in the section?
+bool MentionsKey(const FString& Filtered, const TCHAR* Section, const TCHAR* Key)
+{
+	FString Current;
+	TArray<FString> Lines;
+	Filtered.ParseIntoArrayLines(Lines);
+	for (const FString& Line : Lines)
+	{
+		if (Line.StartsWith(TEXT("[")))
+		{
+			Current = Line.Mid(1, Line.Len() - 2);
+			continue;
+		}
+		FString Name, Value;
+		if (Current == Section && Line.Split(TEXT("="), &Name, &Value))
+		{
+			Name.TrimStartAndEndInline();
+			if (Name.StartsWith(TEXT("+")) || Name.StartsWith(TEXT("!")) || Name.StartsWith(TEXT("-")) || Name.StartsWith(TEXT(".")))
+				Name.RightChopInline(1);
+			if (Name == Key)
+				return true;
+		}
+	}
+	return false;
 }
 }
 
@@ -108,8 +137,11 @@ bool DeviceDataChannelConfig::ApplyBuffers(const FString& Common, const FString&
 	// This local file owns its data. Never copy, replace, dirty or flush GConfig's files.
 	FConfigFile Combined;
 	Combined.NoSave = true;
-	SeedRows(Combined, CoreSection, TEXT("DataChannels"), Connections.DataChannels);
-	SeedRows(Combined, TopicSection, TEXT("Channels"), Topics.Channels);
+	// The deployed DefaultGame.ini is an edited copy of the packaged file, so its list replaces the packaged list.
+	if (!MentionsKey(CommonValues, CoreSection, TEXT("DataChannels")))
+		SeedRows(Combined, CoreSection, TEXT("DataChannels"), Connections.DataChannels);
+	if (!MentionsKey(CommonValues, TopicSection, TEXT("Channels")))
+		SeedRows(Combined, TopicSection, TEXT("Channels"), Topics.Channels);
 	Combined.CombineFromBuffer(CommonValues, TEXT("loose common channel policy"));
 	Combined.CombineFromBuffer(PlatformValues, TEXT("loose platform channel policy"));
 	TArray<FDxDataChannelSettings> NewConnections;

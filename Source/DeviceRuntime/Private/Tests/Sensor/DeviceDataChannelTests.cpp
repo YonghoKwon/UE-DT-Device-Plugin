@@ -429,6 +429,50 @@ bool FDeviceLooseTopicConfig::RunTest(const FString&)
 	TestEqual(TEXT("global config dirty flag unchanged"), OriginalCache ? OriginalCache->Dirty : false, bOriginalDirty);
 	return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceLooseEditReplacesPackagedRow, "MA0T10.DataIf10.LooseEditReplacesPackagedRow", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FDeviceLooseEditReplacesPackagedRow::RunTest(const FString&)
+{
+	auto MakePackaged = [](UDTCoreSettings& Connections)
+	{
+		FDxDataChannelSettings Sensor;
+		Sensor.ChannelName = TEXT("sensor");
+		Sensor.Url = TEXT("ws://packaged-sensor:1");
+		FDxDataChannelSettings Bulk;
+		Bulk.ChannelName = TEXT("sensor-bulk");
+		Bulk.Url = TEXT("tcp://packaged-bulk:2");
+		Connections.DataChannels = {Sensor, Bulk};
+	};
+	auto* Connections = NewObject<UDTCoreSettings>();
+	auto* Topics = NewObject<UDeviceDataChannelSettings>();
+	Topics->Channels.Empty();
+	const FString Section = TEXT("[/Script/DTCore.DTCoreSettings]\n");
+
+	MakePackaged(*Connections);
+	const FString Edited = Section + TEXT("+DataChannels=(ChannelName=\"sensor\",Url=\"ws://site-sensor:1\")\n+DataChannels=(ChannelName=\"sensor-bulk\",Url=\"tcp://site-bulk:2\")\n");
+	TestTrue(TEXT("edited deployed common applies"), DeviceDataChannelConfig::ApplyBuffers(Edited, FString(), *Connections, *Topics));
+	TestEqual(TEXT("edited rows replace packaged rows"), Connections->DataChannels.Num(), 2);
+	if (Connections->DataChannels.Num() == 2)
+	{
+		TestEqual(TEXT("first row carries the site edit"), Connections->DataChannels[0].Url, FString(TEXT("ws://site-sensor:1")));
+		TestEqual(TEXT("second row carries the site edit"), Connections->DataChannels[1].Url, FString(TEXT("tcp://site-bulk:2")));
+	}
+
+	MakePackaged(*Connections);
+	const FString Removed = Section + TEXT("+DataChannels=(ChannelName=\"sensor\",Url=\"ws://site-sensor:1\")\n");
+	TestTrue(TEXT("shortened deployed common applies"), DeviceDataChannelConfig::ApplyBuffers(Removed, FString(), *Connections, *Topics));
+	TestEqual(TEXT("row removed from the deployed common stays removed"), Connections->DataChannels.Num(), 1);
+
+	MakePackaged(*Connections);
+	const FString PlatformEdit = Section + TEXT("+DataChannels=(ChannelName=\"sensor-bulk\",Url=\"tcp://windows-bulk:2\")\n");
+	TestTrue(TEXT("platform-only edit applies"), DeviceDataChannelConfig::ApplyBuffers(FString(), PlatformEdit, *Connections, *Topics));
+	TestEqual(TEXT("platform edit keeps other packaged rows"), Connections->DataChannels.Num(), 2);
+	const auto* Bulk = Connections->DataChannels.FindByPredicate([](const FDxDataChannelSettings& Item)
+	{
+		return Item.ChannelName == TEXT("sensor-bulk");
+	});
+	TestTrue(TEXT("platform edit wins for its channel"), Bulk && Bulk->Url == TEXT("tcp://windows-bulk:2"));
+	return true;
+}
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDeviceConfiguredAckPolicy, "MA0T10.DataIf10.ConfiguredAckPolicy", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDeviceConfiguredAckPolicy::RunTest(const FString&)
 {
