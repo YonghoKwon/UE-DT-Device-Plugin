@@ -6,6 +6,17 @@
 #include "Components/TextBlock.h"
 #include "Components/EditableTextBox.h"
 #include "Blueprint/WidgetTree.h"
+bool UDxDeviceSensorPanelBase::HandleNavigateTo_Implementation(FName SubTarget)
+{
+	FString SensorId = SubTarget.ToString();
+	if (SensorId.RemoveFromStart(TEXT("Sensor:")) && !SensorId.IsEmpty())
+	{
+		const auto* Host = GetDevicePanelHost();
+		return Host && Host->NavigateToSensor(FName(*SensorId));
+	}
+	return Super::HandleNavigateTo_Implementation(SubTarget);
+}
+
 void UDxDeviceSensorPanelBase::BindDevicePanelHost(UObject* Owner, TSharedPtr<IDevicePanelHostBridge> Bridge)
 {
 	DeviceHostOwner = Owner;

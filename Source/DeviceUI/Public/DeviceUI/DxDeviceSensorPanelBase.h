@@ -14,6 +14,7 @@ class DEVICEUI_API UDxDeviceSensorPanelBase : public UDxWidget
 {
 	GENERATED_BODY()
 public:
+	virtual bool HandleNavigateTo_Implementation(FName SubTarget) override;
 	virtual bool SupportsOwnedDocking() const { return false; }
 	virtual FLinearColor GetToolTextColor() const { return FLinearColor::White; }
 	virtual FLinearColor GetToolMutedColor() const { return FLinearColor(.6f, .6f, .6f, 1.f); }

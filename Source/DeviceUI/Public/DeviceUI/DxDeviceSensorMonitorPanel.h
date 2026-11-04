@@ -16,6 +16,7 @@ class DEVICEUI_API UDxDeviceSensorMonitorPanel : public UDxDeviceSensorPanelBase
 {
 	GENERATED_BODY()
 public:
+	virtual bool HandleNavigateTo_Implementation(FName SubTarget) override;
 	UFUNCTION(BlueprintCallable, Category = "Device|Monitor")
 	void RefreshSensors();
 	UFUNCTION(BlueprintCallable, Category = "Device|Monitor")

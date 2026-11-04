@@ -9,4 +9,5 @@ public:
 	virtual float PixelScale() const = 0;
 	virtual bool NavigateBack() = 0;
 	virtual FText BackLabel() const = 0;
+	virtual bool NavigateToSensor(FName SensorId) const { return false; }
 };

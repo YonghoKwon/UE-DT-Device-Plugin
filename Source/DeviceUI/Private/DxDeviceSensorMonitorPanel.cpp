@@ -72,6 +72,21 @@ void UDxDeviceSensorMonitorPanel::NativeDestruct()
 	CameraComp = nullptr;
 	Super::NativeDestruct();
 }
+bool UDxDeviceSensorMonitorPanel::HandleNavigateTo_Implementation(FName SubTarget)
+{
+	FString SensorId = SubTarget.ToString();
+	if (!SensorId.RemoveFromStart(TEXT("Sensor:")) || SensorId.IsEmpty())
+		return Super::HandleNavigateTo_Implementation(SubTarget);
+	if (auto* World = GetWorld())
+		for (TActorIterator<AVirtualSensorActorBase> It(World); It; ++It)
+			if (FName(*It->GetSensorId()) == FName(*SensorId))
+			{
+				SelectSensor(*It);
+				return GetSelectedSensor() == *It;
+			}
+	return false;
+}
+
 void UDxDeviceSensorMonitorPanel::RefreshSensors()
 {
 	auto* Previous = SelectedSensor.Get();

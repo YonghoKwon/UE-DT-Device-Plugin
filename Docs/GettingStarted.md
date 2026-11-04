@@ -131,3 +131,10 @@ Native LiDAR 안전 상태는 소비 프로젝트의 `Saved/NativeLidarSafety`�
 DTDevice 설정 `/Script/DeviceRuntime.DeviceSensorAssetSettings`의 `RawTcpReconnectInitialDelaySeconds`(1초), `RawTcpReconnectMaxDelaySeconds`(10초), `RawTcpReconnectBackoffMultiplier`(2)로 Raw TCP STOMP 재연결 지연을 정합니다. 기본 실패 간격은 기존과 같은 1/2/4/8/10/10초입니다. Engine 설정이며 DTCore 공유 WebSocket의 Reconnect 설정과 독립적입니다. 과제 DefaultGame.ini에 DTCore Reconnect 기본값을 자동으로 쓰지 않습니다.
 
 설정은 연결 profile 생성 시 복사됩니다. 실행 중 워커는 UObject 설정을 읽지 않으며, 정책을 바꾸려면 새 profile로 전용 연결을 다시 준비합니다. 직접 `FVirtualSensorHighThroughputProfile`을 전달하는 소비자는 그 profile의 재연결 값을 사용할 수 있습니다. PCD wire/receipt/큐 상한과 과부하 backoff는 변경하지 않습니다.
+
+
+## 패널 내부 이동 (DTCORE-EXT-09)
+
+승인된 DTCore 660740f API를 사용합니다. `UDxDeviceSensorPanelBase::NavigateTo("Sensor:<센서 ID>")`는 명시적으로 바인딩한 host bridge에 센서 선택을 요청합니다. host가 해제됐거나 처리하지 못하면 false이며 현재 화면·이력은 바뀌지 않습니다. 독립 `UDxDeviceSensorMonitorPanel`은 같은 World의 해당 센서를 선택하며, `NavigateBack()`으로 이전 센서로 돌아갑니다. SubTarget은 DTCore의 FName 규칙을 따릅니다.
+
+host workspace 패널은 기존 소유권/인스턴스를 유지합니다. 이 API를 쓰기 위해 DTCore OpenWidgets 목록으로 옮기거나 별도 위젯 관리자를 만들지 않습니다. 탐색은 사용자 동작 시에만 실행하고 Tick/스레드/구독을 추가하지 않습니다.
