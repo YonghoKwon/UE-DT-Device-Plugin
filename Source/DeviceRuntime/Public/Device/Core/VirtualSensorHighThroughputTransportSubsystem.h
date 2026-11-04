@@ -141,6 +141,7 @@ struct DEVICERUNTIME_API FVirtualSensorBinaryFrame
 };
 
 class FVirtualSensorHighThroughputTransportWorker;
+class UDxDeviceSensorBulkChannel;
 
 struct FVirtualSensorRunRetentionSnapshot
 {
@@ -258,6 +259,12 @@ public:
 	static double ReconnectDelaySeconds(const FVirtualSensorHighThroughputProfile& Profile, int32 Attempt);
 
 private:
+	friend class UDxDeviceSensorBulkChannel;
+	TWeakObjectPtr<UDxDeviceSensorBulkChannel> BulkChannel;
+	bool StartWorker(const FVirtualSensorHighThroughputProfile& Profile, const FString& SessionPasscode);
+	void StopWorker();
+	bool PrepareWorker(const FVirtualSensorHighThroughputProfile& Profile, const FString& Passcode, FString& Error, bool bAllowIdleReplacement);
+	bool EnqueueWorkerFrame(const FVirtualSensorBinaryFrame& Frame, FString& OutError);
 	friend class FVirtualSensorReceiverRequestPolicyTest;
 	TMap<FString, uint64> KnownManagedRuns;
 	TMap<FString, uint64> ActiveManagedRuns;

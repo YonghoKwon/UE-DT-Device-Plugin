@@ -1,6 +1,8 @@
 #include "Device/Core/VirtualSensorHighThroughputTransportSubsystem.h"
 #include "Device/Core/VirtualSensorHitchDiagnostics.h"
 #include "Device/Core/DeviceSensorAssetSettings.h"
+#include "Device/Core/DxDeviceSensorBulkChannel.h"
+#include "Device/Core/DxDeviceSensorChannelSubsystem.h"
 
 #include "Device/Core/VirtualSensorStompProtocol.h"
 #include "Device/Core/VirtualSensorWireHeaders.h"
@@ -1423,7 +1425,30 @@ TStatId UVirtualSensorHighThroughputTransportSubsystem::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UVirtualSensorHighThroughputTransportSubsystem, STATGROUP_Tickables);
 }
 
-bool UVirtualSensorHighThroughputTransportSubsystem::StartHighThroughputTransport(
+bool UVirtualSensorHighThroughputTransportSubsystem::StartHighThroughputTransport(const FVirtualSensorHighThroughputProfile& Profile, const FString& Passcode)
+{
+	if (auto* Channel = UDxDeviceSensorChannelSubsystem::FindBulk(GetWorld()))
+		return Channel->Start(*this, Profile, Passcode);
+	// Editor-only fixtures without a GameInstance retain their original World worker path.
+	return StartWorker(Profile, Passcode);
+}
+
+void UVirtualSensorHighThroughputTransportSubsystem::StopHighThroughputTransport()
+{
+	if (auto* Channel = BulkChannel.Get())
+		Channel->StopForWorld(*this);
+	else
+		StopWorker();
+}
+
+bool UVirtualSensorHighThroughputTransportSubsystem::PrepareHighThroughputTransport(const FVirtualSensorHighThroughputProfile& Profile, const FString& Passcode, FString& Error, bool bAllowIdleReplacement)
+{
+	if (auto* Channel = UDxDeviceSensorChannelSubsystem::FindBulk(GetWorld()))
+		return Channel->Prepare(*this, Profile, Passcode, Error, bAllowIdleReplacement);
+	return PrepareWorker(Profile, Passcode, Error, bAllowIdleReplacement);
+}
+
+bool UVirtualSensorHighThroughputTransportSubsystem::StartWorker(
     const FVirtualSensorHighThroughputProfile& Profile,
     const FString& SessionPasscode)
 {
@@ -1444,7 +1469,7 @@ bool UVirtualSensorHighThroughputTransportSubsystem::StartHighThroughputTranspor
 	                          ActivePasscode == SessionPasscode;
 	if (bSameProfile && Worker->IsRunning())
 		return true;
-	StopHighThroughputTransport();
+	StopWorker();
 	ActiveProfile = Profile;
 	ActivePasscode = SessionPasscode;
 	Worker = new FVirtualSensorHighThroughputTransportWorker(Profile, SessionPasscode);
@@ -1461,7 +1486,7 @@ bool UVirtualSensorHighThroughputTransportSubsystem::StartHighThroughputTranspor
 	return true;
 }
 
-void UVirtualSensorHighThroughputTransportSubsystem::StopHighThroughputTransport()
+void UVirtualSensorHighThroughputTransportSubsystem::StopWorker()
 {
 	bTransportConnected = false;
 	bSendDelayed = false;
@@ -1474,7 +1499,7 @@ void UVirtualSensorHighThroughputTransportSubsystem::StopHighThroughputTransport
 	}
 }
 
-bool UVirtualSensorHighThroughputTransportSubsystem::PrepareHighThroughputTransport(const FVirtualSensorHighThroughputProfile& Profile, const FString& Passcode, FString& Error, bool bAllowIdleReplacement)
+bool UVirtualSensorHighThroughputTransportSubsystem::PrepareWorker(const FVirtualSensorHighThroughputProfile& Profile, const FString& Passcode, FString& Error, bool bAllowIdleReplacement)
 {
 	Error.Reset();
 	bool Held = false;
@@ -1485,7 +1510,7 @@ bool UVirtualSensorHighThroughputTransportSubsystem::PrepareHighThroughputTransp
 		Error = TEXT("공유 Raw TCP 연결의 설정이 다릅니다. 기존 스트림을 변경하지 않고 준비를 거절했습니다.");
 		return false;
 	}
-	if (!StartHighThroughputTransport(Profile, Passcode))
+	if (!StartWorker(Profile, Passcode))
 	{
 		Error = TEXT("Raw TCP 연결 준비 요청 실패");
 		return false;
@@ -1523,7 +1548,14 @@ bool UVirtualSensorHighThroughputTransportSubsystem::CanResumePointCloudStream(c
 	       Worker->IsPointCloudResumeCapacityAvailable(SensorId);
 }
 
-bool UVirtualSensorHighThroughputTransportSubsystem::EnqueueBinaryFrame(
+bool UVirtualSensorHighThroughputTransportSubsystem::EnqueueBinaryFrame(const FVirtualSensorBinaryFrame& Frame, FString& OutError)
+{
+	if (auto* Channel = BulkChannel.Get())
+		return Channel->PublishFrame(Frame, OutError);
+	return EnqueueWorkerFrame(Frame, OutError);
+}
+
+bool UVirtualSensorHighThroughputTransportSubsystem::EnqueueWorkerFrame(
     const FVirtualSensorBinaryFrame& Frame,
     FString& OutError)
 {
@@ -1762,6 +1794,8 @@ void UVirtualSensorHighThroughputTransportSubsystem::DrainWorkerEvents()
 		{
 			LogDiagnostic(Event.Type == EWorkerEventType::Connected ? 0 : 1, FString::Printf(TEXT("[SensorRawConnection] connected=%d reason=%s"), Event.Type == EWorkerEventType::Connected, *Event.Message));
 			bTransportConnected = Event.Type == EWorkerEventType::Connected;
+			if (auto* Channel = BulkChannel.Get())
+				Channel->ObserveConnection(bTransportConnected, Event.Message);
 			++ConnectionRevision;
 			ConnectionMessage = Event.Message;
 			for (TPair<FString, FVirtualSensorStreamTelemetry>& Pair : TelemetryByKey)
@@ -1774,6 +1808,9 @@ void UVirtualSensorHighThroughputTransportSubsystem::DrainWorkerEvents()
 		if (Event.Type == EWorkerEventType::SendDelayed || Event.Type == EWorkerEventType::SendRecovered)
 		{
 			bSendDelayed = Event.Type == EWorkerEventType::SendDelayed;
+			if (bSendDelayed)
+				if (auto* Channel = BulkChannel.Get())
+					Channel->ObserveBackpressure();
 			LogDiagnostic(bSendDelayed ? 2 : 3, FString::Printf(TEXT("[SensorRawBackpressure] delayed=%d reason=%s"), bSendDelayed, *Event.Message));
 			continue;
 		}
@@ -1788,6 +1825,8 @@ void UVirtualSensorHighThroughputTransportSubsystem::DrainWorkerEvents()
 		switch (Event.Type)
 		{
 			case EWorkerEventType::Submitted:
+				if (auto* Channel = BulkChannel.Get())
+					Channel->ObserveSubmitted();
 				if (Event.StreamKind == EVirtualSensorStreamKind::PointCloud)
 					PcdBandwidthBySensor.FindOrAdd(Event.SensorId).Record(Event.ObservedSeconds, Event.Bytes, Event.PcdOriginalPointBytes, Event.PcdEncodedPointBytes);
 				++Telemetry.SubmittedCount;
@@ -1839,10 +1878,14 @@ void UVirtualSensorHighThroughputTransportSubsystem::DrainWorkerEvents()
 				Telemetry.State = TEXT("retrying");
 				break;
 			case EWorkerEventType::Overload:
+				if (auto* Channel = BulkChannel.Get())
+					Channel->ObserveBackpressure();
 				++Telemetry.OverloadCount;
 				Telemetry.State = TEXT("overload");
 				break;
 			case EWorkerEventType::DeliveryFailed:
+				if (auto* Channel = BulkChannel.Get())
+					Channel->ObserveDropped();
 				++Telemetry.DeliveryFailureCount;
 				Telemetry.LastDeliveryFailureMessage = FString::Printf(TEXT("sensor=%s frame=%lld: %s"), *Event.SensorId, Event.FrameId, *Event.Message);
 				Telemetry.State = TEXT("delivery-failed");
