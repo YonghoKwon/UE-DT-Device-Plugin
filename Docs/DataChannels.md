@@ -1,6 +1,6 @@
 # 장치 데이터 채널과 프로젝트 토픽 정책
 
-DTCore main **cb9788a2338ad92e6a651be71330f2abe4b63a90** 기반입니다. 연결·등록·상태·재연결 메커니즘은 DTCore, 어떤 destination을 사용하는지는 소비 프로젝트가 소유합니다. 과제 TC/DataTable을 공통 장치 코드로 복사하지 않습니다.
+DTCore main **f05f25f6ebb8bacda0e5b0dc6e1c5d5d88ae44ee** 기반입니다. 연결·등록·상태·재연결 메커니즘은 DTCore, 어떤 destination을 사용하는지는 소비 프로젝트가 소유합니다. 과제 TC/DataTable을 공통 장치 코드로 복사하지 않습니다.
 
 ## 채널·수명
 
@@ -92,3 +92,7 @@ Windows 현장 권장 배치는 `Windows/ma0t10_dt/Config/Game.ini`다. 기존 D
 장비 전송 방식은 DTCoreWebSocket, Default 주소와 sensor-bulk 주소는 기존 연결 설정을 사용한다. sensor에 별도 자동 연결/구독 작업을 설정하지 않은 이 조합에서는 실제 제품 연결은 **Default + sensor-bulk = 2개**다. 등록된 상태 목록에는 연결을 열지 않은 sensor도 남는다. 독립 sensor 연결이 필요한 수동/기존 STOMP 업무와 혼용하면 2개를 보장하지 않는다. 공통 연결에 binary PCD를 Base64로 넣거나 전용 worker를 없애지 않는다.
 
 설정·모드 변경 후 재시작하고 상태 목록의 Default/sensor-bulk 연결과 sensor 미연결을 확인한다. 인증값은 ini에 직접 넣지 않는다. Docker 기능 검수는 Tools/ArtemisClusterTest의 shared 모드를 사용하며, 외부 소비자/HAProxy health check 연결을 제품의 두 연결과 구분해 보고한다.
+
+### STRUCTURE-12 r58 중지 상태
+
+PCD 연결 중단 중 사용자가 전송을 중지하거나 World 세션이 끝나면 `전송 중지로 관측 종료`로 표시합니다. 이때까지의 기간과 확인된 유실은 고정되며 복구 Warning을 만들지 않습니다. 다음 실패는 새 구간으로 집계하고 누적 유실은 유지합니다. 정상 연결 중 중지는 유실 구간을 만들지 않습니다.

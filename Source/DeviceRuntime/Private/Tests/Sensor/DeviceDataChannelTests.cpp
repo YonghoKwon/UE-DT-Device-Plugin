@@ -7,6 +7,7 @@
 #include "Device/Core/DxDeviceSensorChannelSubsystem.h"
 #include "Core/DxDataChannelLibrary.h"
 #include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Async/TaskGraphInterfaces.h"
 #include "TimerManager.h"
 #include "UObject/StrongObjectPtr.h"
@@ -108,7 +109,58 @@ bool FStructure12BulkOutage::RunTest(const FString&)
 	Channel->ObserveDropped(EVirtualSensorStreamKind::PointCloud, TEXT("B"));
 	TestEqual(TEXT("new interval resets per-outage count"), Channel->GetLastOutage().DroppedFrames, int64(1));
 	TestEqual(TEXT("cumulative survives new interval"), Channel->GetOutageDroppedFrames(), int64(4));
+	auto* Source = NewObject<UVirtualSensorHighThroughputTransportSubsystem>(NewObject<UWorld>());
+	FString Error;
+	TestTrue(TEXT("bind without starting a socket worker"), Channel->BindWorld(*Source, Error));
+	Channel->ObserveConnection(false, TEXT("still disconnected"), FPlatformTime::Seconds() - 10, Start);
+	Channel->StopForWorld(*Source);
+	TestFalse(TEXT("world stop closes active interval"), Channel->IsOutageActive());
+	TestTrue(TEXT("stop is distinct from recovery"), Channel->GetLastOutage().bStopped);
+	TestTrue(TEXT("stop records UTC"), Channel->GetLastOutage().StoppedUtc.GetTicks() > 0);
+	TestEqual(TEXT("stop does not record recovery UTC"), Channel->GetLastOutage().RecoveredUtc.GetTicks(), int64(0));
+	const double StoppedDuration = Channel->GetLastOutage().DurationSeconds;
+	const FString StoppedText = Channel->GetOutageStatusText();
+	TestTrue(TEXT("UI identifies observation ending at transport stop"), StoppedText.Contains(TEXT("전송 중지로 관측 종료")));
+	TestFalse(TEXT("stopped UI is not active"), StoppedText.Contains(TEXT("진행 중")));
+	TestFalse(TEXT("stopped UI is not recovery"), StoppedText.Contains(TEXT("복구됨")));
+	Channel->StopForWorld(*Source);
+	Channel->ObserveConnection(true, TEXT("new session connected"), FPlatformTime::Seconds() + 100, Start);
+	TestEqual(TEXT("later connection does not extend stopped duration"), Channel->GetLastOutage().DurationSeconds, StoppedDuration);
+	TestEqual(TEXT("later connection preserves stopped summary"), Channel->GetOutageStatusText(), StoppedText);
+	Channel->ObserveSuspendedPointCloud(TEXT("B"));
+	TestEqual(TEXT("stopped suspension does not count as loss"), Channel->GetOutageDroppedFrames(), int64(4));
+	TestTrue(TEXT("bind a subsequent session"), Channel->BindWorld(*Source, Error));
+	Channel->ObserveConnection(false, TEXT("new failure"), 200, Start);
+	TestFalse(TEXT("new failure clears stopped state"), Channel->GetLastOutage().bStopped);
+	TestEqual(TEXT("new failure starts its own duration"), Channel->GetLastOutage().StartedSeconds, 200.0);
+	Channel->ObserveDropped(EVirtualSensorStreamKind::PointCloud, TEXT("C"));
+	Channel->ObserveConnection(true, TEXT("new recovery"), 202, Start + FTimespan::FromSeconds(2));
+	TestEqual(TEXT("recovery excludes stopped interval duration"), Channel->GetLastOutage().DurationSeconds, 2.0);
+	TestEqual(TEXT("recovery excludes stopped interval loss"), Channel->GetLastOutage().DroppedFrames, int64(1));
+	TestEqual(TEXT("cumulative loss survives stop and reconnect"), Channel->GetOutageDroppedFrames(), int64(5));
 	Channel->ShutdownChannel();
+
+	auto* Healthy = NewObject<UDxDeviceSensorBulkChannel>();
+	Settings.MaxMessageBytes = 1;
+	Healthy->InitializeChannel(Settings.ChannelName, Settings, nullptr);
+	TestTrue(TEXT("bind healthy session"), Healthy->BindWorld(*Source, Error));
+	Healthy->ObserveConnection(true, TEXT("healthy"), 300, Start);
+	Healthy->StopForWorld(*Source);
+	TestTrue(TEXT("healthy stop creates no outage"), Healthy->GetOutageStatusText().IsEmpty());
+	TestEqual(TEXT("healthy stop preserves zero loss"), Healthy->GetOutageDroppedFrames(), int64(0));
+	TestTrue(TEXT("rebind for oversize rejection"), Healthy->BindWorld(*Source, Error));
+	Healthy->ObserveConnection(false, TEXT("oversize fixture"), 400, Start);
+	FVirtualSensorBinaryFrame Frame;
+	Frame.StreamKind = EVirtualSensorStreamKind::PointCloud;
+	Frame.SensorId = TEXT("oversize");
+	auto Body = MakeShared<TArray<uint8>, ESPMode::ThreadSafe>();
+	Body->AddZeroed(2);
+	Frame.Body32 = Body;
+	TestFalse(TEXT("oversized frame rejected"), Healthy->PublishFrame(Frame, Error));
+	TestEqual(TEXT("oversize records one channel drop"), Healthy->GetStatus().DroppedCount, int64(1));
+	TestEqual(TEXT("oversize records one outage loss"), Healthy->GetLastOutage().DroppedFrames, int64(1));
+	TestEqual(TEXT("oversize identifies the sensor"), Healthy->GetLastOutage().DroppedBySensor.FindRef(Frame.SensorId), int64(1));
+	Healthy->ShutdownChannel();
 	return true;
 }
 

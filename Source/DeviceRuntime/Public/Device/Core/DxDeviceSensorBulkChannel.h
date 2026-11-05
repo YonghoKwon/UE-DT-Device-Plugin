@@ -12,11 +12,12 @@ struct FVirtualSensorBinaryFrame;
 /** Known rejected/terminal PCD frames; receipt does not prove consumer delivery. */
 struct DEVICERUNTIME_API FDevicePcdOutage
 {
-	FDateTime StartedUtc, RecoveredUtc;
+	FDateTime StartedUtc, RecoveredUtc, StoppedUtc;
 	double StartedSeconds = 0, DurationSeconds = 0;
 	int64 DroppedFrames = 0;
 	TMap<FString, int64> DroppedBySensor;
 	bool bActive = false;
+	bool bStopped = false;
 };
 
 /** 기존 World 소유 Raw TCP worker의 GI 수명 채널. socket/PCD/receipt 처리는 worker에만 있다.
@@ -60,6 +61,10 @@ protected:
 	virtual bool PublishBytes(const FString& Destination, const TArray<uint8>& Body, const TMap<FName, FString>& Headers, const FSTOMPRequestCompleted& CompletionCallback) override;
 
 private:
+#if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
+	friend class FStructure12BulkOutage;
+#endif
+	void RecordOutageDrop(EVirtualSensorStreamKind Kind, const FString& SensorId);
 	bool BindWorld(UVirtualSensorHighThroughputTransportSubsystem& Source, FString& Error);
 	TWeakObjectPtr<UVirtualSensorHighThroughputTransportSubsystem> Transport;
 	bool bExplicitSettings = false;

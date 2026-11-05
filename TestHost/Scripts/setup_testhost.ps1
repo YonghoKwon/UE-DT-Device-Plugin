@@ -11,7 +11,7 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $hostRoot = Split-Path -Parent $PSScriptRoot
-$validatedCommit = "cb9788a2338ad92e6a651be71330f2abe4b63a90"
+$validatedCommit = "f05f25f6ebb8bacda0e5b0dc6e1c5d5d88ae44ee"
 $defaultSource = "https://github.com/YonghoKwon/UE-DT-Core-Plugin.git"
 
 # Per-PC settings live in TestHost.local.ini (git-ignored) so an internal repository URL is never committed.

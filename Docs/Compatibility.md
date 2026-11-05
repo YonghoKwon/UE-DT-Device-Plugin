@@ -5,11 +5,11 @@
 | Unreal Engine | 5.3 |
 | 실행 플랫폼/RHI | Win64 / D3D12 |
 | native 요구 | DXR inline ray query Tier1.1, 장치 건강 상태·adapter/driver startup oracle |
-| DTCore 고정 기준 | `cb9788a2338ad92e6a651be71330f2abe4b63a90` (main) |
+| DTCore 고정 기준 | `f05f25f6ebb8bacda0e5b0dc6e1c5d5d88ae44ee` (main) |
 | 소비 host | UE-DT-Project, #99~#104 완료 |
 | 장치 코드 검증 pin | `dca79e341a1efdafcd3ed7831f25896429cca016` (이번 문서는 그 코드 위 문서 변경) |
 
-DTCore cb9788a는 이전 데이터 채널 검증 tree와 동일하며 channel base/STOMP/등록/상태 API를 포함합니다. TestHost setup의 validatedCommit과 소비 host의 guard 기준을 함께 유지합니다. 임의 최신 pin이나 DTCore 소스 수정은 승인·별도 검증 없이 하지 않습니다.
+DTCore f05f25f는 cb9788a 대비 Markdown 문서만 변경됐으며 channel base/STOMP/등록/상태 런타임은 동일합니다. TestHost setup의 validatedCommit과 소비 host의 guard 기준을 함께 유지합니다. 임의 최신 pin이나 DTCore 소스 수정은 승인·별도 검증 없이 하지 않습니다.
 
 ## 최근 증거(새 문서 빌드가 아님)
 

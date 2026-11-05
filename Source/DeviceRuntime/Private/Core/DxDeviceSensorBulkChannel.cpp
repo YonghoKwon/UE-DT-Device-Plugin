@@ -116,6 +116,13 @@ void UDxDeviceSensorBulkChannel::StopForWorld(UVirtualSensorHighThroughputTransp
 	Source.StopWorker();
 	if (Transport.Get() == &Source)
 	{
+		if (Outage.bActive)
+		{
+			Outage.bActive = false;
+			Outage.bStopped = true;
+			Outage.StoppedUtc = FDateTime::UtcNow();
+			Outage.DurationSeconds = FMath::Max(0.0, FPlatformTime::Seconds() - Outage.StartedSeconds);
+		}
 		Source.BulkChannel.Reset();
 		Transport.Reset();
 		UpdateState(EDxDataChannelState::Disconnected, TEXT("Raw TCP worker stopped"));
@@ -145,12 +152,7 @@ bool UDxDeviceSensorBulkChannel::PublishFrame(const FVirtualSensorBinaryFrame& F
 	if (!CheckMessageSize(Frame.NumBytes()))
 	{
 		// CheckMessageSize already records the channel drop.
-		if (Outage.bActive && Frame.StreamKind == EVirtualSensorStreamKind::PointCloud)
-		{
-			++Outage.DroppedFrames;
-			++Outage.DroppedBySensor.FindOrAdd(Frame.SensorId);
-			++TotalOutageDroppedFrames;
-		}
+		RecordOutageDrop(Frame.StreamKind, Frame.SensorId);
 		Error = GetStatus().LastError;
 		return false;
 	}
@@ -200,6 +202,11 @@ void UDxDeviceSensorBulkChannel::ObserveConnection(bool bConnected, const FStrin
 void UDxDeviceSensorBulkChannel::ObserveDropped(EVirtualSensorStreamKind Kind, const FString& SensorId)
 {
 	RecordDropped();
+	RecordOutageDrop(Kind, SensorId);
+}
+
+void UDxDeviceSensorBulkChannel::RecordOutageDrop(EVirtualSensorStreamKind Kind, const FString& SensorId)
+{
 	if (Outage.bActive && Kind == EVirtualSensorStreamKind::PointCloud)
 	{
 		++Outage.DroppedFrames;
@@ -219,8 +226,13 @@ FString UDxDeviceSensorBulkChannel::GetOutageStatusText() const
 	if (Outage.StartedUtc.GetTicks() == 0)
 		return FString();
 	const double Seconds = Outage.bActive ? FMath::Max(0.0, FPlatformTime::Seconds() - Outage.StartedSeconds) : Outage.DurationSeconds;
+	const TCHAR* OutageState = TEXT("복구됨");
+	if (Outage.bActive)
+		OutageState = TEXT("진행 중");
+	else if (Outage.bStopped)
+		OutageState = TEXT("전송 중지로 관측 종료");
 	return FString::Printf(TEXT("PCD 연결 중단 %s · %.1f초 · 확인된 유실 %lld프레임 (누적 %lld, 수신 완료 보장 아님)"),
-	                       Outage.bActive ? TEXT("진행 중") : TEXT("복구됨"), Seconds, Outage.DroppedFrames, TotalOutageDroppedFrames);
+	                       OutageState, Seconds, Outage.DroppedFrames, TotalOutageDroppedFrames);
 }
 
 bool UDxDeviceSensorBulkChannel::PublishBytes(const FString&, const TArray<uint8>&, const TMap<FName, FString>&, const FSTOMPRequestCompleted&)
