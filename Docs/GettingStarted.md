@@ -1,46 +1,31 @@
-# DTCore + DTDevice 시작하기 (UE 5.3 / Windows DX12)
+# 빈 C++ 프로젝트에서 DTCore + DTDevice 시작하기
 
-센서·카메라와 기본 모니터를 붙이는 최소 절차입니다. DTCore는 필수입니다. 프로젝트 업무 UI나 Slab 시나리오 코드는 필요하지 않습니다. 검증한 DTCore 커밋은 `bc60f05e2d1e64f4ffe1410cf3239fe24cb4d4c9`이며 DTDevice 버전 조합은 [Compatibility.md](Compatibility.md)를 확인합니다.
+UE 5.3 / Win64 / D3D12 기준입니다. 현재 이름·include·설정·에셋을 소스와 정적으로 대조한 절차이며, 문서 정리 작업에서 새 프로젝트를 빌드하거나 화면을 다시 실행하지 않았습니다. 기본 연결과 검증 범위는 [Compatibility](Compatibility.md), 전송은 [DataChannels](DataChannels.md)를 따릅니다.
 
-## 1. 내부망 미러와 프로젝트 연결
+## 1. 저장소 연결
 
-인터넷에 연결된 준비 PC에서 저장소별로 한 번 수행합니다. 아래 URL은 공개 원본 예시이며 내부 주소·자격증명을 커밋하지 않습니다.
+내부망이면 관리자가 마련한 두 미러 주소를 사용합니다. 인터넷 준비 PC의 `git clone --mirror <공개 URL>` → `git push --mirror <새 빈 내부 저장소>`는 관리자 미러 정책 안에서만 합니다. 기존 저장소에 mirror push를 임의로 실행하지 않습니다. 인증값은 URL에 넣지 않습니다.
 
-```powershell
-git clone --mirror https://github.com/YonghoKwon/UE-DT-Core-Plugin.git DTCore.git
-git -C DTCore.git push --mirror <내부-DTCore-저장소>
-git clone --mirror https://github.com/YonghoKwon/UE-DT-Device-Plugin.git DTDevice.git
-git -C DTDevice.git push --mirror <내부-DTDevice-저장소>
-```
-
-`push --mirror`는 **새 빈 미러 저장소에만** 사용합니다. 기존 저장소에는 삭제까지 반영되므로 관리자의 미러 정책을 따릅니다. 외부 다운로드 없이 내부 Git과 설치된 UE 5.3만으로 아래를 진행할 수 있습니다.
-
-빈 **C++** 프로젝트 루트에서 두 저장소를 연결합니다. 원본을 쓴다면 아래 공개 주소를, 내부망에서는 미러 주소를 사용합니다.
+빈 C++ 프로젝트 루트:
 
 ```powershell
 git submodule add https://github.com/YonghoKwon/UE-DT-Core-Plugin.git Plugins/DTCore
 git submodule add https://github.com/YonghoKwon/UE-DT-Device-Plugin.git Plugins/DTDevice
-git -C Plugins/DTCore checkout bc60f05e2d1e64f4ffe1410cf3239fe24cb4d4c9
-# DTDevice는 Compatibility.md의 검증한 커밋/태그를 선택하고 parent gitlink를 함께 기록합니다.
+git -C Plugins/DTCore checkout cb9788a2338ad92e6a651be71330f2abe4b63a90
+# DTDevice는 검증 조합에 맞는 정확한 SHA로 고정하고 parent gitlink에 기록합니다.
 ```
 
-이미 연결된 프로젝트를 받았다면 `git clone --recursive ...` 또는 `git submodule update --init Plugins/DTCore Plugins/DTDevice`로 **프로젝트가 고정한** 커밋을 받습니다. DTCore 소스를 임의로 고치거나 최신으로 자동 갱신하지 않습니다.
+이미 고정한 host는 clone --recursive 또는 submodule update --init로 두 parent pin을 받습니다. DTCore를 DTDevice 안에 다시 넣거나 --remote로 임의 갱신하지 않습니다.
 
-## 2. 프로젝트 설정
+## 2. 프로젝트·모듈 설정
 
-`.uproject`의 `Plugins` 배열에 추가합니다.
+.uproject의 Plugins 배열에 DTCore와 DTDevice Enabled=true를 추가합니다. 게임 Build.cs의 PublicDependencyModuleNames에 Core/CoreUObject/Engine과 DTCore/DeviceRuntime을, 공통 화면이 필요하면 DeviceUI를 추가합니다. DeviceNative는 DeviceRuntime의 의존성입니다. UI 없는 worker에는 DeviceUI를 요구하지 않습니다.
 
-```json
-{ "Name": "DTCore", "Enabled": true },
-{ "Name": "DTDevice", "Enabled": true }
-```
-
-게임 모듈의 `Build.cs` 의존성에 `DTCore`, `DeviceRuntime`, `DeviceUI`를 추가합니다. `DeviceNative`는 Runtime의 의존성으로 연결됩니다. 화면 없는 워커에는 `DeviceUI`를 추가하지 않아도 됩니다.
-
-`Config/DefaultEngine.ini`:
+Config/DefaultEngine.ini에 DTCore 기반 진입점을 설정합니다. 기존 프로젝트는 이미 연결된 host 정책을 무조건 교체하지 않습니다.
 
 ```ini
 [/Script/EngineSettings.GameMapsSettings]
+GameInstanceClass=/Script/DTCore.DxGameInstance
 GlobalDefaultGameMode=/Script/DTCore.DxGameMode
 
 [/Script/WindowsTargetPlatform.WindowsTargetSettings]
@@ -55,97 +40,60 @@ r.CustomDepth=3
 r.Lumen.HardwareRayTracing=False
 ```
 
-기존 프로젝트는 GameMode를 무조건 교체하지 말고 DTCore 기반 GameMode/PlayerController를 사용하고 있는지 확인합니다. `Config/DefaultGame.ini`에 패키지 cook 범위를 명시합니다.
+Config/DefaultGame.ini:
 
 ```ini
 [/Script/UnrealEd.ProjectPackagingSettings]
 +DirectoriesToAlwaysCook=(Path="/DTDevice/Sensor")
 ```
 
-플러그인 에셋은 다음 세 개입니다. 기존 프로젝트 경로를 쓰던 참조는 호스트 `PackageRedirects`와 플러그인 `DefaultDTDevice.ini`가 이어 줍니다. 원본 에셋을 다시 저장할 필요가 없습니다.
+필수 에셋은 `/DTDevice/Sensor/Materials/M_LidarSemanticId`, `/DTDevice/Sensor/VFX/NS_VirtualLidarPointCloud`, `/DTDevice/Sensor/VFX/M_VirtualLidarPointSprite`입니다. DeviceSensorAssetSettings의 soft path와 cook 목록을 맞춥니다. 이전 host 참조는 PackageRedirects로 연결하며 기존 에셋을 resave하지 않습니다. 셰이더는 플러그인의 Shaders에서 기존 virtual `/MA0T10` 경로로 매핑됩니다.
 
-- `/DTDevice/Sensor/Materials/M_LidarSemanticId`
-- `/DTDevice/Sensor/VFX/NS_VirtualLidarPointCloud`
-- `/DTDevice/Sensor/VFX/M_VirtualLidarPointSprite`
+## 3. 의미 분류 등록
 
-## 3. 업무 의미 분류는 호스트에서 등록
-
-게임 모듈의 `StartupModule()`에서 센서가 시작하기 전에 한 번 등록합니다. 프레임 처리 중에는 변경하지 않습니다. Tag만으로 동작하는 최소 예시입니다.
+host 게임 모듈 StartupModule에서 센서 시작 전에 한 번 등록합니다. 프레임마다 바꾸지 않습니다.
 
 ```cpp
 #include "Device/Sensor/DeviceSemanticPolicy.h"
 #include "Device/Sensor/VirtualLidarScanComp.h"
 
 FVirtualLidarSemanticClassRule Slab;
-Slab.Label=TEXT("Slab"); Slab.ActorTags={TEXT("Slab")};
-Slab.DisplayColor=FLinearColor(1,.25f,.02f);
+Slab.Label = TEXT("Slab");
+Slab.ActorTags = {TEXT("Slab")};
+Slab.DisplayColor = FLinearColor(1, .25f, .02f);
 FVirtualLidarSemanticClassRule Floor;
-Floor.Label=TEXT("Floor"); Floor.ActorTags={TEXT("Floor")};
-Floor.DisplayColor=FLinearColor(.2f,.25f,1);
-DeviceSemanticPolicy::Configure({Slab,Floor},
-    {{TEXT("Slab"),.2f},{TEXT("Floor"),.25f}},TEXT("Slab"),TEXT("Slab"));
+Floor.Label = TEXT("Floor");
+Floor.ActorTags = {TEXT("Floor")};
+Floor.DisplayColor = FLinearColor(.2f, .25f, 1);
+DeviceSemanticPolicy::Configure({Slab, Floor},
+    {{TEXT("Slab"), .2f}, {TEXT("Floor"), .25f}}, TEXT("Slab"), TEXT("Slab"));
 ```
 
-새 소비 프로젝트의 예시 정책입니다. 기존 과제의 wire ID와 순서를 이 예시에 맞춰 교체하면 안 됩니다.
+이는 새 소비 프로젝트의 최소 예시입니다. 기존 과제의 class 순서·wire ID·Coil alias를 이 예시에 맞춰 덮지 않습니다. 고급 host는 identity/point-cloud analysis/panel bridge의 중립 extension을 구현합니다.
 
-## 4. 센서 배치 → Play
+## 4. 배치·Play와 공통 패널
 
-1. 바닥에 엔진 `Plane`, 앞에 `Cube`를 배치합니다. Actor Tags에 각각 `Floor`, `Slab`을 넣고 충돌을 켭니다. LiDAR는 X축 전방, 단위는 UE cm입니다.
-2. `VirtualLidarSensorActor`를 바닥보다 위, Cube 앞에 놓습니다. `SimulationQuality=RealTimePreview`, `MultiHit=false`, CSV/JSONL/PCD 자동 파일 export는 끕니다. 점군 미리보기는 켭니다. 서버 PCD 정책을 미리보기 점 수에 맞춰 줄이지 않습니다.
-3. `VirtualCameraSensorActor`와 Directional Light/Sky Light, Player Start를 배치합니다.
-4. `DeviceSensorMonitorHostActor`를 **한 개** 배치합니다. `Show On Begin Play=true`, `Panel Class=DxDeviceSensorMonitorPanel`이 기본값입니다. 별도의 Level Blueprint `Create Widget`은 추가하지 않습니다.
-5. Editor Development를 빌드하고 Play합니다. 왼쪽 패널에서 센서를 선택하면 ID·주기·hit/점 수·서버/미리보기 점 수·상태와 영상이 표시됩니다. `1회 캡처`는 선택 센서의 기존 수동 캡처 API를 씁니다. 미리보기 점 증감은 측정 해상도와 서버 payload를 바꾸지 않습니다.
+1. 엔진 Plane/Floor와 앞쪽 Cube를 두고 각각 Actor Tags Floor/Slab 및 충돌을 설정합니다. 단위는 UE cm, LiDAR X축은 전방입니다.
+2. AVirtualLidarSensorActor와 AVirtualCameraSensorActor, 조명·PlayerStart를 배치합니다. LiDAR 미리보기는 켜되 파일 export/송신은 목적에 맞게 명시 선택합니다. 미리보기 점 수로 서버 PCD를 줄이지 않습니다.
+3. ADeviceSensorMonitorHostActor를 한 개 놓습니다. bShowOnBeginPlay=true, PanelClass=UDxDeviceSensorMonitorPanel이 기본입니다. 별도 Level Blueprint CreateWidget 경로를 중복 추가하지 않습니다.
+4. Editor Development 빌드 후 Play합니다. 센서 선택 → 상태·hit/점 수·카메라 영상 → 1회 캡처를 확인합니다. 이 단계의 직접 화면 수용은 자동 테스트와 별도로 기록합니다.
+5. 외형을 바꾸는 WBP는 UDxDeviceSensorMonitorPanel 부모를 사용합니다. Designer Root가 비어 있으면 기본 C++ 레이아웃을 사용합니다. 직접 조립할 경우 RefreshSensors/SelectSensor/RefreshStatus/CaptureOnce/AdjustPreview API에 연결합니다.
 
-BP로 외형만 바꾸려면 `DxDeviceSensorMonitorPanel`을 부모로 WBP를 만들고 Host의 `Panel Class`에 지정합니다. 기본 C++ 레이아웃을 그대로 쓰려면 Designer Root를 비워 둡니다. 직접 Designer를 구성할 경우 공개 `RefreshSensors`, `SelectSensor`, `RefreshStatus`, `CaptureOnce`, `AdjustPreview` API에 연결합니다. 프로젝트 전용 패널을 복사할 필요가 없습니다.
+기존 과제 패널은 UDxDeviceSensorPanelBase/body를 쓰는 host façade이며 plugin 독립 monitor를 복사해 별도 위젯 관리자를 만들지 않습니다. `NavigateTo("Sensor:<ID>")`와 NavigateBack은 같은 host bridge/소유권 안에서 사용합니다.
 
-## 5. 재현 가능한 TestHost
+## 5. 전송과 TestHost
+
+[DataChannels](DataChannels.md)에서 프로젝트 토픽 별칭과 DTCore 연결 설정을 분리합니다. Default 저빈도 JSON 선택은 UVirtualSensorTransportComp의 DTCoreWebSocket 모드입니다. 20Hz PCD는 sensor-bulk 기존 worker 경로를 유지합니다.
 
 플러그인 루트에서:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File TestHost/Scripts/setup_testhost.ps1 -DTCoreSource <고정-DTCore-폴더>
-powershell -ExecutionPolicy Bypass -File TestHost/Scripts/create_demo.ps1
+powershell -ExecutionPolicy Bypass -File TestHost/Scripts/setup_testhost.ps1 -DTCoreSource <고정-DTCore-폴더> -SkipBuild
+# 빌드까지 준비하려면 -SkipBuild 생략
 TestHost/Open_TestHost.bat
 powershell -ExecutionPolicy Bypass -File TestHost/Scripts/run_measurements.ps1
 ```
 
-데모는 `TestHost/Content/Maps/DTDeviceDemo.umap`입니다. Game/EditorStartup 기본 맵으로 열립니다. `create_demo.ps1 -Regenerate`는 이 **생성 전용 맵**을 다시 만들 때만 씁니다. 소비 프로젝트의 맵·기존 센서 에셋을 저장하는 스크립트가 아닙니다. TestHost Editor 모듈의 `CreateDTDeviceDemo` commandlet이 엔진 도형·센서·모니터만 생성합니다. 다른 빈 C++ 프로젝트에서 재현할 때는 이 Editor 모듈을 임시 프로젝트로 복사해 모듈/Editor Target에 등록한 뒤 같은 commandlet을 실행할 수 있습니다.
+Source/Ref 우선순위는 명령줄 → TestHost.local.ini → 환경 변수 → 검증한 공개 기본값입니다. 로컬 폴더 source는 링크만 하고 checkout하지 않습니다. 기본 데모는 TestHost/Content/Maps/DTDeviceDemo.umap입니다. create_demo.ps1 -Regenerate는 생성 전용 demo를 다시 만들 때만 사용하며 운영맵·기존 에셋을 저장하는 일반 준비 단계가 아닙니다.
 
-측정은 D3D12에서 기존 17개와 데모 모니터 스모크를 실행합니다. `MA0T10.DevicePlugin.DemoMonitorRhi`는 hit>0, Slab hit>0, 패널 생성·선택·상태 갱신·한 번 캡처·미리보기/서버 정책 분리를 확인합니다. NullRHI는 GPU 검증 통과 근거가 아닙니다. 실제 서버 송신 수용과 화면의 직접 마우스 점검은 자동화와 별도입니다.
-
-## 6. 운영 참고
-
-Native LiDAR 안전 상태는 소비 프로젝트의 `Saved/NativeLidarSafety`에 있습니다. startup oracle 실패나 장치 오류 때 지원 RHI로 전환합니다. 다중 게임 프로세스에는 고유 `-UserDir`을 사용합니다. 정상 장치의 일시적 제출 실패는 그 세션에서만 RHI입니다. 기존 안전 정책이나 파일을 검증을 위해 지우지 않습니다.
-
-배포 시 플러그인 `Content`, `Config`, `Shaders`와 세 모듈을 포함합니다. 프로젝트 서버 설정·개인 키·토큰을 가이드, 에셋, archive, Git에 넣지 않습니다. 저장소 `LICENSE`는 Copyright (c) 2026 YonghoKwon, 모든 권리 보유입니다.
-
-빈 C++ 소비 프로젝트 준비 예제: `TestHost/Scripts/prepare_guide_rehearsal.ps1 -DTCoreSource <고정-DTCore-폴더>`는 기존 파일을 덮지 않고 `TestHost/Saved/GuideRehearsal/GuideHost.uproject`를 만듭니다. 생성 후 해당 `GuideHostEditor`를 빌드하고 `-run=CreateDTDeviceDemo`로 데모를 생성한 뒤 엽니다. OPT-IN SocketFaults는 로컬 fault server를 주지 않으면 Skipped로 별도 보고합니다.
-
-### 빈 프로젝트의 DTCore 업무 설정
-
-이 최소 예제는 센서·모니터용입니다. 업무용 API/TransactionCode DataTable과 STOMP 서버를 구성하지 않은 새 프로젝트에서는 DTCore의 테이블 미설정·기본 연결 재시도 메시지가 남을 수 있습니다. 실제 업무 연동은 DTCore 문서에 따라 별도로 구성하며 공용 서버 설정을 자동으로 덮어쓰지 않습니다. 화면 확인용 자동 캡처는 `DisableAllScreenMessages`로 일시적인 화면 진단 문자열만 숨겼고, 원래 로그는 보존합니다. 이는 제품 기본값이나 센서 출력 정책의 변경이 아닙니다.
-
-
-## 전용 센서 연결 재연결 정책 (DTCORE-EXT-09)
-
-DTDevice 설정 `/Script/DeviceRuntime.DeviceSensorAssetSettings`의 `RawTcpReconnectInitialDelaySeconds`(1초), `RawTcpReconnectMaxDelaySeconds`(10초), `RawTcpReconnectBackoffMultiplier`(2)로 Raw TCP STOMP 재연결 지연을 정합니다. 기본 실패 간격은 기존과 같은 1/2/4/8/10/10초입니다. Engine 설정이며 DTCore 공유 WebSocket의 Reconnect 설정과 독립적입니다. 과제 DefaultGame.ini에 DTCore Reconnect 기본값을 자동으로 쓰지 않습니다.
-
-설정은 연결 profile 생성 시 복사됩니다. 실행 중 워커는 UObject 설정을 읽지 않으며, 정책을 바꾸려면 새 profile로 전용 연결을 다시 준비합니다. 직접 `FVirtualSensorHighThroughputProfile`을 전달하는 소비자는 그 profile의 재연결 값을 사용할 수 있습니다. PCD wire/receipt/큐 상한과 과부하 backoff는 변경하지 않습니다.
-
-
-## 패널 내부 이동 (DTCORE-EXT-09)
-
-DTCore main 1604ee7 API를 사용합니다. `UDxDeviceSensorPanelBase::NavigateTo("Sensor:<센서 ID>")`는 명시적으로 바인딩한 host bridge에 센서 선택을 요청합니다. host가 해제됐거나 처리하지 못하면 false이며 현재 화면·이력은 바뀌지 않습니다. 독립 `UDxDeviceSensorMonitorPanel`은 같은 World의 해당 센서를 선택하며, `NavigateBack()`으로 이전 센서로 돌아갑니다. SubTarget은 DTCore의 FName 규칙을 따릅니다.
-
-host workspace 패널은 기존 소유권/인스턴스를 유지합니다. 이 API를 쓰기 위해 DTCore OpenWidgets 목록으로 옮기거나 별도 위젯 관리자를 만들지 않습니다. 탐색은 사용자 동작 시에만 실행하고 Tick/스레드/구독을 추가하지 않습니다.
-
-
-## 공유 연결의 저빈도 JSON (DTCORE-EXT-09)
-
-기존 기본 모드·PCD 기본 정책은 그대로입니다. `UVirtualSensorTransportComp.TransportMode=DTCoreWebSocket`을 명시적으로 선택하거나 host 데이터 패널의 연결 화면에서 공유 연결 항목을 체크한 뒤 적용합니다. 화면 체크는 세션용이며 기존 SaveGame 형식에 새 값을 쓰지 않습니다. 설정 파일을 쓰는 경우 기존 enum-name 파서의 `TransportMode=DTCoreWebSocket`으로 선택할 수 있습니다(빈 템플릿 자동 변경 없음).
-
-공유 JSON은 DTCore 서버 설정을 사용하며 센서 broker 주소를 복사하거나 공유 연결을 재시작하지 않습니다. `SendJsonRequest`의 수동 요청(`manual-payload`, manual=true), 또는 `status`/`sensor-status`/`slab-result`/`slab-run-result`/`run-result`에 사용합니다. Slab 결과는 host가 만든 JSON과 실행 UUID를 명시적으로 넘깁니다. 기존 자동 전송 정책을 켜지 않습니다. 연속 camera/pointcloud/telemetry JSON은 거절하며, 20Hz PCD binary는 기존 전용 센서 연결과 예약 상한을 유지합니다.
-
-제출 성공은 소비자 처리 완료가 아닙니다. 미연결 Publish는 false와 DTCore의 누적 dropped count로 표시합니다. receipt 미요청 제출은 수락 여부 미확인이고, receipt 성공도 Broker 수락까지만 뜻합니다. 요청은 게임 스레드 API이며, 다른 스레드 요청은 UI 이벤트 없이 거절합니다.
-
-receipt는 GameInstance당 16개를 넘기지 않습니다. 로컬 대기 시간이 끝나거나 센서가 종료돼도 실제 receipt 또는 공유 연결 변경까지 슬롯을 유지하며, 새 센서/맵으로 바꿔 상한을 우회하지 않습니다. 타임아웃 후에는 자동 재전송하지 않습니다. 늦은 결과는 종료된/시간 초과 UI에 적용하지 않습니다. 이는 UE5.3 STOMP의 outstanding-request 만료 경로에 의존하지 않도록 하는 DTDevice 어댑터의 제한입니다. 엔진·DTCore 소스와 공유 연결의 소유권은 변경하지 않습니다. 기본 모드에는 이 경로의 Tick/스레드/구독/대기 receipt 컨텍스트가 없습니다. 등록 예산 Subsystem은 Tick 없는 빈 상태입니다.
+run_measurements는 D3D12의 golden/geometry/cadence/readback/PCD/camera/native/에셋·demo monitor를 검사합니다. 실제 확장 테스트 수/skip/Hz·source pin을 Saved/Measurements/<UTC>/summary.json으로 기록합니다. NullRHI·합성·직접 마우스·회사 서버 수용을 구분합니다. TestHost는 실제 DTCore source를 사용하며 테스트용 가짜 DTCore를 생성하지 않습니다.

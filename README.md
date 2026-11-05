@@ -1,58 +1,55 @@
-# DT Device (UE-DT-Device-Plugin)
+# DTDevice — UE-DT-Device-Plugin
 
-DTCore 기반 가상 장치 플러그인입니다. 가상 LiDAR와 가상 카메라의 획득·전송·공통 패널을 담습니다. 과제별 화면과 업무 로직(Slab, 해치, 코일, 학습 배치, 작업 공간 등)은 사용하는 프로젝트 쪽에 둡니다.
+DTCore 필수 기반 가상 LiDAR·카메라 플러그인입니다. 장치 분리·공통 에셋·Comp/Dx 이름·포맷·데이터 채널 통합이 완료됐습니다. 과제 Slab/해치/코일/학습/Workspace와 과제 UI는 소비 프로젝트에 둡니다. 선택적 DTCore 없는 모드는 없습니다.
 
-> **상태: 0.1.0 scaffold.** 모듈 구조만 있고 소스는 아직 옮기지 않았습니다. 이관 계획과 진행 상황은 사용 프로젝트(UE-DT-Project)의 `docs/DEVICE_PLUGIN_01_DESIGN.md`를 따릅니다.
+## 요구·모듈
 
-## 요구 사항
+UE 5.3 / Win64 / D3D12, native RT는 DXR inline ray query Tier1.1과 시작 검증을 요구합니다. 검증 DTCore는 **cb9788a2338ad92e6a651be71330f2abe4b63a90**입니다. [Compatibility](Docs/Compatibility.md)의 증거 범위를 따릅니다.
 
-- Unreal Engine 5.3, Win64, D3D12
-- **DTCore 필수:** [UE-DT-Core-Plugin](https://github.com/YonghoKwon/UE-DT-Core-Plugin)을 같은 프로젝트의 `Plugins/DTCore`에 둡니다. 이 저장소 안에 DTCore를 중첩하지 않습니다.
-- 검증한 DTCore 커밋은 `Docs/Compatibility.md`에 정확한 SHA로 기록합니다.
-
-## 모듈
-
-| 모듈 | LoadingPhase | 역할 |
+| 모듈 | LoadingPhase | 책임 |
 |---|---|---|
-| `DeviceNative` | PostConfigInit | native 레이트레이싱 획득, 셰이더 디렉터리 매핑, native 안전 정책 |
-| `DeviceRuntime` | Default | 센서·카메라, 스케줄러, 코덱, 전송, 파일 저장, 중립 계약. 화면 없는 워커에서도 동작합니다. |
-| `DeviceUI` | None (명시 로드) | DTCore `UDxWidget` 기반의 공통 센서 설정·모니터·캡처 패널. UI가 없는 호스트는 이 모듈을 쓰지 않아도 됩니다. |
+| DeviceNative | PostConfigInit | 지속 RT 장면·자원 수명, native 안전 정책, plugin Shaders 매핑 |
+| DeviceRuntime | Default | 장치·스케줄러·정규화·코덱·전송·파일·중립 계약; UI 없는 worker 지원 |
+| DeviceUI | None(명시 로드) | UDxDeviceSensorPanelBase 및 공통 body, UDxDeviceSensorMonitorPanel/Host |
 
-## 프로젝트에 연결
+플러그인이 소비 프로젝트 모듈을 include/UHT 역참조하지 않습니다. host semantic/provider/bridge를 사용하며 실행 상태는 공통 base/body 한 곳이 소유합니다.
 
-사용 프로젝트에는 서브모듈로 붙이고, 정확한 커밋 SHA로 고정합니다(태그 이름이 아닙니다).
-
-```bash
-git submodule add https://github.com/YonghoKwon/UE-DT-Device-Plugin.git Plugins/DTDevice
-```
-
-`.uproject`에서 `DTCore`와 `DTDevice`를 모두 활성화합니다.
-
-## 라이선스
-
-저작권 고지는 [LICENSE](LICENSE)를 따릅니다. 저작권자의 사전 서면 허가 없이 사용·복제·수정·배포할 수 없습니다.
-
-## TestHost (플러그인만으로 확인)
-
-`TestHost/`는 DTCore와 DTDevice만으로 장치 기능을 빌드하고 측정해 보는 최소 프로젝트입니다. UE-DT-Project 없이도 플러그인이 동작하는지 확인할 때 씁니다.
-
-가장 간단한 방법은 `TestHost\Open_TestHost.bat`을 더블클릭하는 것입니다. 필요한 준비(DTCore 받기, DTDevice 연결, 빌드)를 한 뒤 Editor를 엽니다. 이미 준비된 PC에서는 확인만 하고 바로 엽니다.
-
-**DTCore를 가져올 곳 지정** (위에 있는 것이 우선)
-1. 명령줄: `Open_TestHost.bat <주소 또는 폴더> [브랜치/태그/커밋]`
-2. `TestHost/TestHost.local.ini`: `TestHost.local.ini.example`을 복사해 `[DTCore] Source=`, `Ref=`를 적습니다. 이 파일은 git에 올라가지 않으므로 내부망 주소를 적어도 됩니다.
-3. 환경 변수: `DTCORE_SOURCE`, `DTCORE_REF`
-4. 기본값: 공개 UE-DT-Core-Plugin의 검증된 커밋
-
-`Source`에는 git 주소(내부망 GitLab, Bitbucket, 파일 공유 저장소 등)나 이미 받아 둔 DTCore 폴더(`DTCore.uplugin`이 있는 폴더)를 적습니다. 폴더를 지정하면 받아 오지 않고 그대로 연결합니다. 검증된 커밋과 다른 DTCore를 쓰면 경고가 나오므로, 그때는 `run_measurements.ps1`로 다시 확인합니다.
+## 연결·시작
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File TestHost\Scripts\setup_testhost.ps1     # 준비만 (-DTCoreSource, -DTCoreRef, -SkipBuild 사용 가능)
-powershell -ExecutionPolicy Bypass -File TestHost\Scripts\run_measurements.ps1   # 최소 측정 자동화(D3D12), Saved\Measurements\<UTC>\summary.json
+git submodule add https://github.com/YonghoKwon/UE-DT-Core-Plugin.git Plugins/DTCore
+git submodule add https://github.com/YonghoKwon/UE-DT-Device-Plugin.git Plugins/DTDevice
+# 이미 연결된 소비 프로젝트를 받았다면 parent가 고정한 두 gitlink를 초기화:
+git submodule update --init Plugins/DTCore Plugins/DTDevice
 ```
 
-- DTCore는 `TestHost/Plugins/DTCore`에 고정 커밋으로 받습니다. 이 저장소에는 넣지 않습니다(git 제외).
-- 이 저장소 자체는 `TestHost/Plugins/DTDevice` junction으로 연결되므로, 플러그인 코드를 고치면 TestHost에 바로 반영됩니다.
-- `DTDeviceTestHost.uproject`를 열면 Unreal Editor에서 직접 확인할 수 있습니다.
-- 기본 측정 항목: 전송 데이터 golden, LiDAR 형상, 획득 주기와 backpressure, GPU readback 재사용, PCD 20 Hz 진단, 주기 캡처, 카메라 내부 파라미터, native/RHI startup oracle, native 안전 정책, 셰이더 경로.
-- 공통 에셋(semantic 재질, 점군 Niagara)과 일부 테스트 fixture는 아직 UE-DT-Project에 있습니다. 그래서 semantic PSO 회귀와 SensorReplay 테스트는 UE-DT-Project에서 실행합니다.
+DTCore를 이 저장소 안에 중첩하지 않습니다. 소비 host는 정확한 두 SHA를 고정합니다. [.uplugin](DTDevice.uplugin), [빈 C++ 프로젝트 절차](Docs/GettingStarted.md)를 따릅니다.
+
+공통 에셋은 [Content/Sensor](Content/Sensor)에 있습니다. semantic 재질·Niagara·sprite 경로는 `/DTDevice/Sensor/...`입니다. 과제 WBP·맵·SaveGame은 host에 남고 기존 참조는 최종 이름/패키지 redirects로 호환합니다. [DefaultDTDevice.ini](Config/DefaultDTDevice.ini)를 유지하며 기존 자산을 resave하지 않습니다.
+
+## 데이터 채널과 설정
+
+DTCore는 연결/등록/재연결/상태를 소유하고 프로젝트 Game 설정은 destination 정책을 소유합니다. `Default`는 공유 저빈도 JSON, `sensor`는 UDxDeviceSensorStompChannel, `sensor-bulk`는 UDxDeviceSensorBulkChannel의 기존 Worker 위임입니다. 기본 PCD·33-byte wire·FIFO·reservation·receipt 의미는 유지합니다.
+
+공통/플랫폼/패키지 loose 위치, 토픽 별칭·복수 구독·중복 경고, 빈 설정의 SensorTransport.ini 대체는 [DataChannels](Docs/DataChannels.md)를 따릅니다. 비밀값을 ini·로그·압축물·커밋에 넣지 않습니다.
+
+## TestHost
+
+[TestHost](TestHost)는 DTCore+DTDevice만 쓰는 최소 프로젝트입니다. 기본 맵은 [DTDeviceDemo](TestHost/Content/Maps/DTDeviceDemo.umap)이며 LiDAR·카메라·엔진 도형·기본 모니터를 제공합니다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File TestHost/Scripts/setup_testhost.ps1 -DTCoreSource <고정-DTCore-폴더> -SkipBuild
+# 빌드까지 준비하려면 -SkipBuild를 생략합니다.
+TestHost/Open_TestHost.bat
+powershell -ExecutionPolicy Bypass -File TestHost/Scripts/run_measurements.ps1
+```
+
+DTCore source 우선순위는 명령줄 → TestHost.local.ini → DTCORE_SOURCE/DTCORE_REF → 공개 원본/검증 SHA입니다. 로컬 폴더는 junction 연결만 하며 checkout하지 않습니다. 주소·인증값을 커밋하지 않습니다. `create_demo.ps1 -Regenerate`는 생성 전용 demo를 다시 만들 때만 사용합니다.
+
+기본 필터는 golden·형상·wall clock·readback·PCD20Hz·주기 저장·카메라 GT·native oracle/안전·에셋/demo 모니터를 검사합니다. 필터가 확장한 실제 테스트 수와 skip은 [summary](Docs/Compatibility.md)를 기준으로 보고합니다. NullRHI는 GPU 통과가 아니며 직접 마우스/실장비/회사 수용은 별도입니다.
+
+## 이름·스타일·라이선스
+
+Comp 접미사와 UDxDeviceSensorPanelBase/UDxDeviceSensorMonitorPanel 이름, [.clang-format](.clang-format), [.git-blame-ignore-revs](.git-blame-ignore-revs)를 사용합니다. 순수 포맷의 공백 외 토큰 차이를 [token_compare](Tools/Style/token_compare.py)로 확인합니다. payload 키·schemaVersion·로그/테스트 이름·저장 필드·wire는 이름 정리로 바꾸지 않습니다.
+
+저작권 및 사용·배포 조건은 [LICENSE](LICENSE)를 따릅니다. 세부 계획·옛 문서는 [Docs/archive](Docs/archive)에 원문을 보존합니다.
