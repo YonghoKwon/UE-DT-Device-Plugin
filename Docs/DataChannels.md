@@ -59,3 +59,21 @@ Development 전용 -DeviceChannelConfigProbe는 registry에 반영된 설정 sna
 Published는 worker 제출, Dropped는 접수 거절/terminal delivery 실패, Backpressure는 기존 밀림/overload 관측입니다. broker receipt와 소비자 ACK는 별도입니다. 정상 FIFO·전역128MiB/스트림64MiB·Camera8/기타20프레임 상한을 유지합니다. 장애 전환의 무유실을 보장하지 않습니다.
 
 PCD destination/기존 EnginePcd·RawPcd 헤더·33-byte body를 자동 정규화하거나 dx-* header로 교체하지 않습니다. make-destination helper는 기존 기본값과의 일치를 확인하는 데 사용하며 custom destination을 임의 제한하지 않습니다. Default 모드는 연속 camera/telemetry/pointcloud JSON을 거절하고20Hz PCD를 공유 연결로 우회하지 않습니다. receipt 슬롯16개와 timeout 후 late 결과·세대 보호는 기존 어댑터 정책을 유지합니다.
+
+## 현장 Game.ini 경로와 우선순위 (STRUCTURE-12B)
+
+기존 `Config/DefaultGame.ini` 읽기를 유지하며, 채널·토픽도 DTCore `TryReadRuntimeOverride`와 같은 런타임 파일 후보를 읽는다. 패키지를 종료한 뒤 수정하고 재시작한다. 이 기능은 연결 속성 allowlist와 `UDeviceDataChannelSettings.Channels`에만 적용하며 인증값·다른 DTCore 섹션·전역 GConfig는 가져오거나 저장하지 않는다.
+
+높은 우선순위부터 아래 순서다. 중복 절대경로는 한 번만 읽는다.
+
+1. `<ProjectDir>/Config/Game.ini`
+2. `<LaunchDir>/Config/Game.ini`
+3. `<LaunchDir>/../../Config/Game.ini`
+4. `<LaunchDir>/<ProjectName>/Config/Game.ini`
+5. 위 네 루트의 `<Platform>/<Platform>Game.ini` (Windows/WindowsGame.ini 또는 Linux/LinuxGame.ini)
+6. `<ProjectConfigDir>/DefaultGame.ini`
+7. 기존 pak/사용자 설정. 새 채널/토픽 설정이 비어 있으면 기존 SensorTransport.ini/profile 대체 경로를 유지한다.
+
+Game.ini의 공통 목록은 낮은 우선순위 목록을 대체한다. 플랫폼 목록은 기존처럼 지정한 채널 행만 덮어쓰며 나머지를 유지한다. 같은 채널 이름의 마지막 행이 앞 행을 대체한다. 전체 목록 초기화가 필요하면 `!DataChannels=ClearArray` 또는 `!Channels=ClearArray`를 명시한다. `Game.ini`가 없으면 기존 DefaultGame.ini→플랫폼 동작과 동일하다. URL 문자열은 ini에서 `WebSocketUrl="ws://127.0.0.1:61616"`처럼 인용한다.
+
+Windows 현장 권장 배치는 `Windows/ma0t10_dt/Config/Game.ini`다. 기존 DefaultGame.ini·Windows/WindowsGame.ini 배치도 계속 지원한다. 기존 채널/토픽 예제의 섹션을 Game.ini에 그대로 둘 수 있다. URL/키 이름만 설정하며 비밀번호·토큰은 ini에 저장하지 않고 기존 Override/session 전달만 사용한다. Linux는 같은 경로 규칙을 사용하며 실제 패키지 검증 여부는 실행 보고서를 확인한다.

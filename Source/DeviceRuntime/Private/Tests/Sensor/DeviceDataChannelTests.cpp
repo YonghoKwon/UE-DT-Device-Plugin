@@ -112,6 +112,40 @@ bool FStructure12BulkOutage::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStructure12RuntimeConfig, "MA0T10.Structure12.RuntimeConfig", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FStructure12RuntimeConfig::RunTest(const FString&)
+{
+	using namespace DeviceDataChannelConfig;
+	const auto Paths = RuntimeCandidatePaths(TEXT("C:/Stage/ma0t10_dt/"), TEXT("C:/Stage/ma0t10_dt/Binaries/Win64/"), TEXT("ma0t10_dt"), TEXT("Windows"), false);
+	TestEqual(TEXT("normalized ProjectDir candidate is first"), Paths[0], FString(TEXT("C:/Stage/ma0t10_dt/Config/Game.ini")));
+	TestEqual(TEXT("duplicate relative candidate removed like DTCore"), Paths.Num(), 3);
+	const auto Linux = RuntimeCandidatePaths(TEXT("/stage/ma0t10_dt/"), TEXT("/stage/ma0t10_dt/Binaries/Linux/"), TEXT("ma0t10_dt"), TEXT("Linux"), true);
+	TestTrue(TEXT("Linux platform path follows DTCore layout"), Linux[0].EndsWith(TEXT("/Config/Linux/LinuxGame.ini")));
+	auto* Core = NewObject<UDTCoreSettings>();
+	auto* Topics = NewObject<UDeviceDataChannelSettings>();
+	const FString Section = TEXT("[/Script/DTCore.DTCoreSettings]\n");
+	const FString Default = Section + TEXT("WebSocketUrl=\"ws://127.0.0.1:1000\"\nReconnectMaxDelaySeconds=10\n");
+	const FString ProjectGame = Section + TEXT("WebSocketUrl=\"ws://127.0.0.1:2000\"\n");
+	const FString LaunchGame = Section + TEXT("WebSocketUrl=\"ws://127.0.0.1:3000\"\n");
+	const FString Platform = Section + TEXT("WebSocketUrl=\"ws://127.0.0.1:4000\"\nReconnectMaxDelaySeconds=12\n");
+	TestTrue(TEXT("runtime policy parses atomically"), ApplyRuntimeBuffers(Default, {ProjectGame, LaunchGame}, {Platform}, *Core, *Topics));
+	TestEqual(TEXT("first common Game.ini wins"), Core->WebSocketUrl, FString(TEXT("ws://127.0.0.1:2000")));
+	TestEqual(TEXT("unmentioned common key retains platform fallback"), Core->ReconnectMaxDelaySeconds, 12.f);
+	TestTrue(TEXT("legacy platform precedence preserved without Game.ini"), ApplyRuntimeBuffers(Default, {}, {Platform}, *Core, *Topics));
+	TestEqual(TEXT("platform still overrides DefaultGame.ini"), Core->WebSocketUrl, FString(TEXT("ws://127.0.0.1:4000")));
+	TestTrue(TEXT("DefaultGame remains supported"), ApplyRuntimeBuffers(Default, {}, {}, *Core, *Topics));
+	TestEqual(TEXT("DefaultGame value retained"), Core->WebSocketUrl, FString(TEXT("ws://127.0.0.1:1000")));
+	const FString First = Section + TEXT("+DataChannels=(ChannelName=\"sensor\",Url=\"ws://127.0.0.1:5000\",bAutoConnect=False)\n");
+	const FString Second = Section + TEXT("+DataChannels=(ChannelName=\"sensor\",Url=\"ws://127.0.0.1:6000\",bAutoConnect=False)\n");
+	TestTrue(TEXT("highest common list replaces lower list"), ApplyRuntimeBuffers(Second, {First, Second}, {}, *Core, *Topics));
+	TestEqual(TEXT("one channel row after runtime replacement"), Core->DataChannels.Num(), 1);
+	TestEqual(TEXT("runtime row wins over packaged and later candidates"), Core->DataChannels[0].Url, FString(TEXT("ws://127.0.0.1:5000")));
+	const auto Before = Core->WebSocketUrl;
+	TestFalse(TEXT("invalid topic rejects the whole update"), ApplyRuntimeBuffers(Section + TEXT("WebSocketUrl=\"ws://127.0.0.1:7000\"\n"), {TEXT("[/Script/DeviceRuntime.DeviceDataChannelSettings]\n+Channels=(ChannelName=\"invalid\",Destinations=((Alias=\"one\",Destination=\"bad destination\",bSubscribe=True)))\n")}, {}, *Core, *Topics));
+	TestEqual(TEXT("failed update preserves original connection settings"), Core->WebSocketUrl, Before);
+	return true;
+}
+
 namespace
 {
 class FDataIfStompProbe : public IStompClient

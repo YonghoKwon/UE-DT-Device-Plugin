@@ -7,6 +7,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Misc/App.h"
 #include "UObject/UnrealType.h"
 #include "Misc/OutputDeviceNull.h"
 
@@ -22,7 +23,7 @@ const TArray<FName>& ConnectionProperties()
 
 bool ReadPhysicalConfig(const FString& Path, FString& Text)
 {
-	// Bypass pak precedence only for the two explicit deployment files. Never write them.
+	// Bypass pak precedence only for explicit deployment files. Never write them.
 	TUniquePtr<IFileHandle> File(IPlatformFile::GetPlatformPhysical().OpenRead(*Path));
 	if (!File)
 		return false;
@@ -128,22 +129,33 @@ bool MentionsKey(const FString& Filtered, const TCHAR* Section, const TCHAR* Key
 }
 }
 
-bool DeviceDataChannelConfig::ApplyBuffers(const FString& Common, const FString& Platform, UDTCoreSettings& Connections, UDeviceDataChannelSettings& Topics)
+namespace
 {
-	const FString CommonValues = FilterProjectOverrides(Common);
-	const FString PlatformValues = FilterProjectOverrides(Platform);
-	if (CommonValues.IsEmpty() && PlatformValues.IsEmpty())
-		return true;
-	// This local file owns its data. Never copy, replace, dirty or flush GConfig's files.
+struct FChannelConfigLayer
+{
+	FString Text;
+	bool bReplaceLists = false;
+};
+
+bool ApplyLayers(const TArray<FChannelConfigLayer>& Layers, UDTCoreSettings& Connections, UDeviceDataChannelSettings& Topics)
+{
+	// Local ownership only. Never copy, dirty or flush GConfig.
 	FConfigFile Combined;
 	Combined.NoSave = true;
-	// The deployed DefaultGame.ini is an edited copy of the packaged file, so its list replaces the packaged list.
-	if (!MentionsKey(CommonValues, CoreSection, TEXT("DataChannels")))
-		SeedRows(Combined, CoreSection, TEXT("DataChannels"), Connections.DataChannels);
-	if (!MentionsKey(CommonValues, TopicSection, TEXT("Channels")))
-		SeedRows(Combined, TopicSection, TEXT("Channels"), Topics.Channels);
-	Combined.CombineFromBuffer(CommonValues, TEXT("loose common channel policy"));
-	Combined.CombineFromBuffer(PlatformValues, TEXT("loose platform channel policy"));
+	SeedRows(Combined, CoreSection, TEXT("DataChannels"), Connections.DataChannels);
+	SeedRows(Combined, TopicSection, TEXT("Channels"), Topics.Channels);
+	for (const auto& Layer : Layers)
+	{
+		const FString Values = DeviceDataChannelConfig::FilterProjectOverrides(Layer.Text);
+		if (Layer.bReplaceLists)
+		{
+			if (MentionsKey(Values, CoreSection, TEXT("DataChannels")))
+				Combined.FindOrAddSection(CoreSection)->Remove(TEXT("DataChannels"));
+			if (MentionsKey(Values, TopicSection, TEXT("Channels")))
+				Combined.FindOrAddSection(TopicSection)->Remove(TEXT("Channels"));
+		}
+		Combined.CombineFromBuffer(Values, TEXT("loose channel policy"));
+	}
 	TArray<FDxDataChannelSettings> NewConnections;
 	TArray<FDeviceDataChannelTopics> NewTopics;
 	if (!ReadRows(Combined, CoreSection, TEXT("DataChannels"), NewConnections) || !ReadRows(Combined, TopicSection, TEXT("Channels"), NewTopics))
@@ -165,18 +177,61 @@ bool DeviceDataChannelConfig::ApplyBuffers(const FString& Common, const FString&
 	return true;
 }
 
+}
+
+bool DeviceDataChannelConfig::ApplyBuffers(const FString& Common, const FString& Platform, UDTCoreSettings& Connections, UDeviceDataChannelSettings& Topics)
+{
+	return ApplyLayers({{Common, true}, {Platform, false}}, Connections, Topics);
+}
+
+TArray<FString> DeviceDataChannelConfig::RuntimeCandidatePaths(const FString& ProjectDir, const FString& LaunchDir, const FString& ProjectName, const FString& Platform, bool bPlatform)
+{
+	TArray<FString> Result;
+	const FString File = bPlatform ? Platform / (Platform + TEXT("Game.ini")) : TEXT("Game.ini");
+	for (const FString& Root : {ProjectDir / TEXT("Config"), LaunchDir / TEXT("Config"), LaunchDir / TEXT("../../Config"), LaunchDir / ProjectName / TEXT("Config")})
+	{
+		FString Path = FPaths::ConvertRelativePathToFull(Root / File);
+		FPaths::NormalizeFilename(Path);
+		FPaths::CollapseRelativeDirectories(Path);
+		Result.AddUnique(Path);
+	}
+	return Result;
+}
+
+bool DeviceDataChannelConfig::ApplyRuntimeBuffers(const FString& DefaultGame, const TArray<FString>& CommonByPriority, const TArray<FString>& PlatformByPriority, UDTCoreSettings& Connections, UDeviceDataChannelSettings& Topics)
+{
+	TArray<FChannelConfigLayer> Layers{{DefaultGame, true}};
+	// Reverse the candidate order when applying: first candidate has highest priority.
+	// Platform lists retain their existing partial-row override behavior.
+	for (int32 I = PlatformByPriority.Num() - 1; I >= 0; --I)
+		Layers.Add({PlatformByPriority[I], false});
+	for (int32 I = CommonByPriority.Num() - 1; I >= 0; --I)
+		Layers.Add({CommonByPriority[I], true});
+	return ApplyLayers(Layers, Connections, Topics);
+}
+
 void DeviceDataChannelConfig::ApplyLoosePackageOverrides()
 {
 	if (!FPlatformProperties::RequiresCookedData())
 		return;
-	const FString Root = FPaths::ConvertRelativePathToFull(FPaths::ProjectConfigDir());
 	const FString Platform = FPlatformProperties::IniPlatformName();
-	FString Common, PlatformText;
-	ReadPhysicalConfig(Root / TEXT("DefaultGame.ini"), Common);
-	ReadPhysicalConfig(Root / Platform / (Platform + TEXT("Game.ini")), PlatformText);
-	if (FilterProjectOverrides(Common).IsEmpty() && FilterProjectOverrides(PlatformText).IsEmpty())
+	FString DefaultGame;
+	ReadPhysicalConfig(FPaths::ConvertRelativePathToFull(FPaths::ProjectConfigDir()) / TEXT("DefaultGame.ini"), DefaultGame);
+	TArray<FString> Common, PlatformText;
+	for (bool bPlatform : {false, true})
+		for (const auto& Path : RuntimeCandidatePaths(FPaths::ProjectDir(), FPaths::LaunchDir(), FApp::GetProjectName(), Platform, bPlatform))
+		{
+			FString Text;
+			ReadPhysicalConfig(Path, Text);
+			(bPlatform ? PlatformText : Common).Add(MoveTemp(Text));
+		}
+	const auto HasPolicy = [](const FString& Text)
+	{
+		return !FilterProjectOverrides(Text).IsEmpty();
+	};
+	if (!HasPolicy(DefaultGame) && !Common.ContainsByPredicate(HasPolicy) && !PlatformText.ContainsByPredicate(HasPolicy))
 		return;
-	if (ApplyBuffers(Common, PlatformText, *GetMutableDefault<UDTCoreSettings>(), *GetMutableDefault<UDeviceDataChannelSettings>()))
+	if (ApplyRuntimeBuffers(DefaultGame, Common, PlatformText, *GetMutableDefault<UDTCoreSettings>(), *GetMutableDefault<UDeviceDataChannelSettings>()))
 	{
 		UE_LOG(LogTemp, Display, TEXT("[DeviceDataChannel] Applied project loose connection/topic policy; credentials, unrelated settings and global config cache unchanged."));
 	}
