@@ -146,6 +146,22 @@ bool FStructure12RuntimeConfig::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStructure12SharedPreparation, "MA0T10.Structure12.SharedPreparation", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FStructure12SharedPreparation::RunTest(const FString&)
+{
+	auto* Transport = NewObject<UVirtualSensorTransportComp>();
+	TestEqual(TEXT("default unchanged"), Transport->TransportMode, EVirtualSensorTransportMode::LogOnly);
+	Transport->TransportMode = EVirtualSensorTransportMode::DTCoreWebSocket;
+	FString Error;
+	TestFalse(TEXT("missing shared connection rejects preflight"), Transport->PrepareStompConnection(Error));
+	TestFalse(TEXT("shared preflight has a reason"), Error.IsEmpty());
+	TestFalse(TEXT("shared preflight never acquires sensor"), Transport->SensorStompChannel.IsValid());
+	Transport->RequestStompReconnect();
+	TestFalse(TEXT("shared retry never acquires sensor or replaces Default policy"), Transport->SensorStompChannel.IsValid());
+	TestEqual(TEXT("shared retry leaves dedicated generation untouched"), Transport->GetStompConnectionRevision(), int64(0));
+	return true;
+}
+
 namespace
 {
 class FDataIfStompProbe : public IStompClient

@@ -272,6 +272,7 @@ private:
 	friend class UDeviceDTCorePublishReceipt;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FDeviceDTCoreTransportTest;
+	friend class FStructure12SharedPreparation;
 #endif
 	UDxWebSocketSubsystem* GetDTCoreWebSocket() const;
 	FVirtualSensorTransportResult SendDTCoreJson(UDxWebSocketSubsystem* Socket, const FString& SensorId, const FString& SensorType, const FString& DataKind, int64 FrameId, const FString& JsonText, bool bManualRequest, bool bRequestReceipt, const TMap<FString, FString>& AdditionalHeaders = {});

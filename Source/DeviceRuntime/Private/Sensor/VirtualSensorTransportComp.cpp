@@ -310,6 +310,12 @@ FString UVirtualSensorTransportComp::ResolveAckTopic() const
 
 void UVirtualSensorTransportComp::RequestStompReconnect()
 {
+	if (TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket)
+	{
+		// The shared connection's retry/subscription policy belongs to DTCore.
+		ReleaseStompChannel();
+		return;
+	}
 	++StompConnectionRevision;
 	bStompConnected.Store(false);
 	bStompConnecting.Store(false);
@@ -321,6 +327,14 @@ void UVirtualSensorTransportComp::RequestStompReconnect()
 bool UVirtualSensorTransportComp::PrepareStompConnection(FString& Error)
 {
 	Error.Reset();
+	if (TransportMode == EVirtualSensorTransportMode::DTCoreWebSocket)
+	{
+		ReleaseStompChannel();
+		const auto Result = TestConnection();
+		if (!Result.bAccepted)
+			Error = Result.Message;
+		return Result.bAccepted;
+	}
 	if (!UsesDedicatedSensorBroker() || TransportProfile.BrokerUrl.IsEmpty())
 	{
 		Error = TEXT("STOMP 서버 설정이 필요합니다.");
