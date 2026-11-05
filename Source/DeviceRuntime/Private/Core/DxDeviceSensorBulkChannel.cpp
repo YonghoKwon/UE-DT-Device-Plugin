@@ -138,29 +138,89 @@ bool UDxDeviceSensorBulkChannel::PublishFrame(const FVirtualSensorBinaryFrame& F
 	check(IsInGameThread());
 	if (IsShutdown() || !Transport.IsValid())
 	{
-		RecordDropped();
+		ObserveDropped(Frame.StreamKind, Frame.SensorId);
 		Error = TEXT("High-throughput transport is not running.");
 		return false;
 	}
 	if (!CheckMessageSize(Frame.NumBytes()))
 	{
+		// CheckMessageSize already records the channel drop.
+		if (Outage.bActive && Frame.StreamKind == EVirtualSensorStreamKind::PointCloud)
+		{
+			++Outage.DroppedFrames;
+			++Outage.DroppedBySensor.FindOrAdd(Frame.SensorId);
+			++TotalOutageDroppedFrames;
+		}
 		Error = GetStatus().LastError;
 		return false;
 	}
 	const bool bAccepted = Transport->EnqueueWorkerFrame(Frame, Error);
 	if (!bAccepted)
 	{
-		RecordDropped();
+		ObserveDropped(Frame.StreamKind, Frame.SensorId);
 		SetLastError(Error);
 	}
 	return bAccepted;
 }
 
-void UDxDeviceSensorBulkChannel::ObserveConnection(bool bConnected, const FString& Reason)
+void UDxDeviceSensorBulkChannel::ObserveConnection(bool bConnected, const FString& Reason, double ObservedSeconds, FDateTime ObservedUtc)
 {
+	check(IsInGameThread());
+	if (ObservedSeconds <= 0)
+		ObservedSeconds = FPlatformTime::Seconds();
+	if (ObservedUtc.GetTicks() == 0)
+		ObservedUtc = FDateTime::UtcNow();
+	if (!bConnected && !Outage.bActive)
+	{
+		// Includes initial connection failure: locally rejected frames remain visible.
+		Outage = FDevicePcdOutage();
+		Outage.bActive = true;
+		Outage.StartedSeconds = ObservedSeconds;
+		Outage.StartedUtc = ObservedUtc;
+	}
+	else if (bConnected && Outage.bActive)
+	{
+		Outage.bActive = false;
+		Outage.RecoveredUtc = ObservedUtc;
+		Outage.DurationSeconds = FMath::Max(0.0, ObservedSeconds - Outage.StartedSeconds);
+		TArray<FString> Sensors;
+		Outage.DroppedBySensor.GetKeys(Sensors);
+		Sensors.Sort();
+		TArray<FString> Counts;
+		for (const auto& Sensor : Sensors)
+			Counts.Add(FString::Printf(TEXT("%s:%lld"), *Sensor, Outage.DroppedBySensor.FindChecked(Sensor)));
+		UE_LOG(LogTemp, Warning, TEXT("[SensorBulkRecovery] start=%s recovered=%s duration=%.3fs knownLost=%lld sensors=[%s] cumulative=%lld (local rejection/terminal failure; receipt is not consumer ACK)"),
+		       *Outage.StartedUtc.ToIso8601(), *Outage.RecoveredUtc.ToIso8601(), Outage.DurationSeconds, Outage.DroppedFrames, *FString::Join(Counts, TEXT(",")), TotalOutageDroppedFrames);
+	}
 	if (!bConnected)
 		SetLastError(Reason);
 	UpdateState(bConnected ? EDxDataChannelState::Connected : EDxDataChannelState::Reconnecting, Reason);
+}
+
+void UDxDeviceSensorBulkChannel::ObserveDropped(EVirtualSensorStreamKind Kind, const FString& SensorId)
+{
+	RecordDropped();
+	if (Outage.bActive && Kind == EVirtualSensorStreamKind::PointCloud)
+	{
+		++Outage.DroppedFrames;
+		++Outage.DroppedBySensor.FindOrAdd(SensorId);
+		++TotalOutageDroppedFrames;
+	}
+}
+
+void UDxDeviceSensorBulkChannel::ObserveSuspendedPointCloud(const FString& SensorId)
+{
+	if (Outage.bActive)
+		ObserveDropped(EVirtualSensorStreamKind::PointCloud, SensorId);
+}
+
+FString UDxDeviceSensorBulkChannel::GetOutageStatusText() const
+{
+	if (Outage.StartedUtc.GetTicks() == 0)
+		return FString();
+	const double Seconds = Outage.bActive ? FMath::Max(0.0, FPlatformTime::Seconds() - Outage.StartedSeconds) : Outage.DurationSeconds;
+	return FString::Printf(TEXT("PCD 연결 중단 %s · %.1f초 · 확인된 유실 %lld프레임 (누적 %lld, 수신 완료 보장 아님)"),
+	                       Outage.bActive ? TEXT("진행 중") : TEXT("복구됨"), Seconds, Outage.DroppedFrames, TotalOutageDroppedFrames);
 }
 
 bool UDxDeviceSensorBulkChannel::PublishBytes(const FString&, const TArray<uint8>&, const TMap<FName, FString>&, const FSTOMPRequestCompleted&)

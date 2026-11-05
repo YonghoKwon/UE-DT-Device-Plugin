@@ -74,6 +74,44 @@ bool FDeviceBulkChannelPolicy::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStructure12BulkOutage, "MA0T10.Structure12.BulkOutage", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FStructure12BulkOutage::RunTest(const FString&)
+{
+	auto* Channel = NewObject<UDxDeviceSensorBulkChannel>();
+	FDxDataChannelSettings Settings;
+	Settings.ChannelName = TEXT("sensor-bulk");
+	Settings.bAutoConnect = false;
+	Channel->InitializeChannel(Settings.ChannelName, Settings, nullptr);
+	const auto Start = FDateTime(2026, 11, 5, 12);
+	Channel->ObserveConnection(true, TEXT("fixture"), 10, Start);
+	TestTrue(TEXT("healthy path has no outage string"), Channel->GetOutageStatusText().IsEmpty());
+	Channel->ObserveConnection(false, TEXT("fixture loss"), 20, Start + FTimespan::FromSeconds(10));
+	Channel->ObserveDropped(EVirtualSensorStreamKind::PointCloud, TEXT("A"));
+	Channel->ObserveSuspendedPointCloud(TEXT("A"));
+	Channel->ObserveDropped(EVirtualSensorStreamKind::PointCloud, TEXT("B"));
+	Channel->ObserveDropped(EVirtualSensorStreamKind::CameraImage, TEXT("camera"));
+	Channel->ObserveConnection(false, TEXT("retry"), 22, Start + FTimespan::FromSeconds(12));
+	TestEqual(TEXT("retry preserves first disconnect"), Channel->GetLastOutage().StartedSeconds, 20.0);
+	Channel->ObserveConnection(true, TEXT("recovered"), 25, Start + FTimespan::FromSeconds(15));
+	TestFalse(TEXT("recovery closes interval"), Channel->IsOutageActive());
+	TestEqual(TEXT("monotonic duration"), Channel->GetLastOutage().DurationSeconds, 5.0);
+	TestEqual(TEXT("sensor A includes local suspension"), Channel->GetLastOutage().DroppedBySensor.FindRef(TEXT("A")), int64(2));
+	TestEqual(TEXT("sensor B independent"), Channel->GetLastOutage().DroppedBySensor.FindRef(TEXT("B")), int64(1));
+	TestEqual(TEXT("PCD outage count excludes camera"), Channel->GetOutageDroppedFrames(), int64(3));
+	TestEqual(TEXT("channel status includes all terminal drops exactly once"), Channel->GetStatus().DroppedCount, int64(4));
+	TestTrue(TEXT("existing status UI receives explicit loss summary"), Channel->GetOutageStatusText().Contains(TEXT("3")));
+	Channel->ObserveSuspendedPointCloud(TEXT("A"));
+	TestEqual(TEXT("healthy suspension does not add outage loss"), Channel->GetOutageDroppedFrames(), int64(3));
+	Channel->ObserveConnection(true, TEXT("duplicate connected"), 26, Start);
+	TestEqual(TEXT("duplicate recovery preserves summary"), Channel->GetLastOutage().DurationSeconds, 5.0);
+	Channel->ObserveConnection(false, TEXT("second"), 30, Start);
+	Channel->ObserveDropped(EVirtualSensorStreamKind::PointCloud, TEXT("B"));
+	TestEqual(TEXT("new interval resets per-outage count"), Channel->GetLastOutage().DroppedFrames, int64(1));
+	TestEqual(TEXT("cumulative survives new interval"), Channel->GetOutageDroppedFrames(), int64(4));
+	Channel->ShutdownChannel();
+	return true;
+}
+
 namespace
 {
 class FDataIfStompProbe : public IStompClient
@@ -467,9 +505,7 @@ bool FDeviceLooseEditReplacesPackagedRow::RunTest(const FString&)
 	TestTrue(TEXT("platform-only edit applies"), DeviceDataChannelConfig::ApplyBuffers(FString(), PlatformEdit, *Connections, *Topics));
 	TestEqual(TEXT("platform edit keeps other packaged rows"), Connections->DataChannels.Num(), 2);
 	const auto* Bulk = Connections->DataChannels.FindByPredicate([](const FDxDataChannelSettings& Item)
-	{
-		return Item.ChannelName == TEXT("sensor-bulk");
-	});
+	                                                             { return Item.ChannelName == TEXT("sensor-bulk"); });
 	TestTrue(TEXT("platform edit wins for its channel"), Bulk && Bulk->Url == TEXT("tcp://windows-bulk:2"));
 	return true;
 }

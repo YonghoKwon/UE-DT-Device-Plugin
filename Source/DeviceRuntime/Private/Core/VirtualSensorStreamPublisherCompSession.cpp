@@ -19,6 +19,8 @@
 #include "Device/Sensor/DeviceSensorCoordinator.h"
 #include "Device/Sensor/VirtualSensorActorBase.h"
 #include "Device/Sensor/VirtualSensorOutputComp.h"
+#include "Device/Core/DxDeviceSensorBulkChannel.h"
+#include "Device/Core/DxDeviceSensorChannelSubsystem.h"
 #include "EngineUtils.h"
 #include "Device/Sensor/VirtualLidarPayloadCodec.h"
 #include "Device/Sensor/VirtualSensorTransportComp.h"
@@ -36,7 +38,7 @@ void UVirtualSensorStreamPublisherComp::SubmitFrame(const FVirtualSensorFrameEnv
 	for (const FString& Key : Keys)
 	{
 		FStreamRuntime* Runtime = StreamRuntimes.Find(Key);
-		if (!Runtime || !Runtime->Config.bEnabled || !StreamMatchesFrame(Runtime->Config.StreamKind, Frame.SensorKind))
+		if (!Runtime || (!Runtime->Config.bEnabled && !Runtime->Status.bOverloadSuspended) || !StreamMatchesFrame(Runtime->Config.StreamKind, Frame.SensorKind))
 			continue;
 		if (Frame.bLidarCompatibilityDerived && (Runtime->Config.StreamKind != EVirtualSensorStreamKind::LidarPayload ||
 		                                         (Runtime->Config.TransportBackend == EVirtualSensorStreamTransportBackend::TcpStompHighThroughput && CanUseHighThroughputTransport())))
@@ -52,6 +54,13 @@ void UVirtualSensorStreamPublisherComp::SubmitFrame(const FVirtualSensorFrameEnv
 			const FStreamRuntime* Exact = StreamRuntimes.Find(MakeStreamKey(Runtime->Config.StreamKind, Frame.SensorId));
 			if (Exact && (Exact->Config.bEnabled || Exact->Status.bOverloadSuspended))
 				continue;
+		}
+		if (Runtime->Status.bOverloadSuspended)
+		{
+			if (Runtime->Config.StreamKind == EVirtualSensorStreamKind::PointCloud && Runtime->Config.TransportBackend == EVirtualSensorStreamTransportBackend::TcpStompHighThroughput)
+				if (auto* Bulk = UDxDeviceSensorChannelSubsystem::FindBulk(GetWorld()))
+					Bulk->ObserveSuspendedPointCloud(Frame.SensorId);
+			continue;
 		}
 		QueueFrameForRuntime(Key, *Runtime, Frame);
 	}

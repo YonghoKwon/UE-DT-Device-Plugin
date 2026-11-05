@@ -789,9 +789,9 @@ private:
 			}
 			if (!SendFrame(Frame, 0))
 			{
-				FailFrame(Frame, LastWriteError);
 				if (bConnected)
 					HandleDisconnect(LastWriteError);
+				FailFrame(Frame, LastWriteError);
 				return;
 			}
 			++SentThisPass;
@@ -1271,9 +1271,9 @@ private:
 			QueueEvent(MoveTemp(RetryEvent));
 			if (!SendFrame(Pending.Frame, Pending.RetryAttempt + 1))
 			{
-				FailFrame(Pending.Frame, LastWriteError);
 				if (bConnected)
 					HandleDisconnect(LastWriteError);
+				FailFrame(Pending.Frame, LastWriteError);
 				return;
 			}
 		}
@@ -1308,6 +1308,8 @@ private:
 	{
 		FWorkerEvent Event;
 		Event.Type = bNowConnected ? EWorkerEventType::Connected : EWorkerEventType::Disconnected;
+		Event.ObservedSeconds = FPlatformTime::Seconds();
+		Event.ObservedUtc = FDateTime::UtcNow();
 		Event.Message = Message;
 		QueueEvent(MoveTemp(Event));
 	}
@@ -1804,7 +1806,7 @@ void UVirtualSensorHighThroughputTransportSubsystem::DrainWorkerEvents()
 			LogDiagnostic(Event.Type == EWorkerEventType::Connected ? 0 : 1, FString::Printf(TEXT("[SensorRawConnection] connected=%d reason=%s"), Event.Type == EWorkerEventType::Connected, *Event.Message));
 			bTransportConnected = Event.Type == EWorkerEventType::Connected;
 			if (auto* Channel = BulkChannel.Get())
-				Channel->ObserveConnection(bTransportConnected, Event.Message);
+				Channel->ObserveConnection(bTransportConnected, Event.Message, Event.ObservedSeconds, Event.ObservedUtc);
 			++ConnectionRevision;
 			ConnectionMessage = Event.Message;
 			for (TPair<FString, FVirtualSensorStreamTelemetry>& Pair : TelemetryByKey)
@@ -1894,7 +1896,7 @@ void UVirtualSensorHighThroughputTransportSubsystem::DrainWorkerEvents()
 				break;
 			case EWorkerEventType::DeliveryFailed:
 				if (auto* Channel = BulkChannel.Get())
-					Channel->ObserveDropped();
+					Channel->ObserveDropped(Event.StreamKind, Event.SensorId);
 				++Telemetry.DeliveryFailureCount;
 				Telemetry.LastDeliveryFailureMessage = FString::Printf(TEXT("sensor=%s frame=%lld: %s"), *Event.SensorId, Event.FrameId, *Event.Message);
 				Telemetry.State = TEXT("delivery-failed");
