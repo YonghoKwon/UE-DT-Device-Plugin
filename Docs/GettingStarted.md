@@ -11,7 +11,7 @@ UE 5.3 / Win64 / D3D12 기준입니다. 현재 이름·include·설정·에셋�
 ```powershell
 git submodule add https://github.com/YonghoKwon/UE-DT-Core-Plugin.git Plugins/DTCore
 git submodule add https://github.com/YonghoKwon/UE-DT-Device-Plugin.git Plugins/DTDevice
-git -C Plugins/DTCore checkout f05f25f6ebb8bacda0e5b0dc6e1c5d5d88ae44ee
+git -C Plugins/DTCore checkout e6644e2964ba3359c0689e3539cbdbdbf743b137
 # DTDevice는 검증 조합에 맞는 정확한 SHA로 고정하고 parent gitlink에 기록합니다.
 ```
 

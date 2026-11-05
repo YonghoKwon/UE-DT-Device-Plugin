@@ -4,7 +4,7 @@ DTCore 필수 기반 가상 LiDAR·카메라 플러그인입니다. 장치 분�
 
 ## 요구·모듈
 
-UE 5.3 / Win64 / D3D12, native RT는 DXR inline ray query Tier1.1과 시작 검증을 요구합니다. 검증 DTCore는 **f05f25f6ebb8bacda0e5b0dc6e1c5d5d88ae44ee**입니다. [Compatibility](Docs/Compatibility.md)의 증거 범위를 따릅니다.
+UE 5.3 / Win64 / D3D12, native RT는 DXR inline ray query Tier1.1과 시작 검증을 요구합니다. 검증 DTCore는 **e6644e2964ba3359c0689e3539cbdbdbf743b137**입니다. [Compatibility](Docs/Compatibility.md)의 증거 범위를 따릅니다.
 
 | 모듈 | LoadingPhase | 책임 |
 |---|---|---|

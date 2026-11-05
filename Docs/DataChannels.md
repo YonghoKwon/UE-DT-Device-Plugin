@@ -1,6 +1,6 @@
 # 장치 데이터 채널과 프로젝트 토픽 정책
 
-DTCore main **f05f25f6ebb8bacda0e5b0dc6e1c5d5d88ae44ee** 기반입니다. 연결·등록·상태·재연결 메커니즘은 DTCore, 어떤 destination을 사용하는지는 소비 프로젝트가 소유합니다. 과제 TC/DataTable을 공통 장치 코드로 복사하지 않습니다.
+DTCore main **e6644e2964ba3359c0689e3539cbdbdbf743b137** 기반입니다. 연결·등록·상태·재연결 메커니즘은 DTCore, 어떤 destination을 사용하는지는 소비 프로젝트가 소유합니다. 과제 TC/DataTable을 공통 장치 코드로 복사하지 않습니다.
 
 ## 채널·수명
 
