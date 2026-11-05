@@ -197,7 +197,7 @@ struct FDeviceSensorMonitorBody
 		                                                              : (!DeviceSelf->bShowingLidar && DeviceSelf->CameraComp ? DeviceSelf->CameraComp->TransportComp.Get() : nullptr));
 		FString SchedulerText;
 		if (DeviceSelf->GetWorld())
-			if (const UVirtualSensorSchedulerSubsystem* Scheduler = DeviceSelf->GetWorld()->GetSubsystem<UVirtualSensorSchedulerSubsystem>())
+			if (const UVirtualSensorSchedulerSubsystem* Scheduler = DeviceSelf->GetWorld()->template GetSubsystem<UVirtualSensorSchedulerSubsystem>())
 				SchedulerText = TEXT("\n성능: ") + Scheduler->GetTelemetrySummaryText();
 		if (!TransportComp)
 			return TEXT("Transport: unavailable") + SchedulerText;

@@ -415,8 +415,10 @@ void UVirtualLidarGpuDepthProjectionComp::ReleaseReadbackOnRenderThread()
 	ReadbackDimensions = FIntPoint::ZeroValue;
 	auto Semantic = MoveTemp(SemanticReadback);
 	if (Semantic.IsValid())
+	{
 		ENQUEUE_RENDER_COMMAND(ReleaseLidarSemantic)([Semantic = MoveTemp(Semantic)](FRHICommandListImmediate&) mutable
 		                                             { Semantic.Reset(); });
+	}
 	if (!Readback.IsValid())
 	{
 		return;

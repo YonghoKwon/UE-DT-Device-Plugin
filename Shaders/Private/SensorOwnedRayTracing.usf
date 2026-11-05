@@ -1,3 +1,7 @@
+#if !SENSOR_NATIVE_STANDALONE
+#include "/Engine/Public/Platform.ush"
+#endif
+
 #if SENSOR_NATIVE_INLINE
 // Standalone DXR 1.1 compute entry; the engine TraceRay path below is the oracle.
 RaytracingAccelerationStructure LidarTLAS : register(t0);
